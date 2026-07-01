@@ -1,7 +1,7 @@
 ---
 agent: "agent"
 description: "Create a project backlog, phases, milestones, acceptance criteria, risks, and parallel work tracks for SkyRoute."
-tools: ["search", "read"]
+tools: ["search", "read", "edit"]
 ---
 
 # Create Project Backlog

@@ -1,6 +1,6 @@
 ---
 description: "UX/UI Designer for SkyRoute user flows, page structure, usability, responsive behavior, and accessible design."
-tools: ["search", "read"]
+tools: ["search", "read", "edit"]
 ---
 
 # UX/UI Designer Agent

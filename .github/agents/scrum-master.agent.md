@@ -1,6 +1,6 @@
 ---
 description: "Scrum Master for Agile ceremonies, sprint planning, daily coordination, impediment management, and retrospectives."
-tools: ["search/codebase", "search", "search/changes", "read/problems", "vscodeGeneral/problems", "edit/editFiles"]
+tools: ["search", "read", "edit"]
 ---
 
 # Scrum Master Agent

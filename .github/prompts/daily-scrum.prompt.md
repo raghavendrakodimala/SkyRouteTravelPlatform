@@ -1,7 +1,7 @@
 ---
 agent: "agent"
 description: "Run a daily scrum-style coordination check for SkyRoute."
-tools: ["search/codebase", "search", "search/changes", "read/problems","vscodeGeneral/problems"]
+tools: ["search", "read", "edit"]
 ---
 
 # Daily Scrum

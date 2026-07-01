@@ -1,6 +1,6 @@
 ---
 description: "Functional Tester for test scenarios, acceptance criteria, validation, and end-to-end behavior."
-tools: ["search", "read", "execute"]
+tools: ["search", "read", "edit", "execute"]
 ---
 
 # Functional Tester Agent
