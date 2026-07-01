@@ -1,7 +1,7 @@
 ---
 agent: "agent"
 description: "Plan a SkyRoute sprint with sprint goal, selected backlog items, parallel work tracks, dependencies, and risks."
-tools: ["search/codebase", "search", "search/changes", "read/problems","vscodeGeneral/problems"]
+tools: ["search", "read", "edit"]
 ---
 
 # Plan Sprint

@@ -1,7 +1,7 @@
 ---
 agent: "agent"
 description: "Refine SkyRoute backlog items so they are ready for sprint planning."
-tools: ["search/codebase", "search", "search/changes", "read/problems","vscodeGeneral/problems"]
+tools: ["search", "read", "edit"]
 ---
 
 # Refine Backlog

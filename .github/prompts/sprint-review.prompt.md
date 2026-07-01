@@ -1,7 +1,7 @@
 ---
 agent: "agent"
 description: "Prepare a sprint review summary for completed SkyRoute work."
-tools: ["search/codebase", "search", "search/changes", "read/problems","vscodeGeneral/problems"]
+tools: ["search", "read", "edit"]
 ---
 
 # Sprint Review

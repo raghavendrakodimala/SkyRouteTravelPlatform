@@ -1,7 +1,7 @@
 ---
 agent: "agent"
 description: "Create a parallel delivery plan so development, testing, accessibility, DevOps, and documentation can proceed together."
-tools: ["search", "read"]
+tools: ["search", "read", "edit"]
 ---
 
 # Create Parallel Delivery Plan

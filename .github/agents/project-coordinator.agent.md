@@ -1,6 +1,6 @@
 ---
 description: "Project Coordinator for planning, backlog, phases, parallel delivery, risks, dependencies, and milestones."
-tools: ["search", "read"]
+tools: ["search", "read", "edit"]
 ---
 
 # Project Coordinator Agent

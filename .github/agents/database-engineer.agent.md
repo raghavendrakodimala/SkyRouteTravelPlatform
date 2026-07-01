@@ -1,6 +1,6 @@
 ---
 description: "Database Engineer for persistence design, in-memory storage abstraction, data modeling, and future database migration."
-tools: ["search", "read", "edit"]
+tools: ["search", "read", "edit", "execute"]
 ---
 
 # Database Engineer Agent

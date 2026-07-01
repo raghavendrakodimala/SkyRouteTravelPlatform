@@ -1,7 +1,7 @@
 ---
 agent: "agent"
 description: "Run a sprint retrospective for SkyRoute and recommend process improvements."
-tools: ["search/codebase", "search", "search/changes", "read/problems","vscodeGeneral/problems"]
+tools: ["search", "read", "edit"]
 ---
 
 # Sprint Retrospective
