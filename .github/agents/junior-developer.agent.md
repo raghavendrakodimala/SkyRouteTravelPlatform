@@ -1,6 +1,6 @@
 ---
 description: "Junior Developer for small, well-defined SkyRoute tasks following established patterns."
-tools: ["search", "read", "edit", "execute"]
+tools: ["search", "read", "edit", "execute", "browser", "web"]
 ---
 
 # Junior Developer Agent

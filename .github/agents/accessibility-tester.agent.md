@@ -1,6 +1,6 @@
 ---
 description: "Accessibility Tester for WCAG 2.2 AA review of Angular UI and user flows."
-tools: ["search", "read"]
+tools: ["search", "read", "edit", "execute", "browser", "web"]
 ---
 
 # Accessibility Tester Agent

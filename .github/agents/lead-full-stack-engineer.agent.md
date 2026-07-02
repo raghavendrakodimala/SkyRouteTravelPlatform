@@ -1,6 +1,6 @@
 ---
 description: "Lead Full Stack Engineer for implementing production-quality Angular and ASP.NET features."
-tools: ["search", "read", "edit", "execute"]
+tools: ["search", "read", "edit", "execute", "vscode", "browser", "web"]
 ---
 
 # Lead Full Stack Engineer Agent
