@@ -1,6 +1,6 @@
 ---
 description: "Senior Full Stack Engineer for implementing medium and complex SkyRoute features with tests."
-tools: ["search", "read", "edit", "execute"]
+tools: ["search", "read", "edit", "execute", "vscode", "browser", "web"]
 ---
 
 # Senior Full Stack Engineer Agent

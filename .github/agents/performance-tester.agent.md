@@ -1,6 +1,6 @@
 ---
 description: "Performance Tester for backend, frontend, API, and user journey performance risks."
-tools: ["search", "read", "edit", "execute"]
+tools: ["search", "read", "edit", "execute", "browser", "web"]
 ---
 
 # Performance Tester Agent

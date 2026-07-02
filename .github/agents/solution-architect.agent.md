@@ -1,6 +1,6 @@
 ---
 description: "Solution Architect for SkyRoute architecture, requirements analysis, and technical decisions."
-tools: ["search", "read", "edit"]
+tools: ["search", "read", "edit", "web", "githubRepo"]
 ---
 
 # Solution Architect Agent

@@ -1,6 +1,6 @@
 ---
 description: "DevOps Engineer for GitHub Actions, Docker, environment configuration, deployment, and operational readiness."
-tools: ["search", "read", "edit", "execute"]
+tools: ["search", "read", "edit", "execute", "vscode", "web"]
 ---
 
 # DevOps Engineer Agent

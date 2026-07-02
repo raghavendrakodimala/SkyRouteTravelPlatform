@@ -1,6 +1,6 @@
 ---
 description: "Technical Writer for README, setup docs, requirements docs, architecture docs, and API documentation."
-tools: ["search", "read", "edit"]
+tools: ["search", "read", "edit", "execute", "web"]
 ---
 
 # Technical Writer Agent

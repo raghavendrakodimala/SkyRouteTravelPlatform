@@ -495,3 +495,19 @@ Notes:
 - Assumptions, risks, or follow-up items
 
 Do not claim tests passed unless they were actually run.
+
+---
+
+## 18. Inter-Agent Communication and Coordination
+
+Agents cannot message each other directly, and there is no live agent-to-agent channel or pull requests. Coordination, feedback, and handoffs happen through **shared Markdown documents in the repository**, created on demand under `docs/`. Files persist across sessions and are visible in Git history, so any agent can read prior context and continue where another left off.
+
+### Protocol (applies to every agent)
+
+1. **Read before you act.** Load the relevant shared docs (requirements, architecture, plans, prior reviews) so you build on existing context instead of guessing.
+2. **Persist your output.** Write your deliverable as Markdown in an appropriate `docs/` location (architecture, testing, delivery/planning, feature notes, review notes). Do not leave important output in chat only.
+3. **Record handoffs.** When your role's guidance routes work to another agent, capture it in a shared coordination doc so the receiving agent can find it.
+4. **Close the loop.** When you act on something addressed to you (a review finding, a handoff, an impediment), update it in place rather than creating duplicates.
+5. **Respect write scope.** Writing to shared docs never overrides an agent's behavior rules — e.g. the Code Reviewer records findings in review notes and must never modify source code.
+
+The exact document set, filenames, and handoff format will be finalized as the delivery workflow is established.
