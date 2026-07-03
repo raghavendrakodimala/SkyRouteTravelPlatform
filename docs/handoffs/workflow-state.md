@@ -2,13 +2,13 @@
 
 Project: SkyRoute MVP
 Run mode: Phased --auto-commit-merge --no-push
-Current phase: Phase 09 — Sprint Planning (complete — Proposed, pending Human PO approval gate PH-09)
-Next phase: Phase 10 — Feature Specifications
-Last agent: scrum-master
-Next agent: solution-architect (Phase 10 Feature Specifications)
-Branch: sdlc/09-sprint-planning-skyroute-mvp (pending merge to main)
-Blockers: Human PO approval gate (PH-09) outstanding — see Next Action
-Status: Phase 09 (v1.0) complete; Phase 10 ready to start once PH-09 is cleared
+Current phase: Phase 10 — Feature Specifications (Complete)
+Next phase: Phase 11 — Spec Readiness Check
+Last agent: solution-architect
+Next agent: scrum-master (Phase 11 Spec Readiness Check)
+Branch: sdlc/10-feature-specifications-skyroute-mvp (pending merge to main)
+Blockers: None for Phase 10. Note: PH-09 (Human PO approval gate for Sprint 1 Plan) status should be confirmed by the Orchestrator before/alongside Phase 11 if not already cleared — see prior Next Action history.
+Status: Phase 10 (v1.0) complete; Phase 11 ready to start
 
 ---
 
@@ -25,7 +25,7 @@ Status: Phase 09 (v1.0) complete; Phase 10 ready to start once PH-09 is cleared
 | 07 | Project Backlog | Complete | sdlc/07-project-backlog-skyroute-mvp | project-coordinator | HO-007 |
 | 08 | Parallel Delivery Plan | Complete | sdlc/08-parallel-delivery-plan-skyroute-mvp | project-coordinator | HO-008 |
 | 09 | Sprint Planning | Complete — Proposed, pending Human PO approval (PH-09) | sdlc/09-sprint-planning-skyroute-mvp | scrum-master | HO-009 |
-| 10 | Feature Specifications | Not Started | Pending | solution-architect | Pending |
+| 10 | Feature Specifications | Complete | sdlc/10-feature-specifications-skyroute-mvp | solution-architect | HO-010 |
 | 11 | Spec Readiness Check | Not Started | Pending | scrum-master | Pending |
 | 12 | Implementation | Not Started | Pending | lead-full-stack-engineer | Pending |
 | 13 | Test Writing | Not Started | Pending | functional-tester | Pending |
@@ -71,24 +71,28 @@ None — Phase 03 approval gate cleared 2026-07-03.
 
 ## Last Completed Phase
 
-Phase 09 — Sprint Planning (v1.0)
-Branch: sdlc/09-sprint-planning-skyroute-mvp
-Agent: scrum-master
-Handoff: HO-009 (`docs/handoffs/09-scrum-master-to-sdlc-orchestrator-sprint-plan.md`)
+Phase 10 — Feature Specifications (v1.0)
+Branch: sdlc/10-feature-specifications-skyroute-mvp
+Agent: solution-architect
+Handoff: HO-010 (`docs/handoffs/10-solution-architect-to-sdlc-orchestrator-feature-specs.md`)
 Artefacts:
-- `docs/delivery/sprint-1-plan.md` (v1.0, new) — sprint goal; full 37-item scope commitment with 5 items/areas flagged at-risk (not descoped); Sprint Backlog adopting `parallel-delivery-plan.md` Section 6's 24-step order verbatim, grouped into 3 non-binding increments; DoR confirmation (citing Phase 07); DoD restated as sprint exit criteria; honest capacity/risk framing (RISK-001, RISK-009, no fabricated velocity); ceremony adaptations confirmed (citing scrum-operating-model.md); Phase 10/11 gates reaffirmed as still required before implementation.
+- `docs/features/feature-flight-search.md` (v1.0, new) — US-001, US-008: search form fields, exact `SearchRequest` JSON shape, exact 400 validation messages, airport dropdown shape, loading/empty/error UI states.
+- `docs/features/feature-search-results-and-sorting.md` (v1.0, new) — US-002, US-003: exact `FlightResult` JSON shape, price/duration/time formatting rules, sort behavior and default sort, stable-sort tie-breaking.
+- `docs/features/feature-provider-aggregation.md` (v1.0, new) — US-007: `IFlightProvider` contract, concrete fixed mock flight datasets (4 flights each for GlobalAir/BudgetWings) with routes/times/fares, cabin-class multipliers, worked BR-001/BR-002 pricing examples, fully worked BR-007 fault-isolation example.
+- `docs/features/feature-booking-flow.md` (v1.0, new) — US-004, US-005, US-006: booking-screen data-carry rules, per-passenger validation with exact regex patterns, worked BR-003 document-routing example, exact `BookingRequest`/`BookingResponse` JSON shapes, exact booking-reference algorithm with bounded collision retry, confirmation-screen fields.
+- `docs/features/feature-error-handling-and-validation.md` (v1.0, new) — cross-cutting: canonical 400/404/500 shapes, centralized exception-middleware behavior, complete enumerated error-scenario list.
 
-Phase 09 summary: All 37 active backlog items committed to Sprint 1 — no scope change, no descoping. Sprint Backlog order taken as-is from Phase 08's parallel delivery plan, not re-derived. No new decision, risk, or impediment introduced. No code, commands, or file deletions. The sprint plan is **Proposed**, not yet Approved — PH-09 (Human PO approval gate per `docs/delivery/task-board.md`) is outstanding and is the one open item carried forward.
+Phase 10 summary: 21 explicitly labelled Gap-fill decisions made within already-approved flexibility (full list in HO-010); none changes scope, business rules, NFR targets, or architecture decisions; none requires a new Product Owner approval gate. One non-blocking open item flagged for Phase 11 acknowledgement (GAP-EH-02 — FR-068's 404 path is unreachable by either MVP endpoint). No code, commands, or file deletions. No requirement, business rule, NFR, or architecture decision was reopened or contradicted.
 
-Prior completed phase: Phase 08 — Parallel Delivery Plan (v1.0). See `docs/handoffs/08-project-coordinator-to-sdlc-orchestrator-delivery-plan.md`.
+Prior completed phase: Phase 09 — Sprint Planning (v1.0, Proposed pending PH-09). See `docs/handoffs/09-scrum-master-to-sdlc-orchestrator-sprint-plan.md`.
 
 ---
 
 ## Next Action
 
-Phase 09 complete (Proposed). SDLC Orchestrator to:
+Phase 10 complete. SDLC Orchestrator to:
 
-1. Present `docs/delivery/sprint-1-plan.md` to the Human Product Owner for the PH-09 approval gate (sprint goal, full-scope commitment with at-risk flags, capacity framing).
-2. Once approved, commit and merge Phase 09 branch (`sdlc/09-sprint-planning-skyroute-mvp`) to `main`.
-3. Create phase branch `sdlc/10-feature-specifications-skyroute-mvp` from updated `main`.
-4. Invoke `solution-architect` for Phase 10 — Feature Specifications, using `docs/delivery/sprint-1-plan.md` v1.0 Section 3 (Sprint Backlog) as the scope and sequencing input. Phase 11 (Spec Readiness Check, owner scrum-master) remains a required gate before Phase 12 (Implementation) per sprint plan Section 8.
+1. Review the five `docs/features/*.md` documents for completeness against the Phase 10 task brief.
+2. Commit and merge Phase 10 branch (`sdlc/10-feature-specifications-skyroute-mvp`) to `main`.
+3. Create phase branch `sdlc/11-spec-readiness-check-skyroute-mvp` from updated `main`.
+4. Invoke `scrum-master` for Phase 11 — Spec Readiness Check, using the five Phase 10 feature specs plus `docs/delivery/project-backlog.md` v1.1 and `docs/delivery/sprint-1-plan.md` v1.0 as inputs. Phase 11 should explicitly acknowledge GAP-EH-02 (see HO-010) and confirm whether PH-09 (Human PO approval gate for the Sprint 1 Plan) has been cleared, since it was still outstanding as of the Phase 09 handoff.
