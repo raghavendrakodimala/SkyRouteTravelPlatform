@@ -1,43 +1,34 @@
-# Handoff: HO-002
+# Handoff: HO-003
 
 | Field | Value |
 |---|---|
-| Handoff ID | HO-002 |
+| Handoff ID | HO-003 |
 | Date | 2026-07-03 |
-| Branch | sdlc/02-delivery-model-skyroute-mvp |
-| Phase | Phase 02 — SDLC Delivery Operating Model |
-| From agent | project-coordinator |
+| Branch | sdlc/03-requirements-analysis-skyroute-mvp |
+| Phase | Phase 03 — Requirements Analysis |
+| From agent | solution-architect |
 | To agent | sdlc-orchestrator |
-| Status | Complete |
+| Status | Complete — Awaiting Human Product Owner Approval |
 
 ---
 
 ## Work Completed
 
-- Created the SDLC Delivery Operating Model document defining the full operating model for the simulated IT delivery team, including agent coordination, phase-by-phase delivery model, decision-making authority matrix, communication and escalation paths, quality gate checkpoints, and the artefact traceability model.
-- Created the Roles and Responsibilities document with full RACI-style responsibility assignments for all 18 agent roles, including active phase mappings and a complete RACI matrix covering all 24 SDLC phases.
-- Created the Dependency Register with 24 initial dependencies covering phase sequencing, spec dependencies, technical dependencies, and human approval gates — including SkyRoute-specific entries for backend-before-frontend integration, API contracts before implementation, and test execution environment.
-- Created the Risk Register with 13 initial risks covering timeline pressure (EOD deadline), in-memory data loss (accepted by design), provider extensibility, test execution blocked (IMP-001), hiring challenge evaluation uncertainty, Angular 17 standalone patterns, minimal API vs controller pattern, multi-passenger scope ambiguity, velocity baseline absence, review findings rework risk, CORS configuration risk, accessibility static-only review risk, and agent context window limitation.
-- Created the Decision Log with 12 initial decisions covering sprint compression, standup adaptation, T-shirt sizing, human gate at Sprint Review, Critical/High finding acceptance, backlog refinement cadence, phased autopilot auto-commit/merge approval, in-memory data store, Angular 17 standalone components, no external flight provider, parallel review option, and no-PR review model.
-- Created the Impediment Log with IMP-001 documenting that test execution requires explicit Human Product Owner approval before commands can run.
-- Updated the Delegation Log with DEL-001 (Phase 01) and DEL-002 (Phase 02).
-- Updated the Task Board with Done, In Review, In Progress, and Backlog columns populated for all 24 phases.
+- Read and fully analysed the arrivia SkyRoute Developer Challenge PDF (4 pages, Senior Full-Stack Engineering Assessment).
+- Read prior phase handoffs (HO-001, HO-002) and workflow state to ensure continuity.
+- Read approved memory decisions: OQ-001 (per-passenger records), OQ-002 (booking reference format `SKY-[INT/DOM]-[XXXXXX]`), OQ-006 (EOD 2026-07-03 deadline).
+- Produced a comprehensive, implementation-ready requirements document at `docs/requirements.md`.
+- Document covers: document metadata, project overview, 8 user stories with full acceptance criteria, 72 functional requirements across 9 areas, 10 business rules, 10 high-level NFR areas, 13 assumptions, 20 out-of-scope items, and 6 open questions (all resolved).
+- All three previously resolved open questions (OQ-001, OQ-002, OQ-006) are incorporated into the requirements and business rules — none are re-opened.
 
 ---
 
 ## Artifacts Created or Updated
 
-| Artefact | Path | Action |
+| Artifact | Path | Action |
 |---|---|---|
-| SDLC Operating Model | `docs/delivery/sdlc-operating-model.md` | Created |
-| Roles and Responsibilities | `docs/delivery/roles-and-responsibilities.md` | Created |
-| Dependency Register | `docs/delivery/dependency-register.md` | Created |
-| Risk Register | `docs/delivery/risk-register.md` | Created |
-| Decision Log | `docs/delivery/decision-log.md` | Created |
-| Impediment Log | `docs/delivery/impediment-log.md` | Created |
-| Delegation Log | `docs/delivery/delegation-log.md` | Updated |
-| Task Board | `docs/delivery/task-board.md` | Updated |
-| Handoff HO-002 | `docs/handoffs/02-project-coordinator-to-sdlc-orchestrator-delivery-model.md` | Created |
+| Requirements Document | `docs/requirements.md` | Created |
+| Handoff HO-003 | `docs/handoffs/03-solution-architect-to-sdlc-orchestrator-requirements.md` | Created |
 | Current Handoff | `docs/handoffs/current-handoff.md` | Updated |
 | Handoff Index | `docs/handoffs/handoff-index.md` | Updated |
 | Workflow State | `docs/handoffs/workflow-state.md` | Updated |
@@ -46,18 +37,21 @@
 
 ## Decisions Made
 
-| # | Decision | ID |
+| # | Decision | Rationale |
 |---|---|---|
-| 1 | 13 risks pre-populated covering all major delivery and technical risks | RISK-001 to RISK-013 |
-| 2 | IMP-001 raised: test execution cannot run autonomously — requires Human PO approval at Phase 14 | IMP-001 |
-| 3 | DEC-008, DEC-009, DEC-010 recorded as Pending — to be confirmed at Phases 03 and 06 | DEC-008, DEC-009, DEC-010 |
-| 4 | DEC-011 (parallel reviews) recorded as Pending — decided at Phase 15 | DEC-011 |
+| 1 | OQ-001 incorporated as BR-005 (per-passenger records) — individual PassengerDetail records per passenger | Industry standard; previously approved by Human PO |
+| 2 | OQ-002 incorporated as BR-004 (booking reference format) — `SKY-[INT/DOM]-[XXXXXX]`, 14 chars, cryptographic random | Approved format |
+| 3 | Airport GET endpoint is "Should Have" (FR-054); frontend static constant is acceptable alternative (FR-055) | MVP pragmatism |
+| 4 | Search response returns per-passenger price only; total is computed frontend-side (FR-012) | Single source of truth |
+| 5 | Booking reference collision detection required (BR-004) | Uniqueness correctness |
+| 6 | In-memory store must be thread-safe (BR-008) | ASP.NET Core concurrency |
+| 7 | Recommended minimum airport list: LHR, MAN, JFK, LAX, DXB, SYD | Enables domestic + international testing |
 
 ---
 
 ## Open Questions
 
-None.
+None — all open questions are resolved.
 
 ---
 
@@ -65,49 +59,31 @@ None.
 
 | # | Risk / Impediment | ID | Severity | Status |
 |---|---|---|---|---|
-| 1 | EOD 2026-07-03 deadline — compressed delivery with no buffer | RISK-001 | Critical | Open |
-| 2 | Test execution blocked — cannot run npm/dotnet commands autonomously | RISK-004 / IMP-001 | High | Open |
+| 1 | EOD 2026-07-03 deadline | RISK-001 | Critical | Open |
+| 2 | Test execution blocked | RISK-004 / IMP-001 | High | Open |
 | 3 | Hiring challenge evaluation criteria not fully specified | RISK-005 | High | Open |
 
 ---
 
 ## Required Next Agent Action
 
-The `sdlc-orchestrator` must:
+STOP — Human Product Owner must review and approve `docs/requirements.md` before Phase 04 begins.
 
-1. Commit the Phase 02 branch (`sdlc/02-delivery-model-skyroute-mvp`) with message:
-   `docs: complete phase 02 sdlc delivery operating model`
-2. Merge the phase branch to `main` using `--no-ff` with message:
-   `merge: complete phase 02 sdlc delivery operating model`
-3. Delete the phase branch.
-4. Update workflow state: Phase 02 Complete, Phase 03 In Progress.
-5. Create branch `sdlc/03-requirements-analysis-skyroute-mvp` from updated `main`.
-6. Invoke `solution-architect` and `product-owner` for Phase 03 — Requirements Analysis.
+The SDLC Orchestrator must present the requirements document to the Human PO and wait for explicit approval before proceeding to Phase 04 — NFR Specification.
 
 ---
 
 ## Completion Criteria for Next Step
 
-- Phase 02 branch committed and merged to `main`.
-- Phase 02 branch deleted.
-- Workflow state updated.
-- Phase 03 branch created.
-- `solution-architect` produces `docs/requirements.md`.
-- Human Product Owner approves requirements.
-- HO-003 handoff complete.
+- Human PO approves `docs/requirements.md`.
+- No blocking open questions remain.
+- Phase 04 (NFR Specification) may then begin — solution-architect produces `docs/specs/non-functional-requirements.md`.
 
 ---
 
 ## Relevant Files
 
-- `docs/delivery/sdlc-operating-model.md`
-- `docs/delivery/roles-and-responsibilities.md`
-- `docs/delivery/dependency-register.md`
-- `docs/delivery/risk-register.md`
-- `docs/delivery/decision-log.md`
-- `docs/delivery/impediment-log.md`
-- `docs/delivery/delegation-log.md`
-- `docs/delivery/task-board.md`
+- `docs/requirements.md`
+- `docs/handoffs/03-solution-architect-to-sdlc-orchestrator-requirements.md`
 - `docs/handoffs/workflow-state.md`
 - `docs/handoffs/handoff-index.md`
-- `CLAUDE.md`
