@@ -10,3 +10,4 @@
 | HO-006 | solution-architect | sdlc-orchestrator | Phase 06 — Architecture Planning | `docs/handoffs/06-solution-architect-to-sdlc-orchestrator-architecture.md` | Complete |
 | HO-007 | project-coordinator | sdlc-orchestrator | Phase 07 — Project Backlog Creation | `docs/handoffs/07-project-coordinator-to-sdlc-orchestrator-backlog.md` | Complete |
 | HO-008 | project-coordinator | sdlc-orchestrator | Phase 08 — Parallel Delivery Plan | `docs/handoffs/08-project-coordinator-to-sdlc-orchestrator-delivery-plan.md` | Complete |
+| HO-009 | scrum-master | sdlc-orchestrator | Phase 09 — Sprint Planning | `docs/handoffs/09-scrum-master-to-sdlc-orchestrator-sprint-plan.md` | Complete — Proposed, pending Human PO approval gate (PH-09) |
