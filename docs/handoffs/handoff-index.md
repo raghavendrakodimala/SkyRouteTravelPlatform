@@ -9,3 +9,4 @@
 | HO-005 | functional-tester | sdlc-orchestrator | Phase 05 — Test Strategy and Acceptance Planning | `docs/handoffs/05-functional-tester-to-sdlc-orchestrator-test-strategy.md` | Complete |
 | HO-006 | solution-architect | sdlc-orchestrator | Phase 06 — Architecture Planning | `docs/handoffs/06-solution-architect-to-sdlc-orchestrator-architecture.md` | Complete |
 | HO-007 | project-coordinator | sdlc-orchestrator | Phase 07 — Project Backlog Creation | `docs/handoffs/07-project-coordinator-to-sdlc-orchestrator-backlog.md` | Complete |
+| HO-008 | project-coordinator | sdlc-orchestrator | Phase 08 — Parallel Delivery Plan | `docs/handoffs/08-project-coordinator-to-sdlc-orchestrator-delivery-plan.md` | Complete |
