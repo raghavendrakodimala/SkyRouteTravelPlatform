@@ -1,39 +1,37 @@
-# Handoff: HO-004 (Current)
+# Handoff: HO-005 (Current)
 
 | Field | Value |
 |---|---|
-| Handoff ID | HO-004 |
+| Handoff ID | HO-005 |
 | Date | 2026-07-03 |
-| Branch | sdlc/04-nfr-specification-skyroute-mvp |
-| Phase | Phase 04 — Non-Functional Requirements Specification |
-| From agent | solution-architect |
+| Branch | sdlc/05-test-strategy-skyroute-mvp |
+| Phase | Phase 05 — Test Strategy and Acceptance Planning |
+| From agent | functional-tester |
 | To agent | sdlc-orchestrator |
-| Status | Complete — Pending Human Product Owner Confirmation of Proposed Numeric Targets |
+| Status | Complete |
 
 This is a pointer file. The full handoff record is maintained at:
 
+`docs/handoffs/05-functional-tester-to-sdlc-orchestrator-test-strategy.md`
+
+The previous current handoff (HO-004, Phase 04 — NFR Specification, Complete — Pending Human PO Confirmation of Proposed Numeric Targets) is now historical and remains available at:
+
 `docs/handoffs/04-solution-architect-to-sdlc-orchestrator-nfr-specification.md`
-
-The previous current handoff (HO-003 + Revision 2 addendum, Phase 03 — Requirements Analysis, Approved 2026-07-03) is now historical and remains available at:
-
-`docs/handoffs/03-solution-architect-to-sdlc-orchestrator-requirements.md`
 
 ---
 
 ## Summary
 
-Phase 04 (NFR Specification) is complete. `docs/specs/non-functional-requirements.md` (v1.0) has been produced, covering all 14 NFR governance categories (Performance, Scalability, Availability/Reliability, Security, Privacy/Data Protection, Accessibility, Usability, Maintainability, Testability, Observability/Logging, Compatibility, Deployability, Data Integrity, On-Premise/Cloud Readiness), each NFR traced to a user story, functional requirement, business rule, or design principle in `docs/requirements.md` v1.4, and each linked to its validating architecture constraint (DP-*).
+Phase 05 (Test Strategy and Acceptance Planning) is complete. `docs/testing/test-strategy.md` (v1.0) has been produced, covering: test levels and scope (unit, integration, frontend component/service, manual E2E); an 8-user-story traceability matrix; a test data strategy consistent with ASM-006 (fixed mock schedule); coverage targets referencing NFR-TEST-005 with an explicit service-layer scope definition; validation-rule boundary/edge-case scenarios for FR-002–FR-006/FR-061–FR-065; an explicit provider fault isolation scenario (BR-007/FR-009/FR-050); a non-functional validation approach for each "test"-validated NFR category; the Phase 14 test-execution-environment constraint tied to open impediment IMP-001; and confirmation (not redefinition) of testing-specific Definition of Ready/Done checkpoints.
 
-Seven numeric targets are newly proposed by this document (not previously stated in `docs/requirements.md`) and are flagged for Human Product Owner / Scrum Master confirmation — see Section 17 of the NFR spec and the "Open Questions" section of HO-004. These are treated as non-blocking draft guidance, not hard gates, until confirmed.
-
-No approved requirements decision was reopened. No code, dependencies, or infrastructure were touched. No git commands were run by the solution-architect — commit/merge is the orchestrator's responsibility.
+No test code was written in this phase. No requirement, business rule, or NFR decision was reopened. No test/build/dependency/git commands were run by the functional-tester — commit/merge is the orchestrator's responsibility.
 
 ---
 
 ## Required Next Agent Action
 
-1. Orchestrator to present Section 17 of `docs/specs/non-functional-requirements.md` to the Human PO/Scrum Master for confirmation of the 7 proposed numeric targets (non-blocking).
-2. Orchestrator to commit and merge `sdlc/04-nfr-specification-skyroute-mvp` to `main`.
-3. Orchestrator to create the Phase 05 branch and invoke `functional-tester` for Test Strategy and Acceptance Planning.
+1. Orchestrator to review `docs/testing/test-strategy.md` for completeness.
+2. Orchestrator to commit and merge `sdlc/05-test-strategy-skyroute-mvp` to `main` (with human approval per the phased-execution workflow).
+3. Orchestrator to create branch `sdlc/06-architecture-planning-skyroute-mvp` and invoke `solution-architect` for Phase 06 — Architecture Planning.
 
-See `docs/handoffs/04-solution-architect-to-sdlc-orchestrator-nfr-specification.md` for full detail.
+See `docs/handoffs/05-functional-tester-to-sdlc-orchestrator-test-strategy.md` for full detail.
