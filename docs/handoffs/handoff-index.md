@@ -6,3 +6,4 @@
 | HO-002 | project-coordinator | sdlc-orchestrator | Phase 02 — SDLC Delivery Operating Model | `docs/handoffs/02-project-coordinator-to-sdlc-orchestrator-delivery-model.md` | Complete |
 | HO-003 | solution-architect | sdlc-orchestrator | Phase 03 — Requirements Analysis | `docs/handoffs/03-solution-architect-to-sdlc-orchestrator-requirements.md` (Revision 2 addendum recorded in `docs/handoffs/03-solution-architect-to-sdlc-orchestrator-requirements.md`) | Complete — Approved (v1.4, 2026-07-03) |
 | HO-004 | solution-architect | sdlc-orchestrator | Phase 04 — Non-Functional Requirements Specification | `docs/handoffs/04-solution-architect-to-sdlc-orchestrator-nfr-specification.md` | Complete — Pending Human PO Confirmation of Proposed Numeric Targets |
+| HO-005 | functional-tester | sdlc-orchestrator | Phase 05 — Test Strategy and Acceptance Planning | `docs/handoffs/05-functional-tester-to-sdlc-orchestrator-test-strategy.md` | Complete |

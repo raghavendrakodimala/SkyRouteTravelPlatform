@@ -2,13 +2,13 @@
 
 Project: SkyRoute MVP
 Run mode: Phased --auto-commit-merge --no-push
-Current phase: Phase 04 — NFR Specification (complete — pending PO confirmation of proposed numeric targets)
-Next phase: Phase 05 — Test Strategy
-Last agent: solution-architect
-Next agent: functional-tester (Phase 05 Test Strategy)
-Branch: sdlc/04-nfr-specification-skyroute-mvp (pending merge to main)
-Blockers: None (7 proposed numeric targets flagged as non-blocking guidance pending PO/Scrum Master confirmation — see HO-004, Section 17 of docs/specs/non-functional-requirements.md)
-Status: Phase 04 (v1.0) complete — pending PO confirmation of proposed numeric targets; Phase 05 ready to start
+Current phase: Phase 05 — Test Strategy and Acceptance Planning (complete)
+Next phase: Phase 06 — Architecture Planning
+Last agent: functional-tester
+Next agent: solution-architect (Phase 06 Architecture Planning)
+Branch: sdlc/05-test-strategy-skyroute-mvp (pending merge to main)
+Blockers: None (all 7 NFR numeric targets confirmed by Human PO 2026-07-03 — see docs/specs/non-functional-requirements.md Section 17)
+Status: Phase 05 (v1.0) complete; Phase 06 ready to start
 
 ---
 
@@ -19,8 +19,8 @@ Status: Phase 04 (v1.0) complete — pending PO confirmation of proposed numeric
 | 01 | Scrum Operating Model | Complete | sdlc/01-scrum-operating-model-skyroute-mvp | scrum-master | HO-001 |
 | 02 | SDLC Delivery Model | Complete | sdlc/02-delivery-model-skyroute-mvp | project-coordinator | HO-002 |
 | 03 | Requirements Analysis | Complete — Approved (v1.4, 2026-07-03) | sdlc/03-requirements-analysis-skyroute-mvp | solution-architect | HO-003 (+ Revision 2 addendum) |
-| 04 | NFR Specification | Complete — Pending PO Confirmation of Proposed Numeric Targets | sdlc/04-nfr-specification-skyroute-mvp | solution-architect | HO-004 |
-| 05 | Test Strategy | Not Started | Pending | functional-tester | Pending |
+| 04 | NFR Specification | Complete — Approved (v1.0, numeric targets confirmed 2026-07-03) | sdlc/04-nfr-specification-skyroute-mvp | solution-architect | HO-004 |
+| 05 | Test Strategy | Complete | sdlc/05-test-strategy-skyroute-mvp | functional-tester | HO-005 |
 | 06 | Architecture Planning | Not Started | Pending | solution-architect | Pending |
 | 07 | Project Backlog | Not Started | Pending | project-coordinator | Pending |
 | 08 | Parallel Delivery Plan | Not Started | Pending | project-coordinator | Pending |
@@ -71,24 +71,24 @@ None — Phase 03 approval gate cleared 2026-07-03.
 
 ## Last Completed Phase
 
-Phase 04 — Non-Functional Requirements Specification (v1.0)
-Branch: sdlc/04-nfr-specification-skyroute-mvp
-Agent: solution-architect
-Handoff: HO-004 (`docs/handoffs/04-solution-architect-to-sdlc-orchestrator-nfr-specification.md`)
+Phase 05 — Test Strategy and Acceptance Planning (v1.0)
+Branch: sdlc/05-test-strategy-skyroute-mvp
+Agent: functional-tester
+Handoff: HO-005 (`docs/handoffs/05-functional-tester-to-sdlc-orchestrator-test-strategy.md`)
 Artefacts:
-- `docs/specs/non-functional-requirements.md` (v1.0) — all 14 required NFR categories (Performance, Scalability, Availability/Reliability, Security, Privacy/Data Protection, Accessibility, Usability, Maintainability, Testability, Observability/Logging, Compatibility, Deployability, Data Integrity, On-Premise/Cloud Readiness), each NFR traced to requirements.md v1.4 and linked to its governing DP-* architecture constraint(s).
+- `docs/testing/test-strategy.md` (v1.0) — test levels/scope, 8-user-story traceability matrix, test data strategy, coverage targets (NFR-TEST-005), validation-rule boundary scenarios, provider fault isolation scenario, NFR "test"-method validation approach, test execution environment constraint (IMP-001), and DoR/DoD testing checkpoints confirmation.
 
-Phase 04 summary: Elevated the high-level NFR targets in requirements.md Section 5 and the DP-* architectural constraints in Section 3.10 into measurable, prioritized, traceable, testable NFRs. Seven numeric targets are newly proposed (not previously stated in requirements.md) and flagged for Human PO/Scrum Master confirmation as non-blocking draft guidance (see Section 17 of the NFR spec and HO-004 Open Questions). No approved requirements decision was reopened; no code/config/infrastructure implemented; no git commands run by solution-architect.
+Phase 05 summary: Defined how the SkyRoute MVP will be tested across unit (backend service-layer), integration (API contract), Angular component/service (`TestBed`/`HttpClientTestingModule`), and manual/exploratory E2E levels. No test code authored (Phase 13 scope). No requirement/business rule/NFR decision reopened; no test/build/dependency/git commands run by functional-tester.
 
-Prior completed phase: Phase 03 — Requirements Analysis (Revision 2 — v1.4), approved by Human PO 2026-07-03. See `docs/handoffs/03-solution-architect-to-sdlc-orchestrator-requirements.md`.
+Prior completed phase: Phase 04 — Non-Functional Requirements Specification (v1.0), all 7 numeric targets confirmed by Human PO 2026-07-03. See `docs/handoffs/04-solution-architect-to-sdlc-orchestrator-nfr-specification.md`.
 
 ---
 
 ## Next Action
 
-Phase 04 complete (pending non-blocking PO confirmation of 7 proposed numeric targets). SDLC Orchestrator to:
+Phase 05 complete. SDLC Orchestrator to:
 
-1. Present `docs/specs/non-functional-requirements.md` Section 17 to the Human PO/Scrum Master for confirmation of the 7 proposed numeric targets (non-blocking — qualitative targets in requirements.md remain valid regardless).
-2. Commit and merge Phase 04 branch (`sdlc/04-nfr-specification-skyroute-mvp`) to `main`.
-3. Create phase branch `sdlc/05-test-strategy-skyroute-mvp` from updated `main`.
-4. Invoke `functional-tester` for Phase 05 — Test Strategy and Acceptance Planning, using `docs/requirements.md` v1.4 and `docs/specs/non-functional-requirements.md` v1.0 as inputs.
+1. Review `docs/testing/test-strategy.md` for completeness.
+2. Commit and merge Phase 05 branch (`sdlc/05-test-strategy-skyroute-mvp`) to `main`.
+3. Create phase branch `sdlc/06-architecture-planning-skyroute-mvp` from updated `main`.
+4. Invoke `solution-architect` for Phase 06 — Architecture Planning, using `docs/requirements.md` v1.4, `docs/specs/non-functional-requirements.md` v1.0, and `docs/testing/test-strategy.md` v1.0 as inputs.
