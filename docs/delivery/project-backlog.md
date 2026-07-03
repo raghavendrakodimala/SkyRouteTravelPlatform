@@ -1,10 +1,10 @@
 # Project Backlog — SkyRoute Travel Platform MVP
 
-Version: 1.0
+Version: 1.1
 Date: 2026-07-03
 Author: project-coordinator
 Status: Active
-Phase: Phase 07 — Project Backlog Creation
+Phase: Phase 07 — Project Backlog Creation (Phase 08 — Parallel Delivery Plan applied the BL-033 decomposition below)
 
 ---
 
@@ -357,15 +357,13 @@ Each item includes: ID, Title, Linked User Story, Linked Architecture Component,
 - **Dependencies:** BL-031
 - **DoR Check:** Pass — architecture plan Section 4.2/4.3; US-004 AC4 is the acceptance criterion for the no-API-call carry-over.
 
-### BL-033 — `BookingFormComponent`
+### BL-033 — `BookingFormComponent` — **DECOMPOSED (Phase 08)**
 
-- **Linked User Story:** US-004, US-005, US-006
-- **Linked Architecture Component:** `features/booking/booking-form/booking-form.component.ts`
-- **Description:** Displays flight summary (route, provider, flight number, times, cabin class — US-004 AC2) and price breakdown (per-passenger, count, total via `pricing.util.ts` BL-023 — US-004 AC3), all from `BookingStateService` with no new API call (US-004 AC4). Renders one `PassengerFormSectionComponent` (BL-034) per passenger (FR-028). "Confirm Booking" action disabled while any passenger section is invalid (US-005 AC10/FR-031). On submit, delegates to `BookingService` (BL-031) with loading state (US-006 AC3), navigates to confirmation on success (FR-034) or shows a user-facing error without backend internals on failure (US-006 AC6/FR-037). Prevents re-submission without deliberate back-navigation (US-006 AC7/FR-038).
-- **Size:** L
-- **Priority:** Must Have
-- **Dependencies:** BL-023, BL-031, BL-032, BL-034
-- **DoR Check:** Pass — US-004 AC1–4, US-006 AC1–7, FR-025–038 give the complete behaviour specification.
+- **Status:** Superseded/Decomposed. Do not implement as a single item.
+- **Decomposition rationale:** Flagged at Phase 07 as RISK-014 (single largest/most complex item, L-sized, bottleneck risk for the compressed one-day sprint). At Phase 08 (Parallel Delivery Plan), the SDLC Orchestrator confirmed the split should proceed. `BookingFormComponent` is decomposed into three M/S-sized implementation sub-tasks — **BL-036**, **BL-037**, **BL-038** — along natural seams in the original description: read-only summary/price display, per-passenger dynamic form-array orchestration + aggregate validity gating, and submit/loading/error/navigation/re-submission-guard wiring.
+- **Architecture note:** This is a task-decomposition split for delivery-tracking and ownership purposes only — it does **not** change the architecture. All three sub-tasks still implement the single `features/booking/booking-form/booking-form.component.ts` component named in `docs/architecture/architecture-plan.md` Section 4.1 (no new component file/class is introduced, no Solution Architect approval was required or sought for this delivery-tracking split). The three sub-tasks compose into one component's template/class, built and integrated as sequential sections of the same file.
+- **Original scope (US-004, US-005, US-006; FR-025–038) is fully preserved** — nothing is added, removed, or reduced. See BL-036/BL-037/BL-038 below for the redistributed description, sizing, dependencies, and DoR checks.
+- **Superseded by:** BL-036, BL-037, BL-038 (Section 5, below BL-035).
 
 ### BL-034 — `PassengerFormSectionComponent`
 
@@ -386,6 +384,36 @@ Each item includes: ID, Title, Linked User Story, Linked Architecture Component,
 - **Priority:** Must Have
 - **Dependencies:** BL-032
 - **DoR Check:** Pass — US-006 AC4–5/FR-035–036 give the complete display specification.
+
+### BL-036 — `BookingFormComponent`: Flight Summary & Price Breakdown Display *(split from BL-033, Phase 08)*
+
+- **Linked User Story:** US-004
+- **Linked Architecture Component:** `features/booking/booking-form/booking-form.component.ts` (read-only display section)
+- **Description:** Displays the flight summary (route, provider, flight number, times, cabin class — US-004 AC2) and price breakdown (per-passenger price, passenger count, total via `pricing.util.ts` BL-023 — US-004 AC3), all read from `BookingStateService` with no new API call (US-004 AC4). Purely presentational — no form controls, no submit logic. This sub-task can be built and visually verified before the passenger form array (BL-037) or submit wiring (BL-038) exist, since it depends only on state already populated by `ResultsListComponent`'s "Select"/"Book" action (BL-029).
+- **Size:** S
+- **Priority:** Must Have
+- **Dependencies:** BL-023, BL-032
+- **DoR Check:** Pass — US-004 AC2–4/FR-025–027 give the complete display specification; this sub-task's scope boundary (read-only display, no form/submit logic) is clarified by this decomposition itself.
+
+### BL-037 — `BookingFormComponent`: Passenger Form Array Orchestration *(split from BL-033, Phase 08)*
+
+- **Linked User Story:** US-004, US-005
+- **Linked Architecture Component:** `features/booking/booking-form/booking-form.component.ts` (passenger-section orchestration)
+- **Description:** Renders one `PassengerFormSectionComponent` (BL-034) per passenger, sized from the selected flight's passenger count (FR-028). Aggregates validity across all rendered passenger sections and exposes a single "all passengers valid" signal that gates the "Confirm Booking" action (US-005 AC10/FR-031). Does not itself perform the HTTP submit — that is BL-038's responsibility. This is the most structurally complex of the three split sub-tasks (dynamic array of child form sections is the reason BL-033 was originally sized L) and is the one most worth completing before BL-038, since BL-038 needs its aggregate-validity output as an input.
+- **Size:** M
+- **Priority:** Must Have
+- **Dependencies:** BL-032, BL-034
+- **DoR Check:** Pass — FR-028/FR-031, US-005 AC10 give the complete orchestration/gating specification.
+
+### BL-038 — `BookingFormComponent`: Submit Orchestration, Loading, Error, and Re-submission Guard *(split from BL-033, Phase 08)*
+
+- **Linked User Story:** US-006
+- **Linked Architecture Component:** `features/booking/booking-form/booking-form.component.ts` (submit-handler section)
+- **Description:** On "Confirm Booking" click (enabled only once BL-037's aggregate-validity signal is true), assembles the `BookingRequest` from `BookingStateService` (selected flight + passenger form values from BL-037) and delegates to `BookingService` (Angular, BL-031), showing a loading state for the request duration (US-006 AC3). Navigates to `/confirmation` on success (FR-034), or shows a user-facing error without backend internals on failure (US-006 AC6/FR-037). Prevents re-submission without deliberate back-navigation (US-006 AC7/FR-038). This sub-task is the integration point of the other two — it should be built last among the three, once BL-036 (data to submit) and BL-037 (validity gate) exist.
+- **Size:** M
+- **Priority:** Must Have
+- **Dependencies:** BL-031, BL-036, BL-037
+- **DoR Check:** Pass — US-006 AC1, AC3, AC6–7/FR-032–038 give the complete submit/loading/error/re-submission specification.
 
 ---
 
@@ -425,11 +453,14 @@ Each item includes: ID, Title, Linked User Story, Linked Architecture Component,
 | BL-030 | `SortControlComponent` | US-003 | S | Must | BL-027 |
 | BL-031 | `BookingService` (Angular) | US-006 | XS | Must | BL-021 |
 | BL-032 | `BookingStateService` | US-004, 005, 006 | S | Must | BL-031 |
-| BL-033 | `BookingFormComponent` | US-004, 005, 006 | L | Must | BL-023, BL-031, BL-032, BL-034 |
+| BL-033 | ~~`BookingFormComponent`~~ — **Decomposed (Phase 08)**, see BL-036/037/038 | US-004, 005, 006 | ~~L~~ | Must | Superseded — not implemented as a single item |
 | BL-034 | `PassengerFormSectionComponent` | US-005 | M | Must | BL-024 |
 | BL-035 | `ConfirmationComponent` | US-006 | S | Must | BL-032 |
+| BL-036 | `BookingFormComponent`: Summary & Price Display *(split of BL-033)* | US-004 | S | Must | BL-023, BL-032 |
+| BL-037 | `BookingFormComponent`: Passenger Form Array Orchestration *(split of BL-033)* | US-004, 005 | M | Must | BL-032, BL-034 |
+| BL-038 | `BookingFormComponent`: Submit/Loading/Error/Re-submission *(split of BL-033)* | US-006 | M | Must | BL-031, BL-036, BL-037 |
 
-**Total: 35 backlog items** (19 backend, 16 frontend).
+**Total: 37 active backlog items** (19 backend, 18 frontend). BL-033 is decomposed/superseded by BL-036–BL-038 (Phase 08) and is not counted as a separate active item; the original 35-item count (Phase 07) is preserved in history via BL-033's decomposition note above — no scope was added or removed, only re-sequenced into smaller units.
 
 ---
 
@@ -440,13 +471,15 @@ Each item includes: ID, Title, Linked User Story, Linked Architecture Component,
 | US-001 — Search for Available Flights | BL-003, BL-004, BL-010, BL-017, BL-020, BL-021, BL-022, BL-026, BL-027, BL-028 |
 | US-002 — View Flight Search Results | BL-002, BL-008, BL-009, BL-023, BL-027, BL-029 |
 | US-003 — Sort Flight Results | BL-027, BL-030 |
-| US-004 — Select a Flight and Initiate Booking | BL-020, BL-023, BL-029, BL-032, BL-033 |
-| US-005 — Enter Passenger Details | BL-002, BL-005, BL-006, BL-014, BL-024, BL-033, BL-034 |
-| US-006 — Confirm Booking and Receive Reference | BL-002, BL-011, BL-012, BL-013, BL-014, BL-015, BL-018, BL-031, BL-032, BL-033, BL-035 |
+| US-004 — Select a Flight and Initiate Booking | BL-020, BL-023, BL-029, BL-032, BL-036, BL-037 |
+| US-005 — Enter Passenger Details | BL-002, BL-005, BL-006, BL-014, BL-024, BL-034, BL-037 |
+| US-006 — Confirm Booking and Receive Reference | BL-002, BL-011, BL-012, BL-013, BL-014, BL-015, BL-018, BL-031, BL-032, BL-035, BL-038 |
 | US-007 — Provider Extensibility | BL-001, BL-007, BL-008, BL-009, BL-019 |
 | US-008 — View Airport Selection | BL-004, BL-022, BL-028 |
 
 Every user story maps to at least 2 backlog items; every backlog item maps to at least one user story or an explicitly named cross-cutting seam (BL-012, BL-016, BL-019, BL-025) required by an approved DP-* constraint. No orphaned items in either direction.
+
+*(Updated at Phase 08 to reflect the BL-033 → BL-036/BL-037/BL-038 decomposition; total US-* coverage is unchanged since the split redistributes, not removes, BL-033's original scope.)*
 
 ---
 
@@ -456,7 +489,9 @@ This section restates the "Blocked By" column of Section 6 as a narrative for Ph
 
 **Backend spine:** BL-001 → BL-002 → (BL-003, BL-004, BL-006, BL-011, BL-012, BL-013 can proceed in parallel) → BL-007 → BL-008 → BL-009 → BL-017 (search side complete); and BL-005 → BL-014 → BL-015 → BL-018 (booking side complete) → BL-019 (composition root, needs everything wired).
 
-**Frontend spine:** BL-020 → (BL-021, BL-022, BL-025 in parallel) → BL-023, BL-024 → BL-026 → BL-027 → BL-028/BL-030 → BL-029; and BL-031 → BL-032 → BL-034 → BL-033 → BL-035.
+**Frontend spine:** BL-020 → (BL-021, BL-022, BL-025 in parallel) → BL-023, BL-024 → BL-026 → BL-027 → BL-028/BL-030 → BL-029; and BL-031 → BL-032 → BL-034 → (BL-036, BL-037 — both consume BL-032/BL-034 outputs and can proceed in parallel once BL-032/BL-034 are done) → BL-038 (needs BL-036 and BL-037 both complete) → BL-035 (only needs BL-032, can proceed any time after BL-032 regardless of BL-036/037/038 progress).
+
+*(Updated at Phase 08 — see `docs/delivery/parallel-delivery-plan.md` v1.0 for the full BL-033 decomposition rationale and the complete parallel-track graph across all 37 active items.)*
 
 **Backend/frontend integration point:** Frontend services (BL-026, BL-031) can be built and unit-tested against contract models (BL-021) before the backend controllers (BL-017, BL-018) are live, per DEP-021 (dependency register) — but end-to-end integration testing (Phase 13–14) requires both sides complete, consistent with DEP-012.
 
@@ -481,7 +516,7 @@ Per `.claude/rules/definition-of-ready.md`, every item above was checked against
 - NFR impact understood — carried at the NFR-spec level (`docs/specs/non-functional-requirements.md` v1.0); no item introduces a new NFR concern beyond what is already governed.
 - Human Product Owner has no blocking questions — no new question was raised by this decomposition; all open questions in requirements.md Section 8 are already Resolved.
 
-**Result: all 35 items are Ready.** No item is Blocked or Conditionally Ready.
+**Result: all 37 active items are Ready.** No item is Blocked or Conditionally Ready. (BL-033 is superseded/decomposed, not an active item requiring its own DoR status; its three replacements — BL-036, BL-037, BL-038 — were each individually DoR-checked at Phase 08 and are Ready.)
 
 ---
 
@@ -518,7 +553,8 @@ Every backlog item in Sections 4–5 was checked against `docs/requirements.md` 
 | Date | Reviewer | Action |
 |---|---|---|
 | 2026-07-03 | project-coordinator | Initial backlog created for Phase 07 — 35 items decomposed from 8 approved user stories, mapped to architecture-plan components |
+| 2026-07-03 | project-coordinator | Phase 08 — per SDLC Orchestrator decision on HO-007 Open Question 1 (RISK-014), decomposed BL-033 (`BookingFormComponent`, L-sized) into BL-036 (Summary & Price Display, S), BL-037 (Passenger Form Array Orchestration, M), and BL-038 (Submit/Loading/Error/Re-submission, M). No scope, priority, or architecture change — task-decomposition only. Active item count: 37 (19 backend, 18 frontend). See `docs/delivery/parallel-delivery-plan.md` v1.0 for the delivery-track assignment and full rationale. |
 
 ---
 
-*End of Project Backlog v1.0.*
+*End of Project Backlog v1.1.*

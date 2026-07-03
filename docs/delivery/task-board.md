@@ -78,7 +78,7 @@ User stories and implementation tasks will be added at Phase 07 — Project Back
 
 ## 4. Product Story Board
 
-Populated at Phase 07 — Project Backlog Creation. Full item detail (description, architecture-component mapping, sizing rationale, dependencies, DoR check) lives in `docs/delivery/project-backlog.md` v1.0. This board tracks only current Kanban state — all 35 items start in **To Do**.
+Populated at Phase 07 — Project Backlog Creation; updated at Phase 08 for the BL-033 decomposition. Full item detail (description, architecture-component mapping, sizing rationale, dependencies, DoR check) lives in `docs/delivery/project-backlog.md` v1.1. This board tracks only current Kanban state — all 37 active items start in **To Do**.
 
 ### 4.1 Backend Items (To Do)
 
@@ -121,11 +121,15 @@ Populated at Phase 07 — Project Backlog Creation. Full item detail (descriptio
 | BL-030 | `SortControlComponent` | US-003 | S | Must | BL-027 |
 | BL-031 | `BookingService` (Angular) | US-006 | XS | Must | BL-021 |
 | BL-032 | `BookingStateService` | US-004, 005, 006 | S | Must | BL-031 |
-| BL-033 | `BookingFormComponent` | US-004, 005, 006 | L | Must | BL-023, BL-031, BL-032, BL-034 |
 | BL-034 | `PassengerFormSectionComponent` | US-005 | M | Must | BL-024 |
 | BL-035 | `ConfirmationComponent` | US-006 | S | Must | BL-032 |
+| BL-036 | `BookingFormComponent`: Summary & Price Display *(split of BL-033)* | US-004 | S | Must | BL-023, BL-032 |
+| BL-037 | `BookingFormComponent`: Passenger Form Array Orchestration *(split of BL-033)* | US-004, 005 | M | Must | BL-032, BL-034 |
+| BL-038 | `BookingFormComponent`: Submit/Loading/Error/Re-submission *(split of BL-033)* | US-006 | M | Must | BL-031, BL-036, BL-037 |
 
-Source: `docs/delivery/project-backlog.md` v1.0 (Phase 07). Parallel-track assignment across agents/roles is Phase 08 scope; sprint commitment is Phase 09 scope.
+**BL-033 removed from this board at Phase 08** — decomposed into BL-036/BL-037/BL-038 above per SDLC Orchestrator decision on HO-007 (RISK-014). No scope change; see `docs/delivery/project-backlog.md` v1.1 and `docs/delivery/parallel-delivery-plan.md` v1.0.
+
+Source: `docs/delivery/project-backlog.md` v1.1 (Phase 07, updated Phase 08). Parallel-track assignment across agents/roles is recorded in `docs/delivery/parallel-delivery-plan.md` v1.0 (Phase 08); sprint commitment is Phase 09 scope.
 
 ---
 
@@ -135,6 +139,7 @@ Source: `docs/delivery/project-backlog.md` v1.0 (Phase 07). Parallel-track assig
 |---|---|---|
 | 2026-07-03 | project-coordinator | Initial board created for Phase 02. Phase 01 and Phase 02 moved to Done. All remaining phases added to Backlog. |
 | 2026-07-03 | project-coordinator | Phase 07 — seeded Section 4 Product Story Board with 35 backlog items (BL-001–BL-035) from `docs/delivery/project-backlog.md` v1.0, all in To Do state, split into Backend Items (4.1, 19 items) and Frontend Items (4.2, 16 items). |
+| 2026-07-03 | project-coordinator | Phase 08 — removed BL-033 (`BookingFormComponent`, L) from Section 4.2 and replaced with its three decomposition sub-tasks BL-036 (S), BL-037 (M), BL-038 (M), per SDLC Orchestrator decision on HO-007 (RISK-014). Frontend item count: 16 → 18; total active items: 35 → 37. Parallel-track assignment recorded in new `docs/delivery/parallel-delivery-plan.md` v1.0. |
 
 ---
 

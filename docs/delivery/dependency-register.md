@@ -69,7 +69,7 @@ Dependencies are reviewed at each phase boundary and updated when new dependenci
 | DEP-022 | Angular 17 component tree must be designed before individual components are implemented | UX/UI flow specification | Phase 12 — Frontend component implementation | Spec | Open | Medium | Prevents rework from component boundary changes during implementation |
 | DEP-023 | npm packages and dotnet SDK must be available in the environment for test execution | External — runtime environment | Phase 14 — Test Execution | External | Open | High | Test execution requires user approval to run npm install / dotnet restore; tracked as IMP-001 |
 | DEP-024 | Human Product Owner must approve requirements before architecture and backlog proceed | Phase 03 approval gate | Phase 06, Phase 07 | Human | Open | Critical | Architecture and backlog are built on approved requirements only |
-| DEP-025 | Backend API contract models (BL-001, project-backlog.md) and frontend shared TypeScript models (BL-021, project-backlog.md) both implement the same contract shape defined in `docs/architecture/architecture-plan.md` Section 5, independently and potentially in parallel | BL-003 — `SkyRoute.Application/Contracts/*` | BL-021 — `shared/models/*.model.ts` | Technical | Open | Low | Architecture-plan.md Section 5 is treated as frozen for Sprint 1; if the contract shape changes during Phase 12 implementation, both sides must be updated together — raise as a decision-log entry before either side proceeds. See also RISK-015 |
+| DEP-025 | Backend API contract models (BL-001, project-backlog.md) and frontend shared TypeScript models (BL-021, project-backlog.md) both implement the same contract shape defined in `docs/architecture/architecture-plan.md` Section 5, independently and potentially in parallel | BL-003 — `SkyRoute.Application/Contracts/*` | BL-021 — `shared/models/*.model.ts` | Technical | Resolved | Low | Architecture-plan.md Section 5 is treated as frozen for Sprint 1; if the contract shape changes during Phase 12 implementation, both sides must be updated together — raise as a decision-log entry before either side proceeds. See also RISK-015. **Resolved at Phase 08:** SDLC Orchestrator confirmed the frozen contract accepts genuinely parallel, unsequenced build of BL-003 and BL-021 — no forced ordering is required; see `docs/delivery/parallel-delivery-plan.md` v1.0 |
 
 ---
 
@@ -79,6 +79,7 @@ Dependencies are reviewed at each phase boundary and updated when new dependenci
 |---|---|---|
 | 2026-07-03 | project-coordinator | Initial register created for Phase 02 |
 | 2026-07-03 | project-coordinator | Phase 07 — added DEP-025 (backend/frontend contract-model parallel-build dependency), surfaced during project-backlog.md decomposition |
+| 2026-07-03 | project-coordinator | Phase 08 — DEP-025 marked Resolved per SDLC Orchestrator decision on HO-007 (parallel build of BL-003/BL-021 accepted against the frozen Section 5 contract). See `docs/delivery/parallel-delivery-plan.md` v1.0 |
 
 ---
 
