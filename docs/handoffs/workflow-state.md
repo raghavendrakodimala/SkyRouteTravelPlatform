@@ -2,13 +2,13 @@
 
 Project: SkyRoute MVP
 Run mode: Phased --auto-commit-merge --no-push
-Current phase: Phase 03 — Complete (pending Human PO approval)
-Next phase: Phase 04 — NFR Specification (blocked on Human PO approval of requirements)
+Current phase: Phase 04 — NFR Specification (starting)
+Next phase: Phase 05 — Test Strategy
 Last agent: solution-architect
-Next agent: solution-architect (Phase 04 NFR — after Human PO approval)
-Branch: sdlc/03-requirements-analysis-skyroute-mvp
-Blockers: Human Product Owner must approve docs/requirements.md before Phase 04 begins
-Status: Phase 03 complete — awaiting Human PO approval gate
+Next agent: solution-architect (Phase 04 NFR Specification)
+Branch: sdlc/04-nfr-specification-skyroute-mvp
+Blockers: None
+Status: Phase 03 (v1.4) approved by Human PO on 2026-07-03 — Phase 04 starting
 
 ---
 
@@ -18,8 +18,8 @@ Status: Phase 03 complete — awaiting Human PO approval gate
 |---:|---|---|---|---|---|
 | 01 | Scrum Operating Model | Complete | sdlc/01-scrum-operating-model-skyroute-mvp | scrum-master | HO-001 |
 | 02 | SDLC Delivery Model | Complete | sdlc/02-delivery-model-skyroute-mvp | project-coordinator | HO-002 |
-| 03 | Requirements Analysis | Complete — Awaiting Human PO Approval | sdlc/03-requirements-analysis-skyroute-mvp | solution-architect | HO-003 |
-| 04 | NFR Specification | Blocked — Human PO Approval Required | Pending | solution-architect | Pending |
+| 03 | Requirements Analysis | Complete — Approved (v1.4, 2026-07-03) | sdlc/03-requirements-analysis-skyroute-mvp | solution-architect | HO-003 (+ Revision 2 addendum) |
+| 04 | NFR Specification | In Progress | sdlc/04-nfr-specification-skyroute-mvp | solution-architect | Pending |
 | 05 | Test Strategy | Not Started | Pending | functional-tester | Pending |
 | 06 | Architecture Planning | Not Started | Pending | solution-architect | Pending |
 | 07 | Project Backlog | Not Started | Pending | project-coordinator | Pending |
@@ -45,9 +45,7 @@ Status: Phase 03 complete — awaiting Human PO approval gate
 
 ## Blocking Items
 
-| Blocker | Description | Blocking Phase |
-|---|---|---|
-| Human PO Approval Gate | Human Product Owner must review and approve `docs/requirements.md` before Phase 04 can begin | Phase 04 |
+None — Phase 03 approval gate cleared 2026-07-03.
 
 ---
 
@@ -73,28 +71,22 @@ Status: Phase 03 complete — awaiting Human PO approval gate
 
 ## Last Completed Phase
 
-Phase 03 — Requirements Analysis
+Phase 03 — Requirements Analysis (Revision 2 — v1.4)
 Branch: sdlc/03-requirements-analysis-skyroute-mvp
 Agent: solution-architect
-Handoff: HO-003
+Handoff: HO-003 (original) + Revision 2 addendum in `docs/handoffs/current-handoff.md`
 Artefacts:
-- `docs/requirements.md` — 8 user stories, 72 functional requirements, 10 business rules, 13 assumptions, 20 out-of-scope items, all OQs resolved
+- `docs/requirements.md` (v1.4) — 8 user stories, 72 functional requirements, 10 business rules, 33 out-of-scope items, 21 assumptions, all OQs resolved, plus expanded Section 3.10 architecture-extensibility constraints (upgrade flexibility, pluggable policy, zero trust readiness, cloud/deployment agnosticism, database agnosticism confirmation, identity protocol breadth)
+
+Revision 2 (v1.4) summary: Human PO reviewed v1.3 and requested explicit architecture-direction coverage for framework/dependency upgrade flexibility, pluggable custom policy support, zero trust readiness, cloud deployment/managed cloud service support, deployment agnosticism (12-factor), database agnosticism confirmation, and broad identity protocol support (OIDC/OAuth 2.0/SSO/SAML) — before granting final approval. This is an additive architectural-extensibility revision only; no scope, business rule, or previously resolved decision (OQ-001–006, BR-001–013, pricing rules, booking reference format) was reopened.
 
 ---
 
 ## Next Action
 
-STOP — Human Product Owner approval required.
+Phase 03 approved. SDLC Orchestrator to:
 
-1. Human Product Owner reviews `docs/requirements.md`.
-2. Human PO approves, or requests changes.
-3. If changes requested: solution-architect updates requirements, re-submits for approval.
-4. Once approved: SDLC Orchestrator to:
-   a. Commit phase branch `sdlc/03-requirements-analysis-skyroute-mvp`
-      Message: `docs: complete phase 03 requirements analysis`
-   b. Merge to `main` with `--no-ff`
-      Message: `merge: complete phase 03 requirements analysis`
-   c. Delete phase branch.
-   d. Create phase branch `sdlc/04-nfr-specification-skyroute-mvp` from updated `main`.
-   e. Invoke `solution-architect` for Phase 04 — NFR Specification.
-   f. solution-architect produces `docs/specs/non-functional-requirements.md`.
+1. Commit and merge Phase 03 Revision 2 (v1.4) to `main`.
+2. Create phase branch `sdlc/04-nfr-specification-skyroute-mvp` from updated `main`.
+3. Invoke `solution-architect` for Phase 04 — NFR Specification.
+4. solution-architect produces `docs/specs/non-functional-requirements.md`, tracing NFRs to the architecture-extensibility constraints established in requirements v1.4 (DP-UPGRADE, DP-POLICY, DP-ZEROTRUST, DP-CLOUD, DP-DEPLOY, DP-AUTH, DP-DB, DP-PERSIST, DP-TENANT, DP-PROTOCOL).
