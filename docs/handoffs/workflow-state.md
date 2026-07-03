@@ -2,13 +2,13 @@
 
 Project: SkyRoute MVP
 Run mode: Phased --auto-commit-merge --no-push
-Current phase: Phase 01 — Complete
-Next phase: Phase 02 — SDLC Delivery Model
-Last agent: scrum-master
-Next agent: project-coordinator
-Branch: sdlc/01-scrum-operating-model-skyroute-mvp (pending commit and merge)
+Current phase: Phase 02 — Complete
+Next phase: Phase 03 — Requirements Analysis
+Last agent: project-coordinator
+Next agent: solution-architect
+Branch: sdlc/02-delivery-model-skyroute-mvp (pending commit and merge)
 Blockers: None
-Status: Phase 01 complete, awaiting commit and merge
+Status: Phase 02 complete, awaiting commit and merge
 
 ---
 
@@ -17,8 +17,8 @@ Status: Phase 01 complete, awaiting commit and merge
 | Phase | Name | Status | Branch | Owner Agent | Handoff |
 |---:|---|---|---|---|---|
 | 01 | Scrum Operating Model | Complete | sdlc/01-scrum-operating-model-skyroute-mvp | scrum-master | HO-001 |
-| 02 | SDLC Delivery Model | Not Started | Pending | project-coordinator | Pending |
-| 03 | Requirements Analysis | Not Started | Pending | solution-architect | Pending |
+| 02 | SDLC Delivery Model | Complete | sdlc/02-delivery-model-skyroute-mvp | project-coordinator | HO-002 |
+| 03 | Requirements Analysis | Not Started | Pending | solution-architect + product-owner | Pending |
 | 04 | NFR Specification | Not Started | Pending | solution-architect | Pending |
 | 05 | Test Strategy | Not Started | Pending | functional-tester | Pending |
 | 06 | Architecture Planning | Not Started | Pending | solution-architect | Pending |
@@ -49,23 +49,52 @@ None.
 
 ---
 
+## Active Impediments
+
+| ID | Description | Severity | Status |
+|---|---|---|---|
+| IMP-001 | Test execution requires human approval for npm/dotnet commands — cannot run autonomously | High | Open — will block Phase 14 |
+
+---
+
+## Active Risks (High and Critical)
+
+| ID | Description | Severity | Status |
+|---|---|---|---|
+| RISK-001 | EOD 2026-07-03 deadline — compressed delivery timeline | Critical | Open |
+| RISK-004 | Test execution blocked — tied to IMP-001 | High | Open |
+| RISK-005 | Hiring challenge evaluation criteria not fully specified | High | Open |
+| RISK-009 | No velocity baseline — sprint capacity estimate unvalidated | High | Open |
+| RISK-010 | Review phases may surface Critical/High findings requiring significant fix time | High | Open |
+
+---
+
 ## Last Completed Phase
 
-Phase 01 — Scrum Operating Model
-Branch: sdlc/01-scrum-operating-model-skyroute-mvp
-Agent: scrum-master
-Handoff: HO-001
-Artefact: `docs/delivery/scrum-operating-model.md`
+Phase 02 — SDLC Delivery Operating Model
+Branch: sdlc/02-delivery-model-skyroute-mvp
+Agent: project-coordinator
+Handoff: HO-002
+Artefacts:
+- `docs/delivery/sdlc-operating-model.md`
+- `docs/delivery/roles-and-responsibilities.md`
+- `docs/delivery/dependency-register.md`
+- `docs/delivery/risk-register.md`
+- `docs/delivery/decision-log.md`
+- `docs/delivery/impediment-log.md`
+- `docs/delivery/delegation-log.md`
+- `docs/delivery/task-board.md`
 
 ---
 
 ## Next Action
 
 SDLC Orchestrator to:
-1. Commit phase branch `sdlc/01-scrum-operating-model-skyroute-mvp`
-   Message: `docs: complete phase 01 scrum operating model`
+1. Commit phase branch `sdlc/02-delivery-model-skyroute-mvp`
+   Message: `docs: complete phase 02 sdlc delivery operating model`
 2. Merge to `main` with `--no-ff`
-   Message: `merge: complete phase 01 scrum operating model`
+   Message: `merge: complete phase 02 sdlc delivery operating model`
 3. Delete phase branch.
-4. Create phase branch `sdlc/02-delivery-model-skyroute-mvp` from updated `main`.
-5. Invoke `project-coordinator` for Phase 02 — SDLC Delivery Model.
+4. Create phase branch `sdlc/03-requirements-analysis-skyroute-mvp` from updated `main`.
+5. Invoke `solution-architect` and `product-owner` for Phase 03 — Requirements Analysis.
+6. Human PO approval required at end of Phase 03 before proceeding to Phase 04.
