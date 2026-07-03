@@ -8,3 +8,4 @@
 | HO-004 | solution-architect | sdlc-orchestrator | Phase 04 — Non-Functional Requirements Specification | `docs/handoffs/04-solution-architect-to-sdlc-orchestrator-nfr-specification.md` | Complete — Pending Human PO Confirmation of Proposed Numeric Targets |
 | HO-005 | functional-tester | sdlc-orchestrator | Phase 05 — Test Strategy and Acceptance Planning | `docs/handoffs/05-functional-tester-to-sdlc-orchestrator-test-strategy.md` | Complete |
 | HO-006 | solution-architect | sdlc-orchestrator | Phase 06 — Architecture Planning | `docs/handoffs/06-solution-architect-to-sdlc-orchestrator-architecture.md` | Complete |
+| HO-007 | project-coordinator | sdlc-orchestrator | Phase 07 — Project Backlog Creation | `docs/handoffs/07-project-coordinator-to-sdlc-orchestrator-backlog.md` | Complete |

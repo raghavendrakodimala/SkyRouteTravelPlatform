@@ -78,13 +78,54 @@ User stories and implementation tasks will be added at Phase 07 — Project Back
 
 ## 4. Product Story Board
 
-Stories will be added here at Phase 07 — Project Backlog Creation.
+Populated at Phase 07 — Project Backlog Creation. Full item detail (description, architecture-component mapping, sizing rationale, dependencies, DoR check) lives in `docs/delivery/project-backlog.md` v1.0. This board tracks only current Kanban state — all 35 items start in **To Do**.
 
-The Product Owner and Solution Architect will define user stories with T-shirt size estimates and MoSCoW priority. The Project Coordinator will add story cards to this section at that time.
+### 4.1 Backend Items (To Do)
 
-| ID | Story Title | Priority | Size | Owner | Status | Sprint | Notes |
-|---|---|---|---|---|---|---|---|
-| — | To be populated at Phase 07 | — | — | — | — | — | — |
+| ID | Task | User Story | Size | Priority | Blocked By |
+|---|---|---|---|---|---|
+| BL-001 | Solution and Project Scaffolding | US-007 (enabling) | XS | Must | — |
+| BL-002 | Domain Models | US-002, 005, 006, 007, 008 | S | Must | BL-001 |
+| BL-003 | API Contract Models | US-001, 006 | S | Must | BL-002 |
+| BL-004 | Airport Static Data (`AirportDataService`) | US-008 | XS | Must | BL-002 |
+| BL-005 | `RouteTypeResolver` | US-005 | XS | Must | BL-004 |
+| BL-006 | Document Validation Patterns | US-005 | XS | Must | BL-002 |
+| BL-007 | `IFlightProvider` Interface | US-007 | XS | Must | BL-002, BL-003 |
+| BL-008 | `GlobalAirProvider`/`BudgetWingsProvider` | US-002, 007 | M | Must | BL-007 |
+| BL-009 | `IFlightAggregatorService` | US-007, 002 | M | Must | BL-007, BL-008 |
+| BL-010 | `SearchRequestValidator` | US-001 | S | Must | BL-003, BL-004 |
+| BL-011 | `IBookingStore`/`InMemoryBookingStore` | US-006 | S | Must | BL-002 |
+| BL-012 | `ITenantContext`/`DefaultTenantContext` | US-006 (seam) | XS | Must | BL-001 |
+| BL-013 | `BookingReferenceGenerator` | US-006 | S | Must | BL-001 |
+| BL-014 | `BookingRequestValidator` | US-005, 006 | S | Must | BL-003, BL-005, BL-006 |
+| BL-015 | `IBookingService`/`BookingService` | US-006 | M | Must | BL-005, BL-011, BL-012, BL-013, BL-014 |
+| BL-016 | `ApiExceptionMiddleware` | All (cross-cutting) | XS | Must | BL-001 |
+| BL-017 | `SearchController` | US-001 | XS | Must | BL-009, BL-010 |
+| BL-018 | `BookingController` | US-006 | XS | Must | BL-015, BL-014 |
+| BL-019 | DI Composition Root/CORS/Config | US-007 (+all) | S | Must | BL-008, 009, 011, 012, 013, 016, 017, 018 |
+
+### 4.2 Frontend Items (To Do)
+
+| ID | Task | User Story | Size | Priority | Blocked By |
+|---|---|---|---|---|---|
+| BL-020 | Angular Workspace/Routing Shell | US-001, 004 (+all) | S | Must/Should | — |
+| BL-021 | Shared Models (TS) | US-001, 002, 005, 006 | XS | Must | BL-003 |
+| BL-022 | `airports.constants.ts` | US-008 | XS | Must | BL-020 |
+| BL-023 | `pricing.util.ts` | US-002, 004 | XS | Must | BL-021 |
+| BL-024 | `document-number.validators.ts` | US-005 | XS | Must | BL-006 |
+| BL-025 | `AuthService` (no-op) | (seam) | XS | Must | BL-020 |
+| BL-026 | `FlightSearchService` (Angular) | US-001 | XS | Must | BL-021 |
+| BL-027 | `SearchStateService` | US-001, 002, 003 | S | Must | BL-026 |
+| BL-028 | `SearchFormComponent` | US-001, 008 | M | Must | BL-022, BL-026, BL-027 |
+| BL-029 | `ResultsListComponent` | US-002, 004 | M | Must | BL-027, BL-023, BL-030 |
+| BL-030 | `SortControlComponent` | US-003 | S | Must | BL-027 |
+| BL-031 | `BookingService` (Angular) | US-006 | XS | Must | BL-021 |
+| BL-032 | `BookingStateService` | US-004, 005, 006 | S | Must | BL-031 |
+| BL-033 | `BookingFormComponent` | US-004, 005, 006 | L | Must | BL-023, BL-031, BL-032, BL-034 |
+| BL-034 | `PassengerFormSectionComponent` | US-005 | M | Must | BL-024 |
+| BL-035 | `ConfirmationComponent` | US-006 | S | Must | BL-032 |
+
+Source: `docs/delivery/project-backlog.md` v1.0 (Phase 07). Parallel-track assignment across agents/roles is Phase 08 scope; sprint commitment is Phase 09 scope.
 
 ---
 
@@ -93,6 +134,7 @@ The Product Owner and Solution Architect will define user stories with T-shirt s
 | Date | Updated By | Change |
 |---|---|---|
 | 2026-07-03 | project-coordinator | Initial board created for Phase 02. Phase 01 and Phase 02 moved to Done. All remaining phases added to Backlog. |
+| 2026-07-03 | project-coordinator | Phase 07 — seeded Section 4 Product Story Board with 35 backlog items (BL-001–BL-035) from `docs/delivery/project-backlog.md` v1.0, all in To Do state, split into Backend Items (4.1, 19 items) and Frontend Items (4.2, 16 items). |
 
 ---
 

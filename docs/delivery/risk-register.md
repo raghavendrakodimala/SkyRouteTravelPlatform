@@ -75,6 +75,8 @@ The register is reviewed at each phase boundary and updated when new risks are i
 | RISK-011 | CORS configuration between Angular (port 4200) and ASP.NET Core (port 5000/5001) may not be configured correctly, blocking frontend-backend integration | Technical | Medium | Medium | Medium | DevOps/architecture phase to include CORS policy definition; lead engineer to configure CORS explicitly; functional tester to include CORS in integration test scope | lead-full-stack-engineer | Open |
 | RISK-012 | Accessibility review may not be executable in full without a running browser environment — static review only | Process | Medium | Medium | Medium | Accessibility tester to perform static code review against WCAG 2.1 AA criteria and document findings; note limitation in review report | accessibility-tester | Open |
 | RISK-013 | Single agent context window limitations may cause loss of context across phases if handoff files are not read correctly | Process | Low | High | Medium | Enforce strict handoff file protocol; all agents read current-handoff.md and workflow-state.md before starting; SDLC Orchestrator validates handoff completeness | sdlc-orchestrator | Open |
+| RISK-014 | BL-033 (`BookingFormComponent`, project-backlog.md) is the single largest/most complex backlog item — it combines flight-summary display, price-breakdown display, per-passenger form orchestration, submit/loading/error state, and re-submission guarding (US-004, US-006). If not split further, it risks becoming a single-item bottleneck during the compressed one-day sprint | Delivery | Medium | Medium | Medium | Phase 08 (Parallel Delivery Plan) and Phase 09 (Sprint Planning) to consider splitting BL-033 into smaller implementation sub-tasks (e.g., summary/breakdown render vs. submit orchestration) if a single owner cannot absorb an L-sized item within the available window; flag at sprint planning if this proves to be a critical-path item | project-coordinator | Open |
+| RISK-015 | BL-002 (backend Domain Models) and BL-021 (frontend Shared Models) are both built independently and in parallel against the same frozen contract shape in `docs/architecture/architecture-plan.md` Section 5. If the backend contract shape needs adjustment after frontend implementation has started against it, both sides require synchronized rework | Technical | Low | Medium | Low | Treat architecture-plan.md Section 5 as frozen for Sprint 1; any contract-shape change during implementation (Phase 12) must be raised as a decision-log entry and communicated to both backend and frontend owners before either side proceeds further; Phase 08 to sequence BL-003 (backend contract models) confirmation ahead of BL-021 (frontend shared models) start where parallel tracks allow | project-coordinator | Open |
 
 ---
 
@@ -83,6 +85,7 @@ The register is reviewed at each phase boundary and updated when new risks are i
 | Date | Reviewer | Action |
 |---|---|---|
 | 2026-07-03 | project-coordinator | Initial register created for Phase 02 |
+| 2026-07-03 | project-coordinator | Phase 07 — added RISK-014 (BL-033 complexity concentration) and RISK-015 (backend/frontend contract-model parallel-build synchronization risk), surfaced during project-backlog.md decomposition |
 
 ---
 
