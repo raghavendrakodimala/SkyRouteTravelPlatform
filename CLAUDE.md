@@ -1125,3 +1125,67 @@ Always stop for human approval before:
 - changing secrets
 - accepting unresolved Critical/High findings
 - merging to main
+
+---
+
+## 22. Phased SDLC Autopilot Mode
+
+When the user runs:
+
+```text
+/run-full-sdlc <scope> --phased --auto-commit-merge --no-push
+```
+
+or explicitly asks for phased SDLC execution, the main Claude agent must run the SDLC one phase at a time.
+
+The orchestrator must not complete the whole SDLC in one branch.
+
+Each phase must:
+
+1. Start from `main`.
+2. Create a dedicated phase branch.
+3. Complete only that phase.
+4. Invoke the required specialist agents.
+5. Verify expected artifacts.
+6. Create/update handoff notes.
+7. Update workflow state.
+8. Commit the phase branch.
+9. Merge the phase branch to `main`.
+10. Delete the completed phase branch.
+11. Start the next phase from updated `main`.
+
+The orchestrator may perform Git commit and merge operations only when the user has explicitly approved phased auto-commit/merge for the run.
+
+This approval may be provided by including:
+
+```text
+--auto-commit-merge
+```
+
+in the user command.
+
+Do not push unless the user explicitly includes:
+
+```text
+--push-approved
+```
+
+The orchestrator must stop if:
+
+- there is a merge conflict,
+- the working tree is dirty before starting a phase,
+- required requirements/specs are missing,
+- a dependency installation is needed,
+- destructive action is needed,
+- deployment is needed,
+- a Critical/High finding requires human acceptance,
+- a build/test failure should not be merged.
+
+During a phase, do not perform work belonging to future phases.
+
+For example:
+
+- Requirements phase must not implement code.
+- Architecture phase must not implement code.
+- Review phase must not fix code.
+- Fix phase must fix only tracked findings.
