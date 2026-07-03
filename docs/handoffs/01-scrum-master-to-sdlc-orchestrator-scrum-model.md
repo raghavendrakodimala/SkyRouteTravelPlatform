@@ -56,7 +56,7 @@
 
 ## Open Questions
 
-None.
+None. The Scrum Operating Model is self-contained for this delivery. Business requirement open questions are the responsibility of the `product-owner` agent in Phase 03.
 
 ---
 
