@@ -7,9 +7,9 @@
 | Field | Value |
 |---|---|
 | Document ID | TEST-STRAT-001 |
-| Version | 1.0 |
-| Date | 2026-07-03 |
-| Status | Draft — Ready for Orchestrator Review |
+| Version | 1.1 |
+| Date | 2026-07-06 |
+| Status | Approved — v1.1 updates automated E2E approach (Section 1.4), superseding manual-only E2E per Human PO approval; see Section 12 Changelog |
 | Owner | functional-tester |
 | Source | `docs/requirements.md` v1.4 (Approved), `docs/specs/non-functional-requirements.md` v1.0 |
 | Phase | Phase 05 — Test Strategy and Acceptance Planning |
@@ -67,16 +67,20 @@ Scope: Angular services (HTTP-calling) tested via `TestBed` with `HttpClientTest
 | Booking form component | Per-passenger sections, document label/validation switch by route type, submit-disabled on invalid state | US-005, FR-028–FR-031 |
 | Confirmation component | Booking reference display, passenger list, non-resubmittable state | US-006, FR-034–FR-038 |
 
-### 1.4 Manual/Exploratory E2E Acceptance Testing
+### 1.4 Automated E2E Acceptance Testing (Playwright) — Primary Mechanism as of v1.1
 
-Scope: full user-journey walkthroughs against each of the 8 user stories' acceptance criteria, executed against the running application (frontend + backend together). This is the acceptance-level test pass that confirms the assembled system — not just individual units/integrations — satisfies each AC as written. Executed manually since no E2E automation tool (e.g., Playwright/Cypress) is in scope for MVP (no such tool is introduced without PO approval — consistent with YAGNI posture elsewhere in this project).
+**Superseded (v1.1, 2026-07-06):** the original v1.0 posture below described E2E coverage as manual/exploratory only, specifically to avoid introducing an automated E2E tool without Product Owner approval (tracked as open question `QA-STRAT-OQ-002`, Section 10). **The Human Product Owner explicitly approved introducing Playwright for automated E2E testing on 2026-07-06**, including approval to run the associated `npm install`/`npx playwright install` commands and to run the real backend (`dotnet run`) and real frontend dev server (`ng serve`) locally for the sole purpose of executing the suite. This resolves `QA-STRAT-OQ-002` (see Section 10) and makes automated E2E via Playwright the **primary** E2E mechanism for MVP, superseding the manual-only approach for all coverage that can be automated.
 
-Primary journeys:
-1. Search → Results → Sort → Select → Book → Passenger Details → Confirm → Confirmation (happy path, single passenger, domestic route).
-2. Same journey, multi-passenger (e.g., 3 passengers), international route.
-3. Zero-result search → empty state.
-4. Search/booking API failure simulation → user-facing error message (no backend detail leakage).
-5. Validation-blocked submission attempts (search form and booking form).
+Scope: full user-journey walkthroughs against each of the 8 user stories' acceptance criteria, executed against the real running application (real ASP.NET Core backend, real Angular dev server, no mocking of the application itself). This is the acceptance-level test pass that confirms the assembled system — not just individual units/integrations — satisfies each AC as written. Implemented at `frontend/playwright.config.ts` and `frontend/e2e/*.spec.ts` (Phase 13 extension, 2026-07-06); execution results are recorded in `docs/testing/execution/`.
+
+Primary automated journeys (implemented):
+1. Search → Results → Sort → Select → Book → Passenger Details → Confirm → Confirmation (happy path, single passenger, domestic route) — `frontend/e2e/full-journey-domestic.spec.ts`.
+2. Same journey, multi-passenger (3 passengers), international route — `frontend/e2e/full-journey-international.spec.ts`.
+3. Zero-result search → empty state; search API failure → generic error; booking API failure → generic error — `frontend/e2e/error-states.spec.ts`. **Note:** the fixed mock-provider schedule (ASM-006) means no valid search request can structurally produce a zero-result response or a real backend 500 through the UI (this document's own Section 5.2 language in the source feature spec already acknowledges the empty-array case is "never in practice" under the current fixed-mock-data design) — these three scenarios use Playwright's `page.route(...).fulfill(...)` to substitute the HTTP *response* for exactly the call under test, exercising the real, already-implemented frontend handling of that response shape without disabling or bypassing any frontend code. This is a deliberate, documented, narrowly-scoped exception to "no mocking" and is called out again inline in that spec file.
+4. Validation-blocked submission attempts (search form same-airport guard, booking form passenger-section gating) — `frontend/e2e/search-form.spec.ts`, `frontend/e2e/booking-validation.spec.ts`.
+5. Results persistence across in-app navigation without a new search — `frontend/e2e/results-persistence.spec.ts`.
+
+Manual/exploratory E2E walkthroughs (Section 1.4 as originally written) remain a **documented fallback/supplement** — useful for ad hoc exploratory checks and for any future scenario not yet automated — but are no longer the primary acceptance-level mechanism now that the automated suite exists and has been executed at least once (see `docs/testing/execution/`).
 
 ---
 
@@ -214,11 +218,20 @@ No changes are made to the DoR/DoD rule files themselves.
 | ID | Item | Status |
 |---|---|---|
 | QA-STRAT-OQ-001 | Whether NFR-TEST-005's 80% coverage target is formally recorded as PO-confirmed (this document assumes confirmation per the task brief; the orchestrator should verify this against the actual PO confirmation record before Phase 14 treats it as a gate). | Open — non-blocking for Phase 05 |
-| QA-STRAT-OQ-002 | Whether a dedicated E2E automation tool (Playwright/Cypress) will be introduced in a future sprint; MVP relies on manual/exploratory E2E per Section 1.4 to avoid an unapproved new dependency. | Open — no action needed for MVP; flag if PO wants automated E2E |
+| QA-STRAT-OQ-002 | Whether a dedicated E2E automation tool (Playwright/Cypress) will be introduced in a future sprint; MVP relies on manual/exploratory E2E per Section 1.4 to avoid an unapproved new dependency. | **Resolved 2026-07-06** — Human PO explicitly approved introducing Playwright for MVP, including the `npm install`/`npx playwright install` commands and local server startup for test execution. Automated E2E is now implemented and is the primary E2E mechanism per Section 1.4 (v1.1). See `docs/handoffs/13c-functional-tester-to-sdlc-orchestrator-e2e-test-writing.md`. |
 | RISK — IMP-001 dependency | Phase 14 test execution is blocked pending human approval to run `dotnet`/`npm`/`ng` commands. This strategy's coverage targets and scenario counts cannot be confirmed as *passing* until that approval is granted and commands are run. | Open — tracked as IMP-001 in `docs/handoffs/workflow-state.md` |
 
 No requirement, business rule, or NFR decision was reopened in producing this document.
 
 ---
 
-*End of Test Strategy and Acceptance Test Plan v1.0.*
+## 12. Document Changelog
+
+| Version | Date | Change |
+|---|---|---|
+| 1.0 | 2026-07-03 | Initial test strategy and acceptance test plan (Phase 05). |
+| 1.1 | 2026-07-06 | Phase 13 extension: Section 1.4 updated to make automated E2E via Playwright the primary E2E mechanism for MVP, per explicit Human PO approval resolving `QA-STRAT-OQ-002` (Section 10). Manual/exploratory E2E retained as a documented fallback/supplement. No requirement, business rule, or NFR decision reopened; no other section altered. |
+
+---
+
+*End of Test Strategy and Acceptance Test Plan v1.1.*

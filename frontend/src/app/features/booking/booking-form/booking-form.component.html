@@ -16,7 +16,7 @@
       </section>
     }
 
-    <form (ngSubmit)="onSubmit()" novalidate>
+    <form [formGroup]="bookingForm" (ngSubmit)="onSubmit()" novalidate>
       @for (group of passengerGroups(); track $index) {
         <app-passenger-form-section
           [group]="group"

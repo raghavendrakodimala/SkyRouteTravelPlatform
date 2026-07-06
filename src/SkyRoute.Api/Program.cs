@@ -100,3 +100,10 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Test-support only, non-behavioral: top-level statements compile to an internal Program
+// class by default. WebApplicationFactory<Program> (SkyRoute.Api.IntegrationTests) needs that
+// class to be reachable from a separate test assembly, so it is declared partial and public
+// here — the standard, minimal convention for enabling WebApplicationFactory<Program> without
+// altering any runtime behavior.
+public partial class Program;
