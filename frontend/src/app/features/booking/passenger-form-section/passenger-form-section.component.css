@@ -1,0 +1,40 @@
+.passenger-section {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+legend {
+  font-weight: 700;
+  padding: 0 0.25rem;
+}
+
+.lead-badge {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: #555;
+  margin-left: 0.5rem;
+}
+
+.field {
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+input {
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+.error {
+  color: #b00020;
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0;
+}

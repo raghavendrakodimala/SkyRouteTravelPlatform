@@ -1,0 +1,44 @@
+<fieldset [formGroup]="group()" class="passenger-section">
+  <legend>
+    Passenger {{ index() + 1 }}
+    @if (isLead()) {
+      <span class="lead-badge">(Primary Contact)</span>
+    }
+  </legend>
+
+  <div class="field">
+    <label [for]="'fullName-' + index()">Full Name</label>
+    <input [id]="'fullName-' + index()" type="text" formControlName="fullName" />
+    @if (group().get('fullName')?.touched && group().get('fullName')?.invalid) {
+      <p class="error" role="alert">Full name is required, must be 2–100 characters, and must contain at least one letter.</p>
+    }
+    @if (serverErrors()?.fullName) {
+      <p class="error" role="alert">{{ serverErrors()?.fullName }}</p>
+    }
+  </div>
+
+  <div class="field">
+    <label [for]="'email-' + index()">Email Address</label>
+    <input [id]="'email-' + index()" type="email" formControlName="email" />
+    @if (group().get('email')?.touched && group().get('email')?.invalid) {
+      <p class="error" role="alert">A valid email address is required.</p>
+    }
+    @if (serverErrors()?.email) {
+      <p class="error" role="alert">{{ serverErrors()?.email }}</p>
+    }
+  </div>
+
+  <div class="field">
+    <label [for]="'documentNumber-' + index()">{{ documentLabel() }}</label>
+    <input [id]="'documentNumber-' + index()" type="text" formControlName="documentNumber" />
+    @if (group().get('documentNumber')?.touched && group().get('documentNumber')?.invalid) {
+      <p class="error" role="alert">{{ documentLabel() }} does not match the required format.</p>
+    }
+    @if (serverErrors()?.documentNumber) {
+      <p class="error" role="alert">{{ serverErrors()?.documentNumber }}</p>
+    }
+    @if (serverErrors()?.documentType) {
+      <p class="error" role="alert">{{ serverErrors()?.documentType }}</p>
+    }
+  </div>
+</fieldset>

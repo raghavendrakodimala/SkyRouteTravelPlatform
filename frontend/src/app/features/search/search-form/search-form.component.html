@@ -1,0 +1,87 @@
+<section class="search-form-page">
+  <h1>Search Flights</h1>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+    <div class="field">
+      <label for="origin">Origin</label>
+      <select id="origin" formControlName="origin">
+        <option value="" disabled>Select origin airport</option>
+        @for (airport of airports; track airport.code) {
+          <option [value]="airport.code">{{ airport.displayName }} — {{ airport.country }}</option>
+        }
+      </select>
+      @if (submitted() && form.controls.origin.invalid) {
+        <p class="error" role="alert">Origin airport is required.</p>
+      }
+      @if (fieldError('origin')) {
+        <p class="error" role="alert">{{ fieldError('origin') }}</p>
+      }
+    </div>
+
+    <div class="field">
+      <label for="destination">Destination</label>
+      <select id="destination" formControlName="destination">
+        <option value="" disabled>Select destination airport</option>
+        @for (airport of airports; track airport.code) {
+          <option [value]="airport.code">{{ airport.displayName }} — {{ airport.country }}</option>
+        }
+      </select>
+      @if (submitted() && form.controls.destination.invalid) {
+        <p class="error" role="alert">Destination airport is required.</p>
+      }
+      @if (submitted() && sameAirportSelected()) {
+        <p class="error" role="alert">Origin and destination airports must be different.</p>
+      }
+      @if (fieldError('destination')) {
+        <p class="error" role="alert">{{ fieldError('destination') }}</p>
+      }
+    </div>
+
+    <div class="field">
+      <label for="departureDate">Departure Date</label>
+      <input id="departureDate" type="date" formControlName="departureDate" [min]="today" />
+      @if (submitted() && form.controls.departureDate.invalid) {
+        <p class="error" role="alert">Departure date is required and cannot be in the past.</p>
+      }
+      @if (fieldError('departureDate')) {
+        <p class="error" role="alert">{{ fieldError('departureDate') }}</p>
+      }
+    </div>
+
+    <div class="field">
+      <label for="passengerCount">Passengers</label>
+      <select id="passengerCount" formControlName="passengerCount">
+        @for (count of passengerCounts; track count) {
+          <option [value]="count">{{ count }}</option>
+        }
+      </select>
+      @if (fieldError('passengerCount')) {
+        <p class="error" role="alert">{{ fieldError('passengerCount') }}</p>
+      }
+    </div>
+
+    <div class="field">
+      <label for="cabinClass">Cabin Class</label>
+      <select id="cabinClass" formControlName="cabinClass">
+        @for (cabin of cabinClasses; track cabin) {
+          <option [value]="cabin">{{ cabin }}</option>
+        }
+      </select>
+      @if (fieldError('cabinClass')) {
+        <p class="error" role="alert">{{ fieldError('cabinClass') }}</p>
+      }
+    </div>
+
+    @if (errorMessage()) {
+      <p class="banner-error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <button type="submit" [disabled]="loading() || form.invalid || sameAirportSelected()">
+      @if (loading()) {
+        Searching…
+      } @else {
+        Search
+      }
+    </button>
+  </form>
+</section>

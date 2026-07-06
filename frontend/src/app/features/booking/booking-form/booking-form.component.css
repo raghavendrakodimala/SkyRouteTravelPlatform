@@ -1,0 +1,58 @@
+.booking-page {
+  max-width: 640px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+}
+
+.flight-summary h1 {
+  margin-bottom: 0.25rem;
+}
+
+.price-breakdown {
+  margin: 1rem 0 1.5rem;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #f7f9fc;
+}
+
+.total-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+}
+
+.per-person-price {
+  font-size: 0.95rem;
+  color: #555;
+  margin: 0;
+}
+
+.banner-error {
+  color: #b00020;
+  background: #fdecea;
+  border: 1px solid #b00020;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.banner-info {
+  color: #665c00;
+  background: #fff8e1;
+  border: 1px solid #e0c200;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+button {
+  padding: 0.65rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

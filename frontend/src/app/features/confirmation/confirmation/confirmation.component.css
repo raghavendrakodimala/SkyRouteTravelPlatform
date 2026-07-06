@@ -1,0 +1,45 @@
+.confirmation-page {
+  max-width: 560px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.booking-reference {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #1a5fb4;
+  background: #eef4fc;
+  border: 2px solid #1a5fb4;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.flight-summary {
+  text-align: left;
+  margin-bottom: 1rem;
+}
+
+.total-price {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.passengers {
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.passengers ul {
+  list-style: none;
+  padding: 0;
+}
+
+button {
+  padding: 0.65rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+}

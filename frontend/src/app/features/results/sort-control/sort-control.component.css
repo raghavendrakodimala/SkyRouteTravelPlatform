@@ -1,0 +1,22 @@
+.sort-control {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.sort-option {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  border: 1px solid #999;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.sort-option.active {
+  background: #1a5fb4;
+  color: #fff;
+  border-color: #1a5fb4;
+  font-weight: 600;
+}

@@ -80,52 +80,56 @@ User stories and implementation tasks will be added at Phase 07 — Project Back
 
 Populated at Phase 07 — Project Backlog Creation; updated at Phase 08 for the BL-033 decomposition. Full item detail (description, architecture-component mapping, sizing rationale, dependencies, DoR check) lives in `docs/delivery/project-backlog.md` v1.1. This board tracks only current Kanban state — all 37 active items start in **To Do**.
 
-### 4.1 Backend Items (To Do)
+### 4.1 Backend Items (Done)
 
-| ID | Task | User Story | Size | Priority | Blocked By |
+All 19 backend items (BL-001–BL-019) were implemented in Phase 12 (backend half) on branch `sdlc/12-implementation-skyroute-mvp`. Evidence: `docs/handoffs/12a-lead-full-stack-engineer-to-sdlc-orchestrator-backend-implementation.md` (HO-012A), `dotnet build` succeeded with 0 warnings/0 errors. Test writing/execution (Phase 13/14), code/security review (Phase 15/16), and re-test/re-review remain outstanding per the SDLC phase sequence — "Done" here means Phase 12 implementation is complete per architecture-plan.md, not full Definition of Done (Section 10 of CLAUDE.md) for the sprint as a whole.
+
+| ID | Task | User Story | Size | Priority | Status |
 |---|---|---|---|---|---|
-| BL-001 | Solution and Project Scaffolding | US-007 (enabling) | XS | Must | — |
-| BL-002 | Domain Models | US-002, 005, 006, 007, 008 | S | Must | BL-001 |
-| BL-003 | API Contract Models | US-001, 006 | S | Must | BL-002 |
-| BL-004 | Airport Static Data (`AirportDataService`) | US-008 | XS | Must | BL-002 |
-| BL-005 | `RouteTypeResolver` | US-005 | XS | Must | BL-004 |
-| BL-006 | Document Validation Patterns | US-005 | XS | Must | BL-002 |
-| BL-007 | `IFlightProvider` Interface | US-007 | XS | Must | BL-002, BL-003 |
-| BL-008 | `GlobalAirProvider`/`BudgetWingsProvider` | US-002, 007 | M | Must | BL-007 |
-| BL-009 | `IFlightAggregatorService` | US-007, 002 | M | Must | BL-007, BL-008 |
-| BL-010 | `SearchRequestValidator` | US-001 | S | Must | BL-003, BL-004 |
-| BL-011 | `IBookingStore`/`InMemoryBookingStore` | US-006 | S | Must | BL-002 |
-| BL-012 | `ITenantContext`/`DefaultTenantContext` | US-006 (seam) | XS | Must | BL-001 |
-| BL-013 | `BookingReferenceGenerator` | US-006 | S | Must | BL-001 |
-| BL-014 | `BookingRequestValidator` | US-005, 006 | S | Must | BL-003, BL-005, BL-006 |
-| BL-015 | `IBookingService`/`BookingService` | US-006 | M | Must | BL-005, BL-011, BL-012, BL-013, BL-014 |
-| BL-016 | `ApiExceptionMiddleware` | All (cross-cutting) | XS | Must | BL-001 |
-| BL-017 | `SearchController` | US-001 | XS | Must | BL-009, BL-010 |
-| BL-018 | `BookingController` | US-006 | XS | Must | BL-015, BL-014 |
-| BL-019 | DI Composition Root/CORS/Config | US-007 (+all) | S | Must | BL-008, 009, 011, 012, 013, 016, 017, 018 |
+| BL-001 | Solution and Project Scaffolding | US-007 (enabling) | XS | Must | Done |
+| BL-002 | Domain Models | US-002, 005, 006, 007, 008 | S | Must | Done |
+| BL-003 | API Contract Models | US-001, 006 | S | Must | Done |
+| BL-004 | Airport Static Data (`AirportDataService`) | US-008 | XS | Must | Done |
+| BL-005 | `RouteTypeResolver` | US-005 | XS | Must | Done |
+| BL-006 | Document Validation Patterns | US-005 | XS | Must | Done |
+| BL-007 | `IFlightProvider` Interface | US-007 | XS | Must | Done |
+| BL-008 | `GlobalAirProvider`/`BudgetWingsProvider` | US-002, 007 | M | Must | Done |
+| BL-009 | `IFlightAggregatorService` | US-007, 002 | M | Must | Done |
+| BL-010 | `SearchRequestValidator` | US-001 | S | Must | Done |
+| BL-011 | `IBookingStore`/`InMemoryBookingStore` | US-006 | S | Must | Done |
+| BL-012 | `ITenantContext`/`DefaultTenantContext` | US-006 (seam) | XS | Must | Done |
+| BL-013 | `BookingReferenceGenerator` | US-006 | S | Must | Done |
+| BL-014 | `BookingRequestValidator` | US-005, 006 | S | Must | Done |
+| BL-015 | `IBookingService`/`BookingService` | US-006 | M | Must | Done |
+| BL-016 | `ApiExceptionMiddleware` | All (cross-cutting) | XS | Must | Done |
+| BL-017 | `SearchController` | US-001 | XS | Must | Done |
+| BL-018 | `BookingController` | US-006 | XS | Must | Done |
+| BL-019 | DI Composition Root/CORS/Config | US-007 (+all) | S | Must | Done |
 
-### 4.2 Frontend Items (To Do)
+### 4.2 Frontend Items (Done)
 
-| ID | Task | User Story | Size | Priority | Blocked By |
+All 18 active frontend items (BL-020–BL-032, BL-034–BL-038) were implemented in Phase 12 (frontend half) on branch `sdlc/12-implementation-skyroute-mvp`. Evidence: `docs/handoffs/12b-lead-full-stack-engineer-to-sdlc-orchestrator-frontend-implementation.md` (HO-012B), `npm run build` succeeded with 0 errors/0 warnings. Test writing/execution (Phase 13/14), code/security/accessibility review (Phase 15/16/17), and re-test/re-review remain outstanding per the SDLC phase sequence — "Done" here means Phase 12 implementation is complete per architecture-plan.md, not full Definition of Done (Section 10 of CLAUDE.md) for the sprint as a whole.
+
+| ID | Task | User Story | Size | Priority | Status |
 |---|---|---|---|---|---|
-| BL-020 | Angular Workspace/Routing Shell | US-001, 004 (+all) | S | Must/Should | — |
-| BL-021 | Shared Models (TS) | US-001, 002, 005, 006 | XS | Must | BL-003 |
-| BL-022 | `airports.constants.ts` | US-008 | XS | Must | BL-020 |
-| BL-023 | `pricing.util.ts` | US-002, 004 | XS | Must | BL-021 |
-| BL-024 | `document-number.validators.ts` | US-005 | XS | Must | BL-006 |
-| BL-025 | `AuthService` (no-op) | (seam) | XS | Must | BL-020 |
-| BL-026 | `FlightSearchService` (Angular) | US-001 | XS | Must | BL-021 |
-| BL-027 | `SearchStateService` | US-001, 002, 003 | S | Must | BL-026 |
-| BL-028 | `SearchFormComponent` | US-001, 008 | M | Must | BL-022, BL-026, BL-027 |
-| BL-029 | `ResultsListComponent` | US-002, 004 | M | Must | BL-027, BL-023, BL-030 |
-| BL-030 | `SortControlComponent` | US-003 | S | Must | BL-027 |
-| BL-031 | `BookingService` (Angular) | US-006 | XS | Must | BL-021 |
-| BL-032 | `BookingStateService` | US-004, 005, 006 | S | Must | BL-031 |
-| BL-034 | `PassengerFormSectionComponent` | US-005 | M | Must | BL-024 |
-| BL-035 | `ConfirmationComponent` | US-006 | S | Must | BL-032 |
-| BL-036 | `BookingFormComponent`: Summary & Price Display *(split of BL-033)* | US-004 | S | Must | BL-023, BL-032 |
-| BL-037 | `BookingFormComponent`: Passenger Form Array Orchestration *(split of BL-033)* | US-004, 005 | M | Must | BL-032, BL-034 |
-| BL-038 | `BookingFormComponent`: Submit/Loading/Error/Re-submission *(split of BL-033)* | US-006 | M | Must | BL-031, BL-036, BL-037 |
+| BL-020 | Angular Workspace/Routing Shell | US-001, 004 (+all) | S | Must/Should | Done |
+| BL-021 | Shared Models (TS) | US-001, 002, 005, 006 | XS | Must | Done |
+| BL-022 | `airports.constants.ts` | US-008 | XS | Must | Done |
+| BL-023 | `pricing.util.ts` | US-002, 004 | XS | Must | Done |
+| BL-024 | `document-number.validators.ts` | US-005 | XS | Must | Done |
+| BL-025 | `AuthService` (no-op) | (seam) | XS | Must | Done |
+| BL-026 | `FlightSearchService` (Angular) | US-001 | XS | Must | Done |
+| BL-027 | `SearchStateService` | US-001, 002, 003 | S | Must | Done |
+| BL-028 | `SearchFormComponent` | US-001, 008 | M | Must | Done |
+| BL-029 | `ResultsListComponent` | US-002, 004 | M | Must | Done |
+| BL-030 | `SortControlComponent` | US-003 | S | Must | Done |
+| BL-031 | `BookingService` (Angular) | US-006 | XS | Must | Done |
+| BL-032 | `BookingStateService` | US-004, 005, 006 | S | Must | Done |
+| BL-034 | `PassengerFormSectionComponent` | US-005 | M | Must | Done |
+| BL-035 | `ConfirmationComponent` | US-006 | S | Must | Done |
+| BL-036 | `BookingFormComponent`: Summary & Price Display *(split of BL-033)* | US-004 | S | Must | Done |
+| BL-037 | `BookingFormComponent`: Passenger Form Array Orchestration *(split of BL-033)* | US-004, 005 | M | Must | Done |
+| BL-038 | `BookingFormComponent`: Submit/Loading/Error/Re-submission *(split of BL-033)* | US-006 | M | Must | Done |
 
 **BL-033 removed from this board at Phase 08** — decomposed into BL-036/BL-037/BL-038 above per SDLC Orchestrator decision on HO-007 (RISK-014). No scope change; see `docs/delivery/project-backlog.md` v1.1 and `docs/delivery/parallel-delivery-plan.md` v1.0.
 
@@ -140,6 +144,8 @@ Source: `docs/delivery/project-backlog.md` v1.1 (Phase 07, updated Phase 08). Pa
 | 2026-07-03 | project-coordinator | Initial board created for Phase 02. Phase 01 and Phase 02 moved to Done. All remaining phases added to Backlog. |
 | 2026-07-03 | project-coordinator | Phase 07 — seeded Section 4 Product Story Board with 35 backlog items (BL-001–BL-035) from `docs/delivery/project-backlog.md` v1.0, all in To Do state, split into Backend Items (4.1, 19 items) and Frontend Items (4.2, 16 items). |
 | 2026-07-03 | project-coordinator | Phase 08 — removed BL-033 (`BookingFormComponent`, L) from Section 4.2 and replaced with its three decomposition sub-tasks BL-036 (S), BL-037 (M), BL-038 (M), per SDLC Orchestrator decision on HO-007 (RISK-014). Frontend item count: 16 → 18; total active items: 35 → 37. Parallel-track assignment recorded in new `docs/delivery/parallel-delivery-plan.md` v1.0. |
+| 2026-07-03 | lead-full-stack-engineer | Phase 12 (backend half) — moved all 19 backend items (BL-001–BL-019) from Section 4.1 To Do to Done. Solution/project scaffolding, domain models, contracts, interfaces, providers, aggregation service, booking service, validators, in-memory store, tenancy seam, exception middleware, controllers, and DI composition root all implemented per `docs/architecture/architecture-plan.md` v1.0. `dotnet build` on `SkyRoute.slnx` succeeded: 0 Warning(s), 0 Error(s). Frontend items (BL-020–BL-038) remain in To Do pending the frontend half of Phase 12. See HO-012A. |
+| 2026-07-03 | lead-full-stack-engineer | Phase 12 (frontend half) — moved all 18 active frontend items (BL-020–BL-032, BL-034–BL-038) from Section 4.2 To Do to Done. Angular 22 standalone-component workspace scaffolded at `frontend/`; shared models/constants/utils/validators, search/results/booking/confirmation feature folders, Signal-based state services, and the 4-route shell with guards all implemented per `docs/architecture/architecture-plan.md` v1.0 Section 4 and the Phase 10 feature specs. `npm run build` succeeded: 0 errors, 0 warnings. Phase 12 is now complete in full (backend + frontend). See HO-012B. |
 
 ---
 
