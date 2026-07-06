@@ -82,6 +82,13 @@ export class BookingFormComponent {
     Array.from({ length: Math.max(this.passengerCount(), 1) }, () => this.buildPassengerGroup(this.routeType())),
   );
 
+  /** QA-003 fix: the native `<form>` needs a real `[formGroup]` binding so Angular's
+   * FormGroupDirective intercepts `ngSubmit` (otherwise the browser performs a native form
+   * submit/page reload instead of calling onSubmit()). `passengersForm` above is a FormArray
+   * (required by `formGroup`'s FormGroup-typed input), so it is wrapped in this thin FormGroup
+   * purely to satisfy the directive's binding — no passenger validation/structure changes. */
+  protected readonly bookingForm: FormGroup = this.fb.group({ passengers: this.passengersForm });
+
   protected readonly submitted = signal(false);
 
   private readonly formStatus = toSignal(this.passengersForm.statusChanges, {

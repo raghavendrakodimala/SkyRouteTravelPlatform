@@ -1,42 +1,44 @@
-# Handoff: HO-012B (Current)
+# Handoff: HO-013E (Current)
 
 | Field | Value |
 |---|---|
-| Handoff ID | HO-012B |
-| Date | 2026-07-03 |
-| Branch | sdlc/12-implementation-skyroute-mvp |
-| Phase | Phase 12 — Implementation (Complete — both backend and frontend halves) |
+| Handoff ID | HO-013E |
+| Date | 2026-07-06 |
+| Branch | sdlc/13-test-writing-skyroute-mvp |
+| Phase | Phase 13 (extension) — IMP-002 Resolution: Frontend Unit Test Execution, Human PO-approved |
 | From agent | lead-full-stack-engineer |
 | To agent | sdlc-orchestrator |
-| Status | Complete. Backend (HO-012A: BL-001–BL-019) and frontend (HO-012B: BL-020–BL-038) are both done. `dotnet build` and `npm run build` both succeed with zero errors. Phase 12 as a whole is closed. |
+| Status | Complete — IMP-002 Resolved. Frontend unit/component suite executed for the first time: **145/145 passing, 0 failed, 0 skipped** (16/16 files). |
 
-This is a pointer file. The full handoff records are maintained at:
+This is a pointer file. The full handoff record is maintained at:
 
-- `docs/handoffs/12a-lead-full-stack-engineer-to-sdlc-orchestrator-backend-implementation.md` (HO-012A — backend)
-- `docs/handoffs/12b-lead-full-stack-engineer-to-sdlc-orchestrator-frontend-implementation.md` (HO-012B — frontend, this handoff)
+- `docs/handoffs/13e-lead-full-stack-engineer-to-sdlc-orchestrator-frontend-test-execution.md` (HO-013E, this handoff)
 
-The previous current handoff (HO-012A, Phase 12 backend-only) is now historical and remains available at the path above.
+The previous current handoff (HO-013D, Phase 13 extension — QA-003 out-of-sequence fix) remains available at `docs/handoffs/13d-lead-full-stack-engineer-to-sdlc-orchestrator-qa003-fix.md`.
 
 ---
 
 ## Summary
 
-Phase 12 (Implementation) is complete in full. The backend (ASP.NET Core 10, 3-project solution) was implemented first (HO-012A, all 19 backend backlog items BL-001–BL-019 Done, `dotnet build` 0 warnings/0 errors). The frontend (Angular 22 standalone-component workspace at `frontend/`) was implemented second against the backend's actual built contract shapes (HO-012B, all 18 active frontend backlog items BL-020–BL-038 Done, `npm run build` 0 errors/0 warnings).
+Per explicit Human PO approval, **IMP-002** (the frontend `vitest`/`jsdom` test-runner packages were never installed, so the 145-test/16-file Vitest suite authored earlier in Phase 13 — HO-013 — had never executed) was resolved.
 
-All hard architectural gates were verified for both halves:
-- Backend: no `Microsoft.AspNetCore.*` in `SkyRoute.Application`, no `ClaimsPrincipal`/`IIdentity` anywhere, no ORM/serialization annotations on domain models, no database/ORM/cloud SDK dependency.
-- Frontend: no component injects `HttpClient` directly (only the two Angular HTTP services and `app.config.ts`'s provider registration do); total price is calculated in exactly one place (`pricing.util.ts`); airport data exists in exactly one file (`airports.constants.ts`); no `.subscribe()`/async-pipe usage outside the two state services' single Observable→Signal conversion points (AD-006); no UI component library was added.
+**Work done:** installed `vitest@4.1.10` + `jsdom@29.1.1` as devDependencies in `frontend/`; ran `npm test`; hit a compile error (4x `TS2345`, `Array.from(...)` inferring `unknown[]` in 3 spec files) and fixed it with explicit `Array.from<Element>(...)` type arguments; re-ran, hit 1 failure + 1 unhandled rejection (both `NG04002: Cannot match any routes`, in 2 spec files that registered an empty test route table while exercising components whose success paths call `router.navigate(...)`) and fixed it by registering trivial stub routes in each spec's `TestBed` config; re-ran clean.
 
-`docs/delivery/task-board.md` Section 4.2 (Frontend Items) moved from To Do to Done. Both sections of the Product Story Board are now Done for Phase 12 implementation scope (Phase 13 test writing, Phase 15/16/17 reviews, and Definition of Done as a whole for the sprint remain outstanding, per the SDLC phase sequence).
+**Final result: 145/145 passing, 0 failed, 0 skipped, across all 16 spec files.** All 5 fixes were confined to `*.spec.ts` files — no application code was touched, and no new QA finding was raised (both failure classes were confirmed test-authoring gaps, corroborated by the already-passing 11/11 Playwright E2E suite). `npm run build` re-verified clean (0 errors, 0 warnings) after the fixes.
 
-`docs/handoffs/workflow-state.md` has been updated to mark Phase 12 Complete and set the next phase to Phase 13 — Test Writing (owner: functional-tester).
+Full raw command/output evidence, per-file breakdown, and the fix log are recorded in `docs/testing/execution/frontend-unit-test-execution-summary.md`. `docs/delivery/task-board.md` (PH-13/PH-14 rows + Board Update Log) updated to reflect the resolved IMP-002 and the 145/145 result.
+
+QA-001, QA-002, QA-004, and QA-005 were not touched and remain **Open**, deferred to Phase 19 as before.
+
+`docs/handoffs/workflow-state.md` intentionally **not** updated by this handoff — reserved for the orchestrator per standing task-brief convention.
 
 ---
 
 ## Required Next Agent Action
 
-1. SDLC Orchestrator to review HO-012A and HO-012B together as the complete Phase 12 record.
-2. Per the phased-execution workflow (`.claude/rules/phased-execution.md`), commit and merge the `sdlc/12-implementation-skyroute-mvp` branch to `main` (pending explicit human instruction to commit/merge, per CLAUDE.md Section 17/21 — the orchestrator does not merge without that instruction).
-3. Start Phase 13 — Test Writing from updated `main`, invoking `functional-tester`, using both handoffs' "Architectural Gate Verification" sections and the exact utility/service signatures named in HO-012B as primary test fixtures.
+1. SDLC Orchestrator to review HO-013E and `docs/testing/execution/frontend-unit-test-execution-summary.md` in full.
+2. Update `docs/handoffs/workflow-state.md` to reflect IMP-002 Resolved and the 145/145 frontend unit-test result.
+3. Proceed to Phase 14 (Test Execution Summary, functional-tester) — backend (114/114), E2E (11/11), and frontend unit/component (145/145) evidence are all now available for consolidation.
+4. Continue tracking QA-001, QA-002, QA-004, QA-005 together for Phase 19.
 
-See `docs/handoffs/12a-lead-full-stack-engineer-to-sdlc-orchestrator-backend-implementation.md` and `docs/handoffs/12b-lead-full-stack-engineer-to-sdlc-orchestrator-frontend-implementation.md` for full detail.
+See `docs/handoffs/13e-lead-full-stack-engineer-to-sdlc-orchestrator-frontend-test-execution.md` for full detail.

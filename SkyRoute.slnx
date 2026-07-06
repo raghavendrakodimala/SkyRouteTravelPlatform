@@ -4,4 +4,8 @@
     <Project Path="src/SkyRoute.Application/SkyRoute.Application.csproj" />
     <Project Path="src/SkyRoute.Infrastructure/SkyRoute.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SkyRoute.Api.IntegrationTests/SkyRoute.Api.IntegrationTests.csproj" />
+    <Project Path="tests/SkyRoute.Application.Tests/SkyRoute.Application.Tests.csproj" />
+  </Folder>
 </Solution>
