@@ -1,0 +1,70 @@
+.results-page {
+  max-width: 720px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+}
+
+.loading,
+.empty-state {
+  padding: 1rem;
+  text-align: center;
+}
+
+.banner-error {
+  color: #b00020;
+  background: #fdecea;
+  border: 1px solid #b00020;
+  padding: 0.75rem;
+  border-radius: 4px;
+}
+
+.results-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.result-card {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.route {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.timing {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: #444;
+  font-size: 0.9rem;
+}
+
+.pricing {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.total-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.per-person-price {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+button {
+  justify-self: start;
+  padding: 0.5rem 1.25rem;
+  cursor: pointer;
+}

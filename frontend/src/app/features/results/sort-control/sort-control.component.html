@@ -1,0 +1,13 @@
+<div class="sort-control" role="group" aria-label="Sort flight results">
+  @for (option of options; track option) {
+    <button
+      type="button"
+      class="sort-option"
+      [class.active]="active() === option"
+      [attr.aria-pressed]="active() === option"
+      (click)="select(option)"
+    >
+      {{ labels[option] }}
+    </button>
+  }
+</div>

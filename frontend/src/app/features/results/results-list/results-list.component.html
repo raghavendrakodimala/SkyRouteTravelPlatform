@@ -1,0 +1,35 @@
+<section class="results-page">
+  <h1>Flight Results</h1>
+
+  @if (searchState.loading()) {
+    <p class="loading" role="status">Searching…</p>
+  } @else if (searchState.errorMessage()) {
+    <p class="banner-error" role="alert">{{ searchState.errorMessage() }}</p>
+  } @else if (searchState.isEmpty()) {
+    <p class="empty-state" role="status">No flights found for your search. Please try different criteria.</p>
+  } @else if (sortedResults().length > 0) {
+    <app-sort-control [active]="sortOption()" (optionSelected)="onSortChange($event)" />
+
+    <ul class="results-list">
+      @for (result of sortedResults(); track result.provider + result.flightNumber + result.departureDateTime) {
+        <li class="result-card">
+          <div class="route">
+            <span class="airports">{{ cityLabel(result.origin) }} → {{ cityLabel(result.destination) }}</span>
+            <span class="provider">{{ result.provider }} · {{ result.flightNumber }}</span>
+          </div>
+          <div class="timing">
+            <span>Departs {{ formatFlightTime(result.departureDateTime) }}</span>
+            <span>Arrives {{ formatFlightTime(result.arrivalDateTime) }}</span>
+            <span>{{ formatFlightDuration(result.durationMinutes) }}</span>
+            <span>{{ result.cabinClass }}</span>
+          </div>
+          <div class="pricing">
+            <span class="total-price">{{ totalPriceText(result) }}</span>
+            <span class="per-person-price">{{ perPersonPriceText(result) }}</span>
+          </div>
+          <button type="button" (click)="selectFlight(result)">Select</button>
+        </li>
+      }
+    </ul>
+  }
+</section>

@@ -1,0 +1,26 @@
+<section class="confirmation-page">
+  @if (booking(); as b) {
+    <p class="booking-reference" role="status">{{ b.bookingReference }}</p>
+
+    <section class="flight-summary">
+      <h2>{{ b.flight.origin }} → {{ b.flight.destination }}</h2>
+      <p>{{ b.flight.provider }} · Flight {{ b.flight.flightNumber }} · {{ b.flight.cabinClass }}</p>
+      <p>Departs {{ formatFlightTime(b.flight.departureDateTime) }} · Arrives {{ formatFlightTime(b.flight.arrivalDateTime) }}</p>
+    </section>
+
+    <p class="total-price">{{ formatPrice(b.totalPrice) }} total</p>
+
+    <section class="passengers">
+      <h3>Passengers</h3>
+      <ul>
+        @for (passenger of b.passengers; track passenger.fullName) {
+          <li>{{ passenger.fullName }}</li>
+        }
+      </ul>
+    </section>
+
+    <button type="button" (click)="startNewSearch()">Start a New Search</button>
+  } @else {
+    <p>No booking confirmation available. Please start a new search.</p>
+  }
+</section>

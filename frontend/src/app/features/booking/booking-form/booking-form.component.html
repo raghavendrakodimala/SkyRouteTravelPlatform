@@ -1,0 +1,51 @@
+<section class="booking-page">
+  @if (flight(); as f) {
+    <section class="flight-summary">
+      <h1>{{ f.origin }} → {{ f.destination }}</h1>
+      <p>{{ f.provider }} · Flight {{ f.flightNumber }} · {{ f.cabinClass }}</p>
+      <p>
+        Departs {{ formatFlightTime(f.departureDateTime) }} · Arrives {{ formatFlightTime(f.arrivalDateTime) }} ·
+        {{ formatFlightDuration(f.durationMinutes) }}
+      </p>
+    </section>
+
+    @if (priceBreakdown(); as pb) {
+      <section class="price-breakdown">
+        <p class="total-price">{{ formatPrice(pb.total) }} total</p>
+        <p class="per-person-price">{{ formatPrice(pb.perPerson) }} per person × {{ pb.count }} passenger(s)</p>
+      </section>
+    }
+
+    <form (ngSubmit)="onSubmit()" novalidate>
+      @for (group of passengerGroups(); track $index) {
+        <app-passenger-form-section
+          [group]="group"
+          [index]="$index"
+          [isLead]="$index === 0"
+          [documentLabel]="documentLabel()"
+          [serverErrors]="passengerServerErrors($index)"
+        />
+      }
+
+      @if (genericServerError()) {
+        <p class="banner-error" role="alert">{{ genericServerError() }}</p>
+      }
+
+      @if (alreadyConfirmed()) {
+        <p class="banner-info" role="status">
+          This booking has already been confirmed. Start a new search to book again.
+        </p>
+      }
+
+      <button type="submit" [disabled]="loading() || !allPassengersValid() || alreadyConfirmed()">
+        @if (loading()) {
+          Confirming…
+        } @else {
+          Confirm Booking
+        }
+      </button>
+    </form>
+  } @else {
+    <p>No flight selected. Please start a new search.</p>
+  }
+</section>

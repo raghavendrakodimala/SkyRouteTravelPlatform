@@ -13,3 +13,5 @@
 | HO-009 | scrum-master | sdlc-orchestrator | Phase 09 — Sprint Planning | `docs/handoffs/09-scrum-master-to-sdlc-orchestrator-sprint-plan.md` | Complete — Proposed, pending Human PO approval gate (PH-09) |
 | HO-010 | solution-architect | sdlc-orchestrator | Phase 10 — Feature Specifications | `docs/handoffs/10-solution-architect-to-sdlc-orchestrator-feature-specs.md` | Complete |
 | HO-011 | scrum-master | sdlc-orchestrator | Phase 11 — Spec Readiness Check | `docs/handoffs/11-scrum-master-to-sdlc-orchestrator-readiness-check.md` | Complete — Ready for Phase 12 |
+| HO-012A | lead-full-stack-engineer | sdlc-orchestrator | Phase 12 — Implementation (backend half) | `docs/handoffs/12a-lead-full-stack-engineer-to-sdlc-orchestrator-backend-implementation.md` | Complete (backend) |
+| HO-012B | lead-full-stack-engineer | sdlc-orchestrator | Phase 12 — Implementation (frontend half) | `docs/handoffs/12b-lead-full-stack-engineer-to-sdlc-orchestrator-frontend-implementation.md` | Complete — Phase 12 closed in full (backend + frontend) |
