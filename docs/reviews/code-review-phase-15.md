@@ -29,7 +29,7 @@ Five findings were raised, all **Low or Medium severity**, all `Open`. **No Crit
 |---|---|
 | Severity | Low |
 | File/area | `src/SkyRoute.Api/Controllers/SearchController.cs` (lines 40–52), `src/SkyRoute.Api/Controllers/BookingController.cs` (lines 56–68) |
-| Status | Open |
+| Status | **Resolved** |
 
 **Evidence:** Both controllers declare a byte-for-byte identical private static method:
 
@@ -54,6 +54,8 @@ private static ModelStateDictionary ToModelState(IDictionary<string, string[]> e
 
 **Required fix:** Extract the duplicated method to one shared location; update both controllers to call it. No behavior change.
 
+**Verification (2026-07-07, code-reviewer, HO-017):** Read `src/SkyRoute.Api/Controllers/ValidationProblemExtensions.cs`, `SearchController.cs`, and `BookingController.cs` directly. The duplicated private `ToModelState` method is gone from both controllers; a single `public static class ValidationProblemExtensions` with `public static ModelStateDictionary ToModelState(this IDictionary<string, string[]> errors)` now holds the (byte-for-byte identical) original body. `SearchController.Search` calls `errors.ToModelState()`; `BookingController.CreateBooking` calls `structuralErrors.ToModelState()` and `ex.Errors.ToModelState()`. No request/response shape or validation-message change. Independently re-ran `dotnet build` (0 Warnings, 0 Errors) and `dotnet test` (115/115 passing: 104 `SkyRoute.Application.Tests` + 11 `SkyRoute.Api.IntegrationTests`). Duplication is fully eliminated; behavior unchanged. **CR-001 is Resolved.**
+
 ---
 
 ### CR-002 — `GlobalAirProvider`/`BudgetWingsProvider` duplicate the entire schedule-to-`FlightResult` mapping pipeline
@@ -62,7 +64,7 @@ private static ModelStateDictionary ToModelState(IDictionary<string, string[]> e
 |---|---|
 | Severity | Low |
 | File/area | `src/SkyRoute.Infrastructure/Providers/GlobalAirProvider.cs`, `src/SkyRoute.Infrastructure/Providers/BudgetWingsProvider.cs` |
-| Status | Open |
+| Status | **Resolved** |
 
 **Evidence:** Both classes declare an identical private `ScheduledFlight` record shape and an identical `SearchAsync` body (departure-date fallback, cabin multiplier lookup, `baseFare` rounding, UTC `DateTime.SpecifyKind` construction, arrival-time computation, and the `FlightResult` object-initializer) — the only differences are the `Schedule` data and the named pricing method (`ApplyGlobalAirPricing` vs. `ApplyBudgetWingsPricing`).
 
@@ -72,6 +74,8 @@ private static ModelStateDictionary ToModelState(IDictionary<string, string[]> e
 
 **Required fix:** Introduce one shared mapping helper; both providers call it, passing their own `Schedule` and pricing delegate. No behavior/pricing/schedule change.
 
+**Verification (2026-07-07, code-reviewer, HO-018):** Read `src/SkyRoute.Infrastructure/Providers/ProviderScheduleMapper.cs`, `GlobalAirProvider.cs`, and `BudgetWingsProvider.cs` directly. A single `internal static class ProviderScheduleMapper` now owns the shared `ScheduledFlight` record shape and the `BuildResults(schedule, request, providerName, applyPricing)` mapping pipeline (departure-date fallback, cabin multiplier lookup, rounding, UTC timestamp construction, arrival-time computation, `FlightResult` construction) — byte-for-byte equivalent to the two previously-duplicated copies. Both providers' `SearchAsync` are now a single delegating line each: `ProviderScheduleMapper.BuildResults(Schedule, request, ProviderName, ApplyGlobalAirPricing)` / `...ApplyBudgetWingsPricing`. Confirmed `ApplyGlobalAirPricing` and `ApplyBudgetWingsPricing` remain `private static decimal(decimal)` methods, unchanged names/signatures, still declared on `GlobalAirProvider`/`BudgetWingsProvider` respectively (the constraint the reflection-based tests depend on). Independently re-ran the full suite (`dotnet build`: 0/0; `dotnet test`: 115/115) and a filtered run, `dotnet test --filter "FullyQualifiedName~GlobalAirProviderTests|FullyQualifiedName~BudgetWingsProviderTests"` — 24/24 passing, including the reflection-based `ApplyGlobalAirPricing_RoundsToTwoDecimalPlaces_PerBR001` and `ApplyBudgetWingsPricing_AppliesDiscountThenFloor_PerBR002` tests, confirming `GetMethod(...)` still resolves both private static methods by name. Duplication eliminated, per-provider testability preserved, no behavior change. **CR-002 is Resolved.**
+
 ---
 
 ### CR-003 — `InMemoryBookingStore.CreateAsync` performs a blind overwrite, creating a TOCTOU race with `BookingService`'s reference-uniqueness check
@@ -80,7 +84,7 @@ private static ModelStateDictionary ToModelState(IDictionary<string, string[]> e
 |---|---|
 | Severity | Medium |
 | File/area | `src/SkyRoute.Infrastructure/Persistence/InMemoryBookingStore.cs` (line 20), `src/SkyRoute.Application/Services/BookingService.cs` (`GenerateUniqueReferenceAsync`, lines 106–121) |
-| Status | Open |
+| Status | **Resolved** |
 
 **Evidence:** `BookingService.GenerateUniqueReferenceAsync` implements a check-then-act pattern: it calls `_store.ExistsAsync(candidate, ...)`, and only if that returns `false` does it return the candidate to the caller, which later calls `_store.CreateAsync(booking, ...)` in a separate step. `InMemoryBookingStore.CreateAsync` is:
 
@@ -100,6 +104,10 @@ This uses `ConcurrentDictionary`'s indexer (upsert semantics), not `TryAdd`. If 
 
 **Required fix:** Change `InMemoryBookingStore.CreateAsync` to use `ConcurrentDictionary.TryAdd`; adjust `BookingService.GenerateUniqueReferenceAsync`'s retry loop to treat a failed add as a collision (retry) rather than relying solely on the preceding `ExistsAsync` check. Add a unit test that proves two "colliding" concurrent `CreateAsync` calls for the same reference result in exactly one stored booking and one signalled failure/retry, not a silent overwrite.
 
+**Verification (2026-07-07, code-reviewer, HO-019):** Read `InMemoryBookingStore.cs`, `BookingService.cs`, and `DuplicateBookingReferenceException.cs` directly (not just the handoff description). Confirmed `CreateAsync` now performs `_bookings.TryAdd(booking.BookingReference, booking)` — a single atomic ConcurrentDictionary operation — and throws `DuplicateBookingReferenceException` on `false` instead of the prior indexer-assignment overwrite; the store is now itself the source of truth for uniqueness. Confirmed `BookingService` was restructured so `CreateBookingWithUniqueReferenceAsync`'s retry loop builds the `Booking` and calls `_store.CreateAsync(...)` inside a `try`/`catch (DuplicateBookingReferenceException)` on every attempt — the retry is genuinely driven by the store's atomic-add outcome, not merely by a preceding `ExistsAsync` check-then-act (`ExistsAsync` is retained only as a documented non-authoritative fast-path `continue`). This structurally closes the TOCTOU window described in the original finding: even if two callers both see `ExistsAsync == false` for the same candidate, only one `CreateAsync` call can win the race, and the loser is forced to retry with a new reference rather than silently overwriting the winner's record.
+
+Read the new test `CreateAsync_ConcurrentWritesForSameReference_ExactlyOneSucceedsAndOneThrows` in `InMemoryBookingStoreTests.cs` — it races two real `Task.Run` calls against the real `ConcurrentDictionary`-backed `InMemoryBookingStore` (not the fake) for the same reference, and asserts exactly one outcome succeeds, exactly one throws `DuplicateBookingReferenceException`, and the store ends up with exactly one record for that reference. Independently re-ran this test 5 consecutive times in isolation (`dotnet test --filter "FullyQualifiedName~CreateAsync_ConcurrentWritesForSameReference_ExactlyOneSucceedsAndOneThrows"`) — passed all 5 runs, no flakiness observed. Also re-ran `BookingServiceTests` (8/8 passing, including the two updated collision-retry tests `CreateBookingAsync_ReferenceCollision_RetriesUntilAUniqueReferenceIsFound` and `CreateBookingAsync_ReferenceCollisionNeverResolves_ThrowsAfterExactlyTenAttempts`, which now force collisions on `FakeBookingStore.CreateAsync` rather than `ExistsAsync`, correctly exercising the new exception-driven path) and the full suite (`dotnet build`: 0/0; `dotnet test`: 115/115). This is a genuine fix, not a superficial one — the atomicity is enforced at the point of mutation (`TryAdd`), not by widening a pre-check window. **CR-003 is Resolved.**
+
 ---
 
 ### CR-004 — Frontend has no production environment file / no `fileReplacements` wiring; a "production" build still targets the local dev backend
@@ -108,7 +116,7 @@ This uses `ConcurrentDictionary`'s indexer (upsert semantics), not `TryAdd`. If 
 |---|---|
 | Severity | Low |
 | File/area | `frontend/src/environments/environment.ts`, `frontend/angular.json` (`build.configurations.production`) |
-| Status | Open |
+| Status | **Resolved** |
 
 **Evidence:** Only one environment file exists (`frontend/src/environments/environment.ts`, `production: false`, `apiBaseUrl: 'http://localhost:5094/api'`). `frontend/angular.json`'s `production` build configuration has no `fileReplacements` entry, so `ng build` (which defaults to the `production` configuration per `"defaultConfiguration": "production"`) still bundles the dev environment file verbatim — the resulting bundle reports `environment.production === false` and points at `localhost:5094` regardless of build configuration.
 
@@ -118,6 +126,8 @@ This uses `ConcurrentDictionary`'s indexer (upsert semantics), not `TryAdd`. If 
 
 **Required fix:** Add the missing production environment file and `fileReplacements` wiring, or explicitly document (e.g. in `frontend/README` or this environment file's own comment) that this MVP intentionally has no distinct production target and why, so the gap is a documented decision rather than an oversight.
 
+**Verification (2026-07-07, code-reviewer, HO-020):** Read `frontend/src/environments/environment.prod.ts` and `frontend/angular.json` directly. `environment.prod.ts` exists with `production: true`, same `apiBaseUrl` shape as the dev file, and a doc comment explaining the local-only rationale (cross-referencing `DP-DEPLOY-001`/CR-004). `angular.json`'s `architect.build.configurations.production` now has a `fileReplacements` entry (`replace: "src/environments/environment.ts"`, `with: "src/environments/environment.prod.ts"`) in the correct location — inside the `production` configuration block that `defaultConfiguration: "production"` selects — using the standard Angular CLI convention. This is wired correctly, not just present-but-unused: the handoff's own build evidence (`grep` against the compiled bundle for `production:!0`/`production:!1`) corroborates the wiring takes effect at build time, and the file placement/shape are independently confirmed by direct read. **CR-004 is Resolved.**
+
 ---
 
 ### CR-005 — Reflection-based unit tests on private provider pricing methods duplicate coverage already available through the public API
@@ -126,7 +136,7 @@ This uses `ConcurrentDictionary`'s indexer (upsert semantics), not `TryAdd`. If 
 |---|---|
 | Severity | Low (informational — test-quality, not a functional defect) |
 | File/area | `tests/SkyRoute.Application.Tests/Providers/GlobalAirProviderTests.cs` (`ApplyGlobalAirPricing_RoundsToTwoDecimalPlaces_PerBR001`), `tests/SkyRoute.Application.Tests/Providers/BudgetWingsProviderTests.cs` (equivalent `ApplyBudgetWingsPricing_...` test) |
-| Status | Open |
+| Status | **Accepted Risk** |
 
 **Evidence:** Both test classes use `typeof(...).GetMethod("ApplyGlobalAirPricing"/"ApplyBudgetWingsPricing", BindingFlags.NonPublic | BindingFlags.Static)` plus `MethodInfo.Invoke(...)` to unit-test the private pricing methods directly with hand-picked boundary values, in addition to the same classes' own `SearchAsync_AppliesBR001PricingFormula_PerWorkedExamples`-style tests, which already exercise the identical pricing formula end-to-end through the public `SearchAsync` entry point using the fixed schedule's own base fares.
 
@@ -136,19 +146,23 @@ This uses `ConcurrentDictionary`'s indexer (upsert semantics), not `TryAdd`. If 
 
 **Required fix:** None required for MVP; optional follow-up only if the test suite is revisited for long-term maintainability beyond the hiring-challenge deadline.
 
+**Disposition (2026-07-07, code-reviewer):** No developer fix was routed for this finding. This is the Iterative Review-Fix Loop's Low/informational carve-out (`.claude/rules/phased-execution.md` / `.claude/rules/delegation-rules.md`): the original review text above already stated explicitly ("this is a deliberate, explicitly-documented choice... not a defect... optional polish, not a required fix for this MVP") that no fix was required, so the reviewer may mark this `Accepted Risk` directly without a fresh human round-trip. Re-confirmed the underlying condition is unchanged by the CR-002 fix (the reflection-based tests in `GlobalAirProviderTests.cs`/`BudgetWingsProviderTests.cs` still target `ApplyGlobalAirPricing`/`ApplyBudgetWingsPricing` by name on their original classes, per the CR-002 verification above, so this note remains accurate). **CR-005 is Accepted Risk** — no fix required for MVP; optional post-MVP polish only.
+
 ---
 
 ## Findings Summary Table
 
 | ID | Severity | Area | Status |
 |---|---|---|---|
-| CR-001 | Low | `SearchController`/`BookingController` — duplicated `ToModelState` helper | Open |
-| CR-002 | Low | `GlobalAirProvider`/`BudgetWingsProvider` — duplicated mapping pipeline | Open |
-| CR-003 | Medium | `InMemoryBookingStore`/`BookingService` — TOCTOU race on reference uniqueness | Open |
-| CR-004 | Low | Frontend environment/build config — no production environment file | Open |
-| CR-005 | Low (informational) | Provider tests — reflection-based private-method tests | Open |
+| CR-001 | Low | `SearchController`/`BookingController` — duplicated `ToModelState` helper | Resolved |
+| CR-002 | Low | `GlobalAirProvider`/`BudgetWingsProvider` — duplicated mapping pipeline | Resolved |
+| CR-003 | Medium | `InMemoryBookingStore`/`BookingService` — TOCTOU race on reference uniqueness | Resolved |
+| CR-004 | Low | Frontend environment/build config — no production environment file | Resolved |
+| CR-005 | Low (informational) | Provider tests — reflection-based private-method tests | Accepted Risk |
 
-**Totals: 0 Critical, 0 High, 1 Medium, 4 Low.**
+**Totals: 0 Critical, 0 High, 1 Medium, 4 Low. All 5 findings are now in a terminal status (4 Resolved, 1 Accepted Risk). Zero `Open`, `In Progress`, or `Partially Resolved` findings remain.**
+
+*Fix loop history: findings were originally filed 2026-07-06 (all `Open`); fixed by junior-developer (CR-001, CR-004) and senior-full-stack-engineer (CR-002, CR-003) per HO-017/HO-018/HO-019/HO-020; verified by code-reviewer 2026-07-07 (this pass) via independent source review and independently-run `dotnet build`/`dotnet test` (0 Warnings/0 Errors; 115/115 tests passing, matching the developers' own reported evidence). CR-005 required no developer fix and was marked `Accepted Risk` directly by the reviewer under the Low/informational carve-out.*
 
 ---
 
@@ -167,7 +181,9 @@ This uses `ConcurrentDictionary`'s indexer (upsert semantics), not `TryAdd`. If 
 
 ## Overall Recommendation
 
-No finding in this review requires escalation for an earlier human decision gate ahead of Phase 16 (Security Review). All five findings are Medium/Low, consistent with an MVP built against a hard deadline, and are appropriately deferred to Phase 19 (Findings Fixes) alongside the existing QA-001/QA-002/QA-004/QA-005 backlog. CR-003 is the one finding worth flagging for priority attention within Phase 19 specifically because it touches the same booking-uniqueness guarantee (`BR-004`/`BR-008`) that Phase 13's own test suite already treats as a first-class concern, even though it does not block progression to Phase 16 on its own.
+**Updated 2026-07-07 following the Phase 15a Iterative Review-Fix Loop.** All five findings from the original 2026-07-06 review have now reached a terminal status: CR-001, CR-002, CR-003, and CR-004 are `Resolved` (each independently re-verified against current source plus an independently-run clean `dotnet build` and 115/115 `dotnet test` pass, not merely trusted from the developer handoffs), and CR-005 is `Accepted Risk` per its own original no-fix-required text and the Low/informational carve-out. CR-003 (Medium — the TOCTOU race on booking-reference uniqueness) received particular scrutiny given its severity: the fix moves the source of truth for uniqueness into `InMemoryBookingStore.CreateAsync` itself via an atomic `ConcurrentDictionary.TryAdd`, and a new cross-thread race test (`CreateAsync_ConcurrentWritesForSameReference_ExactlyOneSucceedsAndOneThrows`, re-run 5/5 clean in isolation) directly exercises the exact scenario the finding described.
+
+`docs/reviews/code-review-phase-15.md` now shows **zero `Open` findings**. Per `.claude/rules/phased-execution.md`'s Phase Completion Criteria, Phase 15/15a's review-phase merge gate is satisfied on this dimension. No new finding was surfaced during this verification pass (no CR-006 filed). Recommend proceeding to commit/merge of the `sdlc/15a-code-review-fixes-skyroute-mvp` branch, pending human instruction per this project's git-workflow rules (the code-reviewer does not commit/merge itself). Phase 16 (Security Review) may proceed once that merge completes.
 
 ---
 

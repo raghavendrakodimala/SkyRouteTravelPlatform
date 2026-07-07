@@ -26,6 +26,8 @@ The project follows Scrum with spec-driven delivery gates.
 20. Retrospective
 21. Merge
 
+Reviews (step 15) run an Iterative Review-Fix Loop internally — findings are routed to a developer agent, fixed, and re-reviewed until zero `Open` remain, before that review is merged. Fixes (step 16) is a consolidation step for `QA-*` findings and anything a loop could not close, not the default venue for review findings. See `.claude/rules/phased-execution.md` and `CLAUDE.md` §22.
+
 ## Mandatory Gates
 
 Implementation must not start unless selected work has:

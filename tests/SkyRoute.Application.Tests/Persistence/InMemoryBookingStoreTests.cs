@@ -1,4 +1,5 @@
 using SkyRoute.Application.Domain;
+using SkyRoute.Application.Exceptions;
 using SkyRoute.Infrastructure.Persistence;
 
 namespace SkyRoute.Application.Tests.Persistence;
@@ -108,6 +109,53 @@ public class InMemoryBookingStoreTests
         var retrieved = await Task.WhenAll(
             Enumerable.Range(0, 50).Select(i => store.GetByReferenceAsync($"SKY-INT-C{i:D5}", "default", CancellationToken.None)));
         Assert.All(retrieved, b => Assert.NotNull(b));
+    }
+
+    [Fact]
+    public async Task CreateAsync_ConcurrentWritesForSameReference_ExactlyOneSucceedsAndOneThrows()
+    {
+        // BR-004/BR-008/NFR-SCALE-002, code review finding CR-003: two concurrent CreateAsync
+        // calls racing on the *same* booking reference must not silently overwrite one another
+        // (the pre-fix indexer-assignment behavior). The atomic TryAdd must let exactly one
+        // call win and make the other observably fail via DuplicateBookingReferenceException,
+        // and the store must retain exactly one booking for that reference afterward.
+        //
+        // CreateAsync's TryAdd/throw runs synchronously (no real await point), so a
+        // DuplicateBookingReferenceException on the losing call is raised at the call site
+        // itself rather than surfacing on a faulted Task. Each attempt is wrapped in its own
+        // async local function and scheduled via Task.Run so (a) both calls genuinely race on
+        // separate threads and (b) a synchronous throw is captured into that call's Task result
+        // instead of escaping to this method's stack directly.
+        var store = new InMemoryBookingStore();
+        const string sharedReference = "SKY-INT-RACE01";
+        var booking1 = MakeBooking(reference: sharedReference);
+        var booking2 = MakeBooking(reference: sharedReference);
+
+        async Task<bool> TryCreateAsync(Booking booking)
+        {
+            try
+            {
+                await store.CreateAsync(booking, "default", CancellationToken.None);
+                return true;
+            }
+            catch (DuplicateBookingReferenceException)
+            {
+                return false;
+            }
+        }
+
+        var outcomes = await Task.WhenAll(
+            Task.Run(() => TryCreateAsync(booking1)),
+            Task.Run(() => TryCreateAsync(booking2)));
+
+        Assert.Single(outcomes, succeeded => succeeded);
+        Assert.Single(outcomes, succeeded => !succeeded);
+
+        var exists = await store.ExistsAsync(sharedReference, "default", CancellationToken.None);
+        Assert.True(exists);
+
+        var tenantResults = await store.ListByTenantAsync("default", 1, 10, CancellationToken.None);
+        Assert.Single(tenantResults, b => b.BookingReference == sharedReference);
     }
 
     [Fact]

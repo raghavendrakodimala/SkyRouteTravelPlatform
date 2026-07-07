@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using SkyRoute.Application.Domain;
+using SkyRoute.Application.Exceptions;
 using SkyRoute.Application.Interfaces;
 
 namespace SkyRoute.Infrastructure.Persistence;
@@ -15,9 +16,20 @@ public sealed class InMemoryBookingStore : IBookingStore
 {
     private readonly ConcurrentDictionary<string, Booking> _bookings = new();
 
+    /// <summary>
+    /// Atomic add (code review finding CR-003): uses ConcurrentDictionary.TryAdd rather than
+    /// the indexer, so this method is itself the source of truth for reference uniqueness
+    /// (BR-004/BR-008) instead of relying solely on a caller's separate check-then-act
+    /// ExistsAsync pre-check. Throws DuplicateBookingReferenceException on collision instead of
+    /// silently overwriting the existing record.
+    /// </summary>
     public Task<Booking> CreateAsync(Booking booking, string tenantId, CancellationToken cancellationToken)
     {
-        _bookings[booking.BookingReference] = booking;
+        if (!_bookings.TryAdd(booking.BookingReference, booking))
+        {
+            throw new DuplicateBookingReferenceException(booking.BookingReference);
+        }
+
         return Task.FromResult(booking);
     }
 

@@ -63,39 +63,14 @@ public sealed class BookingService : IBookingService
 
         var tenantId = _tenantContext.TenantId;
 
-        // Step 5 (BR-004, NFR-DATA-001, Gap-fill BF-03): generate + collision-check reference,
-        // bounded retry.
-        var reference = await GenerateUniqueReferenceAsync(routeType, tenantId, cancellationToken);
-
-        // Step 6 (BR-005, NFR-DATA-003, DP-TENANT-003/005): build the domain object and persist.
-        var booking = new Booking
-        {
-            BookingReference = reference,
-            Flight = new BookingFlightSnapshot
-            {
-                Provider = request.Flight.Provider!,
-                FlightNumber = request.Flight.FlightNumber!,
-                Origin = request.Flight.Origin!,
-                Destination = request.Flight.Destination!,
-                DepartureDateTime = request.Flight.DepartureDateTime!.Value,
-                ArrivalDateTime = request.Flight.ArrivalDateTime!.Value,
-                CabinClass = request.Flight.CabinClass!,
-                PricePerPassenger = request.Flight.PricePerPassenger!.Value,
-            },
-            Passengers = request.Passengers.Select(p => new PassengerDetail
-            {
-                FullName = p.FullName!,
-                Email = p.Email!,
-                DocumentType = p.DocumentType!,
-                DocumentNumber = p.DocumentNumber!,
-            }).ToList(),
-            CabinClass = request.Flight.CabinClass!,
-            TotalPrice = totalPrice,
-            CreatedAtUtc = DateTime.UtcNow,
-            TenantId = tenantId,
-        };
-
-        var created = await _store.CreateAsync(booking, tenantId, cancellationToken);
+        // Step 5/6 (BR-004, NFR-DATA-001, Gap-fill BF-03, code review finding CR-003): generate
+        // a candidate reference and attempt to persist it, bounded retry. CreateAsync's atomic
+        // TryAdd (not the preceding ExistsAsync pre-check alone) is the actual source of truth
+        // for uniqueness — a DuplicateBookingReferenceException triggers a retry with a freshly
+        // generated candidate, closing the check-then-act TOCTOU race that existed when
+        // uniqueness was enforced only by a separate ExistsAsync call ahead of CreateAsync.
+        var created = await CreateBookingWithUniqueReferenceAsync(
+            routeType, tenantId, request, totalPrice, cancellationToken);
 
         _logger.LogInformation("Booking record created for reference {BookingReference}", created.BookingReference);
 
@@ -103,14 +78,61 @@ public sealed class BookingService : IBookingService
         return MapToResponse(created);
     }
 
-    private async Task<string> GenerateUniqueReferenceAsync(RouteType routeType, string tenantId, CancellationToken cancellationToken)
+    private async Task<Booking> CreateBookingWithUniqueReferenceAsync(
+        RouteType routeType,
+        string tenantId,
+        BookingRequest request,
+        decimal totalPrice,
+        CancellationToken cancellationToken)
     {
         for (var attempt = 0; attempt < MaxReferenceGenerationAttempts; attempt++)
         {
             var candidate = _referenceGenerator.GenerateBookingReference(routeType);
-            if (!await _store.ExistsAsync(candidate, tenantId, cancellationToken))
+
+            // Fast-path optimization only: skips an obviously-taken candidate without paying
+            // for a CreateAsync round-trip. Not relied upon for correctness — CreateAsync's
+            // atomic TryAdd below is what actually enforces uniqueness.
+            if (await _store.ExistsAsync(candidate, tenantId, cancellationToken))
             {
-                return candidate;
+                continue;
+            }
+
+            var booking = new Booking
+            {
+                BookingReference = candidate,
+                Flight = new BookingFlightSnapshot
+                {
+                    Provider = request.Flight.Provider!,
+                    FlightNumber = request.Flight.FlightNumber!,
+                    Origin = request.Flight.Origin!,
+                    Destination = request.Flight.Destination!,
+                    DepartureDateTime = request.Flight.DepartureDateTime!.Value,
+                    ArrivalDateTime = request.Flight.ArrivalDateTime!.Value,
+                    CabinClass = request.Flight.CabinClass!,
+                    PricePerPassenger = request.Flight.PricePerPassenger!.Value,
+                },
+                Passengers = request.Passengers.Select(p => new PassengerDetail
+                {
+                    FullName = p.FullName!,
+                    Email = p.Email!,
+                    DocumentType = p.DocumentType!,
+                    DocumentNumber = p.DocumentNumber!,
+                }).ToList(),
+                CabinClass = request.Flight.CabinClass!,
+                TotalPrice = totalPrice,
+                CreatedAtUtc = DateTime.UtcNow,
+                TenantId = tenantId,
+            };
+
+            try
+            {
+                return await _store.CreateAsync(booking, tenantId, cancellationToken);
+            }
+            catch (DuplicateBookingReferenceException)
+            {
+                // Collision detected by the store's atomic add, despite the ExistsAsync
+                // fast-path above having reported "unused" (a genuine TOCTOU race under
+                // concurrent load) — retry with a newly generated reference.
             }
         }
 

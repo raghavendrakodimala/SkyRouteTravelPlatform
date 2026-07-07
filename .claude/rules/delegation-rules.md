@@ -93,6 +93,16 @@ May delegate implementation subtasks to:
 
 Must not change scope, architecture, dependencies, or delete files without approval.
 
+### Review Finding → Developer Agent Routing
+
+During the Iterative Review-Fix Loop (Code/Security/Accessibility/Performance Review, see `.claude/rules/phased-execution.md` and `CLAUDE.md` §22), the orchestrator routes each `Open` finding to a developer agent as follows:
+
+- **Lead Full Stack Engineer** — architectural/design gaps, production-integrity issues, and any Critical or High severity finding regardless of apparent size.
+- **Senior Full Stack Engineer** — complex, cross-file, or concurrency-sensitive work, and changes to key business logic (pricing, booking, aggregation).
+- **Junior Developer** — trivial, mechanical fixes that mirror an existing proven pattern elsewhere in the codebase (e.g. adding a validation rule identical in shape to a sibling validator).
+
+A developer agent fixes the finding (source + tests) and records evidence in a handoff note. It never edits the review report itself, and never sets a finding to `Accepted Risk`, `Deferred`, or `Rejected` — those statuses require human approval recorded by the reviewer, except when a Low/informational finding's own original review text already stated no fix was required (the reviewer may mark that `Accepted Risk` directly, without a fresh human round-trip).
+
 ### Senior Full Stack Engineer
 
 May delegate small, clearly scoped tasks to:

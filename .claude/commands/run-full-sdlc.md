@@ -723,7 +723,7 @@ Create/update:
 - `docs/reviews/code-review-<scope-slug>.md`
 - `docs/handoffs/`
 
-Do not fix code in this phase.
+Run the Iterative Review-Fix Loop (see `.claude/rules/phased-execution.md` and `CLAUDE.md` §22): route each `Open` finding to a developer agent per `.claude/rules/delegation-rules.md`, re-review with code-reviewer, repeat until the report shows zero `Open` findings. Do not merge this phase until then.
 
 Commit message:
 
@@ -756,7 +756,7 @@ Create/update:
 - `docs/reviews/security-review-<scope-slug>.md`
 - `docs/handoffs/`
 
-Do not fix code in this phase.
+Run the Iterative Review-Fix Loop (see `.claude/rules/phased-execution.md` and `CLAUDE.md` §22): route each `Open` finding to a developer agent per `.claude/rules/delegation-rules.md`, re-review with security-reviewer, repeat until the report shows zero `Open` findings. Send a non-blocking FYI to the human before fixing any Critical/High finding. Do not merge this phase until the report shows zero `Open`.
 
 Commit message:
 
@@ -791,7 +791,7 @@ Create/update:
 
 If no UI is involved, create a Not Applicable review note and handoff.
 
-Do not fix code in this phase.
+Otherwise, run the Iterative Review-Fix Loop (see `.claude/rules/phased-execution.md` and `CLAUDE.md` §22): route each `Open` finding to a developer agent per `.claude/rules/delegation-rules.md`, re-review with accessibility-tester, repeat until the report shows zero `Open` findings. Do not merge this phase until then.
 
 Commit message:
 
@@ -828,6 +828,8 @@ Create/update:
 If not applicable, create a Not Applicable review note and handoff.
 
 Do not run heavy load tests without approval.
+
+Otherwise, run the Iterative Review-Fix Loop (see `.claude/rules/phased-execution.md` and `CLAUDE.md` §22): route each `Open` finding to a developer agent per `.claude/rules/delegation-rules.md`, re-review with performance-tester, repeat until the report shows zero `Open` findings. Do not merge this phase until then.
 
 Commit message:
 
@@ -1072,7 +1074,7 @@ merge: complete phase 24 final SDLC summary
 
 If Phase 14 test execution produces failing QA findings, route to Phase 19 fixes before final completion.
 
-If Phase 15 to Phase 18 reviews produce findings, route to Phase 19 fixes.
+Phase 15 to Phase 18 reviews no longer feed Phase 19 by default — each review phase closes its own findings via the Iterative Review-Fix Loop before it is merged (see `.claude/rules/phased-execution.md` and `CLAUDE.md` §22). Phase 19 receives only `QA-*` findings and any `CR-*`/`SEC-*`/`A11Y-*`/`PERF-*` item a loop genuinely could not close (e.g. requires a scope/architecture decision) and that is explicitly documented as deferred.
 
 If Phase 19 fixes occur, Phase 20 re-test/re-review is mandatory.
 

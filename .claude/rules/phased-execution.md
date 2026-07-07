@@ -39,9 +39,29 @@ Examples:
 - During Requirements phase, do not implement code.
 - During Architecture phase, do not write production code.
 - During Test Strategy phase, do not implement tests unless explicitly part of that phase.
-- During Code Review phase, do not fix code.
-- During Security Review phase, do not fix code.
+- During Code Review, Security Review, Accessibility Review, and Performance Review phases, the reviewer agent does not fix code directly — findings are routed through the Iterative Review-Fix Loop below.
 - During Fixes phase, fix only tracked findings.
+
+---
+
+## Iterative Review-Fix Loop (Phases 15–18)
+
+Code Review, Security Review, Accessibility Review, and Performance Review each loop internally instead of deferring every fix to Phase 19/20:
+
+1. The reviewer agent files findings (all `Open`) in the phase's review report under `docs/reviews/`.
+2. The orchestrator routes each `Open` finding to a developer agent by severity/complexity, per the routing table in `delegation-rules.md` ("Review Finding → Developer Agent Routing").
+3. The developer agent fixes the finding (source + tests) and records evidence in a handoff note. The developer agent never edits the review report itself.
+4. The orchestrator re-invokes the same reviewer agent, scoped to the changed files/finding IDs, to verify the fix.
+5. The reviewer sets the finding to `Resolved` (verified), leaves it `Open`/`Partially Resolved` (loop continues), or files a new incremented finding ID if the fix revealed something new.
+6. Repeat steps 2–5 until the report shows zero `Open` findings.
+
+`Resolved`, `Accepted Risk`, `Deferred`, and `Rejected` are all valid terminal statuses. Only `Open`, `In Progress`, and `Partially Resolved` keep the loop going.
+
+A developer agent must never itself set a finding to `Accepted Risk`, `Deferred`, or `Rejected` — that requires human approval recorded by the reviewer, except when a Low/informational finding's own original text already said no fix was required (the reviewer may mark that `Accepted Risk` directly).
+
+Fixing a Critical/High finding and marking it `Resolved` does not itself trigger the human-approval gate in Blocker Handling below — that gate is for *accepting* a Critical/High finding *unresolved*. Send a non-blocking FYI to the human before starting a Critical/High fix as good practice.
+
+A review phase branch is not committed/merged until its report shows zero `Open` findings (or the human has explicitly accepted every remaining item).
 
 ---
 
@@ -60,6 +80,12 @@ sdlc/01-scrum-operating-model-skyroute-mvp
 sdlc/02-delivery-model-skyroute-mvp
 sdlc/12-implementation-trip-search-mvp
 sdlc/15-code-review-trip-search-mvp
+```
+
+A review phase reopened after merge to close out its Iterative Review-Fix Loop uses an `a`-suffixed branch off updated `main`:
+
+```text
+sdlc/15a-code-review-fixes-trip-search-mvp
 ```
 
 ---
@@ -135,6 +161,7 @@ A phase is complete only when:
 - delegation log is updated if delegation occurred,
 - relevant validation has been performed or explicitly marked not applicable,
 - no blocking issue remains,
+- for Code/Security/Accessibility/Performance Review phases, the review report shows zero `Open` findings (per the Iterative Review-Fix Loop above),
 - changes are committed,
 - phase branch is merged to `main`.
 
@@ -151,7 +178,7 @@ Stop immediately if:
 - file deletion is needed,
 - destructive command is needed,
 - deployment is requested,
-- Critical/High finding requires human acceptance,
+- a Critical/High finding is being accepted unresolved (not being fixed — fixing within the Iterative Review-Fix Loop does not require a blocking gate, though a non-blocking FYI to the human is good practice),
 - tests/build fail in a way that should not be merged.
 
 When stopped, write a blocker note to:

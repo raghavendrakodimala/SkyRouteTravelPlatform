@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using SkyRoute.Application.Contracts;
 using SkyRoute.Application.Exceptions;
 using SkyRoute.Application.Interfaces;
@@ -33,7 +32,7 @@ public sealed class BookingController : ControllerBase
         var structuralErrors = _validator.ValidateStructure(request);
         if (structuralErrors.Count > 0)
         {
-            return ValidationProblem(ToModelState(structuralErrors));
+            return ValidationProblem(structuralErrors.ToModelState());
         }
 
         try
@@ -49,21 +48,7 @@ public sealed class BookingController : ControllerBase
         {
             // A business-rule validation outcome (document/route-type mismatch), not an
             // unhandled exception (BR-011) — handled here, never reaching ApiExceptionMiddleware.
-            return ValidationProblem(ToModelState(ex.Errors));
+            return ValidationProblem(ex.Errors.ToModelState());
         }
-    }
-
-    private static ModelStateDictionary ToModelState(IDictionary<string, string[]> errors)
-    {
-        var modelState = new ModelStateDictionary();
-        foreach (var (field, messages) in errors)
-        {
-            foreach (var message in messages)
-            {
-                modelState.AddModelError(field, message);
-            }
-        }
-
-        return modelState;
     }
 }
