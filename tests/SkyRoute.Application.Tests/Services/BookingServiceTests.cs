@@ -141,9 +141,12 @@ public class BookingServiceTests
     [Fact]
     public async Task CreateBookingAsync_ReferenceCollision_RetriesUntilAUniqueReferenceIsFound()
     {
-        // BR-004/NFR-DATA-001, Gap-fill BF-03: the fake reports a collision for the first 3
-        // ExistsAsync calls regardless of candidate string, proving the retry loop calls
-        // ExistsAsync again rather than giving up after one collision.
+        // BR-004/NFR-DATA-001, Gap-fill BF-03, code review finding CR-003: the fake forces
+        // CreateAsync itself (not just the ExistsAsync pre-check) to throw
+        // DuplicateBookingReferenceException for the first 3 calls regardless of candidate
+        // string, proving the retry loop is driven by catching that exception from CreateAsync
+        // — the actual source of truth for uniqueness — rather than relying solely on the
+        // preceding ExistsAsync fast-path check.
         var store = new FakeBookingStore { ForceCollisionForFirstNCalls = 3 };
         var sut = MakeSut(store);
         var request = MakeValidBookingRequest();
@@ -151,13 +154,15 @@ public class BookingServiceTests
         var response = await sut.CreateBookingAsync(request, CancellationToken.None);
 
         Assert.False(string.IsNullOrEmpty(response.BookingReference));
-        Assert.True(store.ExistsAsyncCallCount > 1);
+        Assert.True(store.CreateAsyncCallCount > 1);
     }
 
     [Fact]
     public async Task CreateBookingAsync_ReferenceCollisionNeverResolves_ThrowsAfterExactlyTenAttempts()
     {
-        // Gap-fill BF-03: retry cap exhausted after MaxReferenceGenerationAttempts (10).
+        // Gap-fill BF-03, code review finding CR-003: retry cap exhausted after
+        // MaxReferenceGenerationAttempts (10) — every CreateAsync call collides via
+        // DuplicateBookingReferenceException, driving the retry loop rather than ExistsAsync.
         var store = new FakeBookingStore { AlwaysCollide = true };
         var sut = MakeSut(store);
         var request = MakeValidBookingRequest();
@@ -165,6 +170,6 @@ public class BookingServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => sut.CreateBookingAsync(request, CancellationToken.None));
 
-        Assert.Equal(10, store.ExistsAsyncCallCount);
+        Assert.Equal(10, store.CreateAsyncCallCount);
     }
 }
