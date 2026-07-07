@@ -4,11 +4,11 @@
 |---|---|
 | Handoff ID | HO-026 |
 | Date | 2026-07-07 |
-| Branch | `sdlc/17-accessibility-review-skyroute-mvp` |
+| Branch | `main` (merged from `sdlc/17-accessibility-review-skyroute-mvp`, commit `3cf1617`; branch deleted) |
 | Phase | Phase 17 — Accessibility Review |
 | From agent | accessibility-tester |
 | To agent | sdlc-orchestrator |
-| Status | Complete — zero `Open` findings remain in `docs/reviews/accessibility-review-phase-17.md`. Pending: commit + merge to `main` per CLAUDE.md §17. |
+| Status | Complete — merged to `main`. Zero `Open` findings remain in `docs/reviews/accessibility-review-phase-17.md`. Human explicitly paused here; Phase 18 (Performance Review) not yet started. |
 
 This is a pointer file. The full handoff record is maintained at:
 
@@ -45,14 +45,12 @@ None blocking.
 
 ## Required Next Agent Action
 
-1. sdlc-orchestrator commits outstanding Phase 17 documentation/tracking changes on `sdlc/17-accessibility-review-skyroute-mvp`.
-2. Subject to human "go ahead" for the merge (CLAUDE.md §17/§21), merge `sdlc/17-accessibility-review-skyroute-mvp` into `main` with `--no-ff`, then delete the branch.
-3. Proceed to Phase 18 — Performance Review, owned by performance-tester.
+On human instruction to continue, sdlc-orchestrator starts Phase 18 — Performance Review, owned by performance-tester, from updated `main` (new branch `sdlc/18-performance-review-skyroute-mvp`).
 
 ## Completion Criteria for Next Step
 
-- Working tree clean, branch merged to `main`, branch deleted.
-- `docs/handoffs/workflow-state.md` reflects Phase 17 as merged and Phase 18 as next.
+- Working tree clean (done), branch merged to `main` (done), branch deleted (done).
+- `docs/handoffs/workflow-state.md` reflects Phase 17 as merged and Phase 18 as next (done).
 
 ## Relevant Files
 
