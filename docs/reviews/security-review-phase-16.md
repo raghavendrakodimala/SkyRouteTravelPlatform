@@ -32,7 +32,7 @@ Four findings were raised, all `Open`. **One High-severity finding (SEC-001) exi
 |---|---|
 | Severity | High |
 | File/area | `src/SkyRoute.Application/Contracts/BookingFlightRequest.cs`; `src/SkyRoute.Application/Validation/BookingRequestValidator.cs` (`IsFlightSnapshotComplete`, lines 94–102); `src/SkyRoute.Application/Services/BookingService.cs` (`CreateBookingAsync`, lines 44–104) |
-| Status | Open |
+| Status | **Partially Resolved** (re-verified 2026-07-07, see Re-Verification Note below) |
 
 **Evidence:**
 
@@ -71,6 +71,26 @@ The code's own comment frames this as "there is no client-submitted total to tru
 
 **Required fix:** Either (a) re-resolve `PricePerPassenger`/`BaseFare` server-side from the same provider/pricing logic the search endpoint uses, ignoring the client-submitted value entirely, or (b) at minimum add server-side range/allow-list validation (`PricePerPassenger > 0`, `CabinClass` in the same named allow-list used by `SearchRequestValidator`) in `BookingRequestValidator.ValidateStructure`, with unit tests proving a fabricated/zero/negative price or an invalid cabin class is rejected with a 400.
 
+**Re-Verification Note (security-reviewer, 2026-07-07, commit `9f3cfed` + uncommitted fix-loop changes on `sdlc/16-security-review-skyroute-mvp`):**
+
+Independently re-read (not just trusted handoff `16a-lead-full-stack-engineer-to-sdlc-orchestrator-sec001-fix.md`):
+
+- `src/SkyRoute.Application/Validation/BookingRequestValidator.cs` — `ValidateStructure` now contains, gated on `request.Flight is not null` (no NPE risk), three new checks not nested inside the existing completeness gate (so they fire independently, confirmed non-short-circuiting per FR-063):
+  - `request.Flight.PricePerPassenger is <= 0` → `flight.pricePerPassenger`, "Price per passenger must be greater than zero."
+  - `request.Flight.BaseFare is <= 0` (only evaluated when a value is present; `null` BaseFare is untouched, consistent with `IsFlightSnapshotComplete` not requiring it) → `flight.baseFare`.
+  - `CabinClass` non-null/non-whitespace and not in `CabinClasses.ValidCabinClasses` → `flight.cabinClass`, "Cabin class must be one of: Economy, Business, First Class."
+- `src/SkyRoute.Application/Validation/CabinClasses.cs` (new file) — single `public static readonly string[] ValidCabinClasses = { "Economy", "Business", "First Class" }`, confirmed genuinely shared: `SearchRequestValidator.ValidateCabinClass` now calls `CabinClasses.ValidCabinClasses.Contains(...)` (its former private `ValidCabinClasses` array is gone — verified by reading the current `SearchRequestValidator.cs` in full, no duplicate array remains anywhere in `src/`).
+- `tests/SkyRoute.Application.Tests/Validation/BookingRequestValidatorTests.cs`, section "flight-fare snapshot range/allow-list checks (SEC-001)" (lines ~161–271) — 9 tests: `PricePerPassengerZero`/`PricePerPassengerNegative` (both assert the exact error message), `BaseFareZero`/`BaseFareNegative` (same), `BaseFareNull_DoesNotReturnBaseFareMessage` (confirms optionality preserved), `CabinClassNotInAllowList` theory over `"Coach"`/`"economy"`/`"first class"`/`"Business Plus"` (confirms case-sensitivity and near-miss strings are rejected, not just obviously-wrong values), `CabinClassInAllowList` theory over the three valid values, and `ValidPriceAndCabinClass_ReturnsEmptyDictionary` happy path. All read and confirmed to assert what they claim.
+- Independently ran `dotnet build` (0 Warning(s), 0 Error(s)) and `dotnet test` for the full solution (not just trusting the handoff's reported 127/127): **134/134 passed, 0 failed, 0 skipped** (122 in `SkyRoute.Application.Tests`, 12 in `SkyRoute.Api.IntegrationTests` — includes SEC-002/003/004 tests added in the same fix loop, see below).
+
+**Verdict — Partially Resolved, not Resolved:** The fix is verified correct and complete as the review's own explicitly-labeled **option (b)** ("at minimum" mitigation) — every scenario named in this finding's Required-fix text (zero/negative price, zero/negative base fare, invalid cabin class) is now independently unit-tested and rejected with a 400 field error. This closes the most egregious, low-effort exploit paths (free/negative-cost bookings, garbage cabin-class strings persisted as fact) and the shared-allow-list duplication concern (DP-015) is genuinely fixed, not just reported as fixed.
+
+However, the finding's core business-logic gap — described in Impact as "a client... can submit any `PricePerPassenger` value... and receive a `201 Created`... as if it were authoritative" — is **not** closed. A client can still submit an internally-consistent, positive `PricePerPassenger` (e.g., `$0.01` for a flight that should cost $500, or any arbitrary fabricated fare) together with a valid `CabinClass` string, and `BookingService.CreateBookingAsync` will still compute `TotalPrice` from that fabricated value and persist it as a confirmed booking record. Option (a) — re-resolving price server-side against the same `GlobalAirProvider`/`BudgetWingsProvider` pricing logic the search endpoint uses (mirroring `RouteTypeResolver`'s authoritative server-side re-resolution pattern for route type) — was explicitly out of scope for this fix and has not been attempted. The developer's own handoff (16a) flags this residual gap directly and defers the Resolved-vs-Partially-Resolved call to this review, as instructed.
+
+Weighing this MVP's actual context (`docs/requirements.md` Section 7: item 5 "Payment processing — No payment gateway integration" is explicitly out of scope; item 14 "Cloud deployment — Local development environment only"; item 15 "Database persistence — In-memory only... does not persist across application restarts") against the finding's original High-severity rationale (OWASP A04:2021 Insecure Design / CWE-840 Business Logic Errors, framed around BR-006 price-integrity and a *future* payment-processing path): the practical, exploitable-today impact remains low (no real money moves, no persistent record survives a restart, no internet-facing exposure), but the underlying business-logic control described in BR-006 ("Total price is also computed on the backend at booking time (for record)") is still not actually enforced against any authoritative source — it is enforced only as an arithmetic identity on a value the client fully controls. That is a genuine, unresolved structural gap, not a cosmetic one, and no human Product Owner sign-off accepting this residual risk has been recorded anywhere in the handoffs reviewed for this fix loop. Per CLAUDE.md §21 ("accepting unresolved Critical/High findings" requires explicit human approval) and the Definition of Done ("Critical and High findings are resolved or explicitly accepted by the human user"), this finding cannot be marked fully `Resolved` on the strength of a developer/reviewer decision alone — it is marked **Partially Resolved**.
+
+**Residual risk (open, requires action or explicit human acceptance):** A caller can still fabricate an arbitrary *positive* per-passenger price (and, independently, an arbitrary positive `BaseFare`) for any otherwise-valid `Provider`/`FlightNumber`/`CabinClass` combination and receive a confirmed booking priced at that fabricated value. This is acceptable as a **documented residual risk for this MVP specifically because**: (1) payment processing is out of scope (no monetary transaction actually occurs), (2) the platform is local-only/non-internet-facing per requirements Section 7 item 14, and (3) booking records do not persist across restarts (BR-008). It becomes unacceptable the moment payment processing, persistent storage, or any internet-facing deployment is introduced, and should be tracked as a required pre-requisite for any of those three future changes — do not carry this residual risk forward silently into a phase that adds payment or production deployment. Recommended next action: either (a) schedule the full server-side price re-resolution (option (a) in this finding) as explicit backlog work before any payment-processing or production-deployment phase begins, or (b) have the human Product Owner explicitly accept this residual risk for the MVP scope as currently defined, in writing, per CLAUDE.md §21. This review does not have authority to make that acceptance decision on the Product Owner's behalf; it can only close the "Resolved" gap left open by the minimal fix and flag it for that decision.
+
 ---
 
 ### SEC-002 — `POST /api/bookings` has no upper bound on passenger count / array size, unlike the search endpoint
@@ -79,7 +99,7 @@ The code's own comment frames this as "there is no client-submitted total to tru
 |---|---|
 | Severity | Medium |
 | File/area | `src/SkyRoute.Application/Validation/BookingRequestValidator.cs` (`ValidateStructure`, lines 25–61); contrast with `src/SkyRoute.Application/Validation/SearchRequestValidator.cs` (`ValidatePassengerCount`, lines 90–96) |
-| Status | Open |
+| Status | **Resolved** (re-verified 2026-07-07, see Re-Verification Note below) |
 
 **Evidence:** `SearchRequestValidator.ValidatePassengerCount` explicitly bounds `PassengerCount` to 1–9 (also enforced by `[Range(1, 9)]` on `SearchRequest.PassengerCount`). `BookingRequestValidator.ValidateStructure` has no equivalent bound — it only checks that `request.PassengerCount == passengers.Count`:
 
@@ -98,6 +118,8 @@ A client can submit a `BookingRequest` with, for example, `passengerCount: 50000
 
 **Required fix:** Add an explicit passenger-count range check (e.g., 1–9, matching search) to `BookingRequestValidator.ValidateStructure`, returning a 400 field error (`passengerCount`) when exceeded, with a unit test proving the bound is enforced.
 
+**Re-Verification Note (security-reviewer, 2026-07-07):** Independently read `BookingRequestValidator.ValidateStructure` — it now contains, in addition to the pre-existing `PassengerCount != passengers.Count` mismatch check, an independent bound: `if (request.PassengerCount < 1 || request.PassengerCount > 9) AddError(errors, "passengerCount", "Passenger count must be a whole number between 1 and 9.");` — identical bound and message text to `SearchRequestValidator.ValidatePassengerCount`, confirmed by direct comparison of both files. Confirmed the two checks are independent (both can fire on the same request; neither short-circuits the other, consistent with FR-063). Read the corresponding tests in `BookingRequestValidatorTests.cs` (section "passenger-count upper bound (SEC-002)", lines ~294–333): `PassengerCountZero_ReturnsPassengerCountRangeMessage` (asserts exact message for `PassengerCount = 0`), `PassengerCountAboveNine_ReturnsPassengerCountRangeMessage` (asserts exact message for `PassengerCount = 10`), and a `[Theory]` over `1` and `9` confirming the boundary values are accepted (`DoesNotReturnPassengerCountRangeMessage`). All three tests independently re-run via `dotnet test` (see build/test summary at end of this document) and confirmed passing. Fully satisfies the Required Fix text. **Resolved.**
+
 ---
 
 ### SEC-003 — No HTTP security response headers configured on the backend
@@ -106,7 +128,7 @@ A client can submit a `BookingRequest` with, for example, `passengerCount: 50000
 |---|---|
 | Severity | Low |
 | File/area | `src/SkyRoute.Api/Program.cs` (pipeline configuration, lines 86–102) |
-| Status | Open |
+| Status | **Resolved** (re-verified 2026-07-07, see Re-Verification Note below) |
 
 **Evidence:** The ASP.NET Core pipeline in `Program.cs` registers `ApiExceptionMiddleware`, `UseHttpsRedirection()`, `UseCors(...)`, `UseAuthorization()`, and `MapControllers()` — no middleware or header configuration adds `X-Content-Type-Options: nosniff`, `X-Frame-Options`/`Content-Security-Policy: frame-ancestors`, `Referrer-Policy`, `Strict-Transport-Security` (HSTS — note `UseHsts()` is also not called, only `UseHttpsRedirection()`), or a `Content-Security-Policy` for API responses. `frontend/src/index.html` likewise has no `<meta http-equiv="Content-Security-Policy">` tag (this is a plain, unmodified Angular CLI scaffold).
 
@@ -116,6 +138,12 @@ A client can submit a `BookingRequest` with, for example, `passengerCount: 50000
 
 **Required fix:** Add the missing security response headers to the backend pipeline and a CSP to the frontend shell, or explicitly document (mirroring CR-004's recommendation) that this is intentionally deferred because the MVP is local-only, so the gap is a documented decision rather than an oversight.
 
+**Re-Verification Note (security-reviewer, 2026-07-07):** Independently read `src/SkyRoute.Api/Program.cs` lines 88–114 — confirmed a new inline `app.Use(async (context, next) => { ... })` middleware is registered immediately after `app.UseMiddleware<ApiExceptionMiddleware>()` and before `app.UseHttpsRedirection()`, setting `context.Response.Headers["X-Content-Type-Options"] = "nosniff"`, `["X-Frame-Options"] = "DENY"`, and `["Referrer-Policy"] = "no-referrer"` unconditionally on every response before calling `next()`. HSTS/`UseHsts()` remains intentionally absent, with an inline comment explaining this MVP is local-only HTTP dev with no TLS termination — a reasonable, explicitly documented scope decision consistent with the finding's own Recommendation text ("lower urgency... should not be silently dropped"), not an oversight.
+
+Independently read `frontend/src/index.html` line 15 — confirmed a new `<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' http://localhost:5094; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">` tag is present in the document `<head>`, scoped to the single known backend origin rather than a wildcard.
+
+Independently read `tests/SkyRoute.Api.IntegrationTests/Middleware/SecurityHeadersTests.cs` — one test, `AnyResponse_IncludesBaselineSecurityHeaders`, drives a real `POST /api/search` request through `SkyRouteApiFactory`'s full pipeline via `WebApplicationFactory<Program>` and asserts all three header values exactly (`nosniff`, `DENY`, `no-referrer`) using `response.Headers.GetValues(...)`. This exercises real pipeline ordering, not an isolated delegate — an appropriate test shape for middleware-level verification. Independently re-ran via `dotnet test` (see summary below) and confirmed passing. Fully satisfies the Required Fix text (headers added; CSP added; test proves headers present). **Resolved.**
+
 ---
 
 ### SEC-004 — `EmailPattern` regex has no explicit upper-bound length, and no field-length pre-check precedes regex evaluation
@@ -124,7 +152,7 @@ A client can submit a `BookingRequest` with, for example, `passengerCount: 50000
 |---|---|
 | Severity | Low |
 | File/area | `src/SkyRoute.Application/Validation/DocumentPatterns.cs` (`EmailPattern`, line 17); `src/SkyRoute.Application/Validation/BookingRequestValidator.cs` (`EmailRegex.IsMatch(passenger.Email)`, line 54) |
-| Status | Open |
+| Status | **Resolved** (re-verified 2026-07-07, see Re-Verification Note below) |
 
 **Evidence:** `EmailPattern = @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"` has three unbounded (`+`) or open-ended (`{2,}`) quantifiers and no maximum length constraint, unlike `FullNamePattern` (`.{2,100}`, explicitly bounded), `PassportPattern` (`{6,9}`, bounded), and `NationalIdPattern` (`{5,20}`, bounded). No calling code (`BookingRequestValidator.ValidateStructure`) performs a length pre-check (e.g., rejecting inputs over a reasonable email length such as 254 characters per RFC 5321) before invoking `EmailRegex.IsMatch(...)`.
 
@@ -134,18 +162,22 @@ A client can submit a `BookingRequest` with, for example, `passengerCount: 50000
 
 **Required fix:** Add a length guard (`passenger.Email.Length <= 254` or similar) ahead of the regex check in `BookingRequestValidator.ValidateStructure`, and/or tighten `DocumentPatterns.EmailPattern` with explicit upper-bound quantifiers, with a unit test proving an oversized input is rejected without excessive processing time.
 
+**Re-Verification Note (security-reviewer, 2026-07-07):** Independently read `src/SkyRoute.Application/Validation/DocumentPatterns.cs` line 24 — `EmailPattern` is now `@"^(?=.{1,254}$)[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"`, i.e., a zero-width lookahead `(?=.{1,254}$)` bounding the entire matched string to 1–254 characters, evaluated before the existing local-part/domain-part group is matched — this is the "tighten the regex with explicit upper-bound" half of the Required Fix (chosen over a separate call-site length guard, a reasonable and consistent choice given the other three patterns in the same file — `PassportPattern`, `NationalIdPattern`, `FullNamePattern` — already bound length inline in their own quantifiers).
+
+Independently read the two new tests in `BookingRequestValidatorTests.cs` (lines ~339–364): `ValidateStructure_PassengerEmailOverMaxLength_ReturnsEmailMessage` constructs a 255-character address (`new string('a', 255 - "@example.com".Length) + "@example.com"`) and asserts it is rejected with the generic "A valid email address is required." message; `ValidateStructure_PassengerEmailAtMaxLength_IsValid` constructs an exactly-254-character address and asserts no `passengers[0].email` error is present — correctly verifying the boundary is inclusive at 254 and exclusive at 255, matching the finding's RFC 5321 recommendation exactly. Manually re-derived the lengths: `"@example.com"` is 12 characters, so the local parts used are 243 and 242 characters respectively, giving totals of 255 and 254 — arithmetic confirmed correct. Independently re-ran via `dotnet test` (see summary below) and confirmed both tests passing. No call-site change was needed or made in `BookingRequestValidator.cs` (the existing `EmailRegex.IsMatch(...)` call now enforces the bound automatically via the regex itself) — confirmed by reading `BookingRequestValidator.cs` and finding no separate length guard was added, which is consistent with the handoff's stated approach and does not leave a gap. Fully satisfies the Required Fix text. **Resolved.**
+
 ---
 
 ## Findings Summary Table
 
 | ID | Severity | Area | Status |
 |---|---|---|---|
-| SEC-001 | **High** | `BookingRequestValidator`/`BookingService` — client-supplied flight-fare snapshot trusted without validation; price/fare tampering | Open |
-| SEC-002 | Medium | `BookingRequestValidator.ValidateStructure` — no upper bound on booking passenger count/array size | Open |
-| SEC-003 | Low | `Program.cs` / `index.html` — no HTTP security response headers or CSP configured | Open |
-| SEC-004 | Low | `DocumentPatterns.EmailPattern` — no explicit length bound before/within regex evaluation | Open |
+| SEC-001 | **High** | `BookingRequestValidator`/`BookingService` — client-supplied flight-fare snapshot trusted without validation; price/fare tampering | **Partially Resolved** (re-verified 2026-07-07) |
+| SEC-002 | Medium | `BookingRequestValidator.ValidateStructure` — no upper bound on booking passenger count/array size | **Resolved** (re-verified 2026-07-07) |
+| SEC-003 | Low | `Program.cs` / `index.html` — no HTTP security response headers or CSP configured | **Resolved** (re-verified 2026-07-07) |
+| SEC-004 | Low | `DocumentPatterns.EmailPattern` — no explicit length bound before/within regex evaluation | **Resolved** (re-verified 2026-07-07) |
 
-**Totals: 0 Critical, 1 High, 1 Medium, 2 Low.**
+**Totals: 0 Critical, 1 High, 1 Medium, 2 Low. Post-fix-loop status: 1 Partially Resolved (SEC-001), 3 Resolved (SEC-002/003/004).**
 
 ---
 
@@ -172,6 +204,36 @@ A client can submit a `BookingRequest` with, for example, `passengerCount: 50000
 SEC-002 (Medium), SEC-003 (Low), and SEC-004 (Low) are hardening/defense-in-depth gaps consistent in severity profile with Phase 15's code review findings and do not independently require a human decision gate — they are appropriately deferred to Phase 19 (Findings Fixes) alongside CR-001–CR-005 and QA-001/002/004/005.
 
 **Recommendation:** Do not proceed to Phase 17 (Accessibility Review) until the human Product Owner has reviewed SEC-001 and either (a) approves a fix be scheduled ahead of/within Phase 19, or (b) explicitly accepts the risk for this MVP given its local-only, no-payment scope. This is a phase-sequencing recommendation for the SDLC Orchestrator to act on, not a decision this review is authorized to make on its own.
+
+---
+
+## Re-Verification Summary (Fix Loop, 2026-07-07)
+
+Independently re-verified all four findings against the current code on `sdlc/16-security-review-skyroute-mvp` (not solely against the two developer handoffs `16a-lead-full-stack-engineer-to-sdlc-orchestrator-sec001-fix.md` and `16b-junior-developer-to-sdlc-orchestrator-sec002-003-004-fix.md`, though both were read first for context). Per-finding verification detail is recorded inline under each finding above ("Re-Verification Note").
+
+**Outcome:**
+
+- **SEC-001 (High) — Partially Resolved.** The minimal/option-(b) mitigation (positive-value + allow-list checks) is correctly and completely implemented and tested. The finding's core concern — an arbitrary *positive*, internally-consistent fabricated price being trusted and persisted as a confirmed booking's authoritative price — remains structurally open (option (a), full server-side price re-resolution, was out of scope for this fix loop). No human Product Owner acceptance of this residual risk has been recorded in any handoff reviewed. Per CLAUDE.md §21 and the Definition of Done, an unresolved High finding cannot be marked `Resolved` without either a complete fix or explicit human risk acceptance — neither has occurred, so this is marked `Partially Resolved` with the residual risk documented in the finding itself. **This still requires a human Product Owner decision before the CLAUDE.md §21 approval gate is satisfied** — the gap has narrowed (egregious cases are now blocked) but has not closed.
+- **SEC-002 (Medium) — Resolved.** Passenger-count bound (1–9) added, matches search endpoint exactly, independently confirmed via code read and passing tests.
+- **SEC-003 (Low) — Resolved.** Three security headers added via middleware, CSP meta tag added to frontend shell, integration test proves headers present on a real request through the full pipeline. Independently confirmed.
+- **SEC-004 (Low) — Resolved.** `EmailPattern` now bounded to 254 characters via lookahead; boundary tests (254 passes, 255 rejected) independently confirmed correct by re-deriving the test's string-length arithmetic.
+
+**Independent build/test verification (not relying on either developer handoff's reported numbers):**
+
+```
+dotnet build
+  Build succeeded.
+      0 Warning(s)
+      0 Error(s)
+
+dotnet test
+  Passed! - Failed: 0, Passed: 122, Skipped: 0, Total: 122  - SkyRoute.Application.Tests.dll (net10.0)
+  Passed! - Failed: 0, Passed:  12, Skipped: 0, Total:  12  - SkyRoute.Api.IntegrationTests.dll (net10.0)
+```
+
+134/134 tests passed across the full solution (0 failed, 0 skipped), independently re-run by the security-reviewer on 2026-07-07. This includes all newly added tests for SEC-001 (9 tests), SEC-002 (3 tests), SEC-003 (1 test), and SEC-004 (2 tests).
+
+**Revised recommendation:** SEC-002/003/004 are closed and require no further action. SEC-001 has narrowed from a fully-open exploitable-to-zero/negative-price gap to a documented residual risk (arbitrary-but-positive fabricated price still trusted). Given this MVP's explicit out-of-scope payment processing, local-only deployment, and non-persistent in-memory storage, the residual risk is low in practical, exploitable-today impact — but it is not zero, and it is not this review's place to accept it on the Product Owner's behalf. The CLAUDE.md §21 human-approval gate for this High finding remains open: the human Product Owner should either (a) explicitly accept the residual risk as documented above for the current MVP scope, or (b) schedule the full server-side price re-resolution (option (a) in the original finding) before this phase is considered fully closed. Recommend the SDLC Orchestrator route this decision to the human user before proceeding to Phase 17.
 
 ---
 
