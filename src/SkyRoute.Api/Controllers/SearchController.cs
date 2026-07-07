@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using SkyRoute.Application.Contracts;
 using SkyRoute.Application.Interfaces;
 using SkyRoute.Application.Validation;
@@ -30,24 +29,10 @@ public sealed class SearchController : ControllerBase
         var errors = _validator.Validate(request);
         if (errors.Count > 0)
         {
-            return ValidationProblem(ToModelState(errors));
+            return ValidationProblem(errors.ToModelState());
         }
 
         var results = await _aggregator.SearchAsync(request, cancellationToken);
         return Ok(results);
-    }
-
-    private static ModelStateDictionary ToModelState(IDictionary<string, string[]> errors)
-    {
-        var modelState = new ModelStateDictionary();
-        foreach (var (field, messages) in errors)
-        {
-            foreach (var message in messages)
-            {
-                modelState.AddModelError(field, message);
-            }
-        }
-
-        return modelState;
     }
 }
