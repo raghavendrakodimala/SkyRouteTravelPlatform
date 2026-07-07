@@ -1,9 +1,9 @@
 # Project Backlog — SkyRoute Travel Platform MVP
 
-Version: 1.1
-Date: 2026-07-03
+Version: 1.2
+Date: 2026-07-07 (delivery-status reconciliation; content baseline 2026-07-03)
 Author: project-coordinator
-Status: Active
+Status: Active — all items Delivered (see Section 13)
 Phase: Phase 07 — Project Backlog Creation (Phase 08 — Parallel Delivery Plan applied the BL-033 decomposition below)
 
 ---
@@ -554,7 +554,27 @@ Every backlog item in Sections 4–5 was checked against `docs/requirements.md` 
 |---|---|---|
 | 2026-07-03 | project-coordinator | Initial backlog created for Phase 07 — 35 items decomposed from 8 approved user stories, mapped to architecture-plan components |
 | 2026-07-03 | project-coordinator | Phase 08 — per SDLC Orchestrator decision on HO-007 Open Question 1 (RISK-014), decomposed BL-033 (`BookingFormComponent`, L-sized) into BL-036 (Summary & Price Display, S), BL-037 (Passenger Form Array Orchestration, M), and BL-038 (Submit/Loading/Error/Re-submission, M). No scope, priority, or architecture change — task-decomposition only. Active item count: 37 (19 backend, 18 frontend). See `docs/delivery/parallel-delivery-plan.md` v1.0 for the delivery-track assignment and full rationale. |
+| 2026-07-07 | project-coordinator | Phase 21 — Delivery Tracking Update: added Section 13 (Delivery Status). All 37 active items confirmed Done; PO-directed out-of-band deliverables and the approved challenge-PDF deviation (DEC-015) recorded. No backlog content rewritten. |
 
 ---
 
-*End of Project Backlog v1.1.*
+## 13. Delivery Status — Phase 21 Reconciliation (2026-07-07)
+
+**All 37 active backlog items (BL-001–BL-019 backend; BL-020–BL-032, BL-034–BL-038 frontend) are Done** per full Definition of Done, not just Phase 12 implementation-complete: implemented (HO-012A/B), tested (Phases 13–14), all four numbered review loops closed to zero `Open` (Phases 15–18), QA findings consolidated (Phase 19), and independently re-verified fresh at Phase 20 — 365/365 tests passing on `main` @ `f4ae3da` (backend 172, frontend 181, E2E 12; `docs/testing/execution/phase-20-retest-summary.md`, HO-038, QA verdict: GO).
+
+**PO-directed out-of-band deliverables** (delivered outside the original 37-item backlog, under explicit PO direction 2026-07-07; merged to `main`):
+
+| ID | Deliverable | Evidence |
+|---|---|---|
+| OOB-01 | Backend route filtering (ASM-006 revised, requirements v1.5) | HO-032 |
+| OOB-02 | Booking passenger-flow finalization — single-button in-place add; search passenger field removed | HO-032, HO-034 |
+| OOB-03 | Production UI overhaul v2 — top nav with placeholder menu + Sign-in, journey progress strip, full-bleed hero, flight-card timeline layout, multi-column footer | HO-034 |
+| OOB-04 | SDLC process hardening — `.claude/rules/ui-ux-quality-gates.md` + DoR/DoD alignment (retrospective `docs/delivery/retrospective-ui-quality-gap-2026-07-07.md`), autopilot efficiency review with canonical 01–24 phase model (`docs/delivery/autopilot-efficiency-review-2026-07-07.md`) | HO-033, HO-035 |
+
+**Deliberate deviation from the challenge PDF (PO decision, 2026-07-07 — DEC-015):** passenger count is captured at booking (one-passenger-at-a-time in-place add), not on the search form; `SearchRequest.passengerCount` always submits `1`. This supersedes the search passenger-count selector originally specified in BL-028/US-001. Documented in README; awaiting no further action — approved.
+
+**Residue (not backlog scope, tracked in `risk-register.md` RISK-016–RISK-019):** nested duplicate folder deletion approval, pending push to origin, 6 Low advisory findings in the ad-hoc booking-UI review, unmeasured NFR-TEST-005 coverage percentage.
+
+---
+
+*End of Project Backlog v1.2.*

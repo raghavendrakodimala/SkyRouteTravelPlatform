@@ -1,7 +1,7 @@
 # Impediment Log — SkyRoute Travel Platform MVP
 
-Version: 1.0
-Date: 2026-07-03
+Version: 1.1
+Date: 2026-07-07 (Phase 21 reconciliation; baseline 2026-07-03)
 Author: Project Coordinator
 Status: Active
 
@@ -41,7 +41,8 @@ This log tracks impediments that block or threaten to block sprint progress. Imp
 
 | ID | Date Raised | Raised By | Severity | Affected Phase / Item | Description | Impact | Owner | Status | Resolution | Date Resolved |
 |---|---|---|---|---|---|---|---|---|---|---|
-| IMP-001 | 2026-07-03 | project-coordinator | High | Phase 14 — Test Execution Summary; Phase 13 — Test Writing | Test execution requires commands that cannot run autonomously: `npm install`, `npm test`, `dotnet restore`, `dotnet test`. These commands require explicit human approval per `CLAUDE.md` tool safety rules before they can be executed. | Test execution summaries for Phase 14 and Phase 20 (Re-test) cannot confirm actual test pass/fail status until the Human Product Owner approves command execution. The functional tester must document "tests not run — awaiting human approval" in the execution summary until this impediment is resolved. | scrum-master | Open | Pending Human PO approval at Phase 14. SDLC Orchestrator to present command list and request explicit approval before test execution begins. | — |
+| IMP-001 | 2026-07-03 | project-coordinator | High | Phase 14 — Test Execution Summary; Phase 13 — Test Writing | Test execution requires commands that cannot run autonomously: `npm install`, `npm test`, `dotnet restore`, `dotnet test`. These commands require explicit human approval per `CLAUDE.md` tool safety rules before they can be executed. | Test execution summaries for Phase 14 and Phase 20 (Re-test) cannot confirm actual test pass/fail status until the Human Product Owner approves command execution. The functional tester must document "tests not run — awaiting human approval" in the execution summary until this impediment is resolved. | scrum-master | Resolved | Human PO granted per-command approvals throughout Phases 13–14; all suites executed and re-executed green through Phase 20 (365/365, HO-038). Running existing test suites/builds/lint/type-check is now standing pre-approved per DEC-018 (autopilot efficiency review), so this impediment cannot recur. | 2026-07-06 |
+| IMP-002 | 2026-07-06 | lead-full-stack-engineer | High | Phase 13 — Test Writing (frontend suite execution) | Frontend unit test runner (`vitest`/`jsdom`) was not installed (Phase 12 used `ng new --skip-tests`); installing devDependencies requires explicit human approval. | The authored 145-test Vitest suite could not be executed until installation was approved. | lead-full-stack-engineer | Resolved | Human PO approved installation of `vitest@4.1.10` and `jsdom@29.1.1`; suite executed — 145/145 passing after 5 test-authoring fixes. See HO-013E. | 2026-07-06 |
 
 ---
 
@@ -64,6 +65,7 @@ IMP-001 qualifies for escalation at Phase 14 as it blocks test execution confirm
 | Date | Reviewer | Action |
 |---|---|---|
 | 2026-07-03 | project-coordinator | Initial log created for Phase 02; IMP-001 raised from tool safety analysis |
+| 2026-07-07 | project-coordinator | Phase 21 — reconciliation: IMP-001 marked Resolved (per-command approvals granted from Phase 13 onward; superseded by DEC-018 standing pre-approval) and IMP-002 backfilled (raised and resolved 2026-07-06 per HO-013E — this log had never been updated despite `workflow-state.md` tracking both). No impediment is currently open. |
 
 ---
 
