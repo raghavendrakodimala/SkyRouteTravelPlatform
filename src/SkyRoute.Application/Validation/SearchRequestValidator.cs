@@ -14,7 +14,6 @@ namespace SkyRoute.Application.Validation;
 /// </summary>
 public sealed class SearchRequestValidator
 {
-    private static readonly string[] ValidCabinClasses = { "Economy", "Business", "First Class" };
     private static readonly Regex AirportCodeFormat = new("^[A-Z]{3}$", RegexOptions.Compiled);
 
     private readonly AirportDataService _airportDataService;
@@ -97,7 +96,7 @@ public sealed class SearchRequestValidator
 
     private static void ValidateCabinClass(SearchRequest request, Dictionary<string, List<string>> errors)
     {
-        if (string.IsNullOrWhiteSpace(request.CabinClass) || !ValidCabinClasses.Contains(request.CabinClass))
+        if (string.IsNullOrWhiteSpace(request.CabinClass) || !CabinClasses.ValidCabinClasses.Contains(request.CabinClass))
         {
             AddError(errors, "cabinClass", "Cabin class must be one of: Economy, Business, First Class.");
         }

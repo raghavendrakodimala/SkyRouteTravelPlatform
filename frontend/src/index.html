@@ -5,6 +5,14 @@
   <title>Frontend</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SEC-003 (Phase 16 security review): baseline Content-Security-Policy for this Angular SPA.
+    connect-src includes the backend API base URL (frontend/src/environments/environment.ts,
+    http://localhost:5094) alongside 'self' since the SPA is served from localhost:4200 and
+    calls the API on a different local port; style-src allows 'unsafe-inline' because the
+    Angular CLI scaffold emits inline component styles by default.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' http://localhost:5094; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>

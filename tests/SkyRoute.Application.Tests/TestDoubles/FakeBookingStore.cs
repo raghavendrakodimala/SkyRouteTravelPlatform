@@ -30,6 +30,13 @@ public sealed class FakeBookingStore : IBookingStore
 
     public int CreateAsyncCallCount { get; private set; }
 
+    /// <summary>
+    /// SEC-001 (Phase 16 security review) test support — lets a test assert that a rejected
+    /// booking (e.g. a fare-tampering attempt) never reached persistence at all, not just
+    /// that the response contract wasn't returned.
+    /// </summary>
+    public IReadOnlyCollection<Booking> CreatedBookings => _bookings.Values;
+
     public Task<Booking> CreateAsync(Booking booking, string tenantId, CancellationToken cancellationToken)
     {
         CreateAsyncCallCount++;

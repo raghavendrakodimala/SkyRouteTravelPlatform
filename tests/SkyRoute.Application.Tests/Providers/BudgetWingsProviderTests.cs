@@ -115,4 +115,34 @@ public class BudgetWingsProviderTests
 
         Assert.Equal(expected, actual);
     }
+
+    /// <summary>
+    /// SEC-001 (Phase 16 security review) — TryResolveFare must reproduce exactly the same
+    /// fare SearchAsync would return for the same flight number/cabin class combination
+    /// (same worked examples as SearchAsync_AppliesBR002PricingFormula_PerWorkedExamples),
+    /// since BookingService relies on this method to authoritatively re-derive the fare at
+    /// booking time rather than trusting the client-submitted snapshot.
+    /// </summary>
+    [Theory]
+    [InlineData("BW241", "Economy", 60.00, 54.00)]
+    [InlineData("BW238", "Economy", 150.00, 135.00)]
+    public void TryResolveFare_KnownFlightAndCabinClass_ReturnsTrueWithMatchingFare(
+        string flightNumber, string cabinClass, decimal expectedBaseFare, decimal expectedPricePerPassenger)
+    {
+        var resolved = _provider.TryResolveFare(flightNumber, cabinClass, out var baseFare, out var pricePerPassenger);
+
+        Assert.True(resolved);
+        Assert.Equal(expectedBaseFare, baseFare);
+        Assert.Equal(expectedPricePerPassenger, pricePerPassenger);
+    }
+
+    [Fact]
+    public void TryResolveFare_UnknownFlightNumber_ReturnsFalseWithZeroedOutValues()
+    {
+        var resolved = _provider.TryResolveFare("BW999", "Economy", out var baseFare, out var pricePerPassenger);
+
+        Assert.False(resolved);
+        Assert.Equal(0m, baseFare);
+        Assert.Equal(0m, pricePerPassenger);
+    }
 }

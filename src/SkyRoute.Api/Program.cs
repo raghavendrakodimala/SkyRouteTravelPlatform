@@ -74,6 +74,9 @@ builder.Services.AddScoped<IFlightProvider, BudgetWingsProvider>();
 // Orchestration services
 // ---------------------------------------------------------------------------
 builder.Services.AddScoped<IFlightAggregatorService, FlightAggregatorService>();
+// FlightFareResolver depends on IEnumerable<IFlightProvider> (scoped), so it must itself be
+// scoped rather than singleton (SEC-001, Phase 16 security review fix).
+builder.Services.AddScoped<FlightFareResolver>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 
 // ---------------------------------------------------------------------------
@@ -90,6 +93,18 @@ var app = builder.Build();
 // (BR-011, DP-007, architecture-plan.md Section 3.6).
 // ---------------------------------------------------------------------------
 app.UseMiddleware<ApiExceptionMiddleware>();
+
+// SEC-003 (Phase 16 security review): baseline HTTP security response headers on every
+// response. HSTS is intentionally omitted — this MVP is local-only, HTTP dev (no TLS
+// termination in front of Kestrel here), and Strict-Transport-Security has no meaningful
+// effect (and can be actively misleading) over plain HTTP.
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    await next();
+});
 
 app.UseHttpsRedirection();
 

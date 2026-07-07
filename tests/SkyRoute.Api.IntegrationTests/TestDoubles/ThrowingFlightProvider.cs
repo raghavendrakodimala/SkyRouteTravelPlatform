@@ -26,4 +26,16 @@ public sealed class ThrowingFlightProvider : IFlightProvider
     {
         throw _exceptionToThrow;
     }
+
+    /// <summary>
+    /// This double is only used for the search-endpoint provider fault-isolation scenario,
+    /// never for booking-flow/SEC-001 fare-resolution tests, so it always reports "not found"
+    /// rather than emulating a real provider's schedule lookup.
+    /// </summary>
+    public bool TryResolveFare(string flightNumber, string cabinClass, out decimal baseFare, out decimal pricePerPassenger)
+    {
+        baseFare = 0m;
+        pricePerPassenger = 0m;
+        return false;
+    }
 }

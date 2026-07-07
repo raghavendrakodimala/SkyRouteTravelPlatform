@@ -143,6 +143,35 @@ public class BookingControllerTests : IClassFixture<SkyRouteApiFactory>
     }
 
     [Fact]
+    public async Task CreateBooking_FabricatedPricePerPassenger_Returns400WithFlightPriceError()
+    {
+        // SEC-001 (Phase 16 security review): same provider/route/passenger inputs as
+        // CreateBooking_InternationalHappyPath_Returns201WithDataMinimizedPassengers, but with
+        // a fabricated PricePerPassenger ($0.01 instead of GA101/Economy's real 287.50 fare).
+        // Previously this was internally consistent (positive, valid cabin class) and would
+        // have been trusted end-to-end into a confirmed 201 booking; it must now be rejected.
+        var client = _factory.CreateHttpsClient();
+        var request = new BookingRequest
+        {
+            Flight = MakeFlight("LHR", "JFK", 0.01m),
+            PassengerCount = 2,
+            Passengers = new List<PassengerRequest>
+            {
+                MakePassenger("Jane Doe", "jane@example.com", "Passport", "AB1234C"),
+                MakePassenger("John Smith", "john@example.com", "Passport", "CD5678E"),
+            },
+        };
+
+        var response = await client.PostAsJsonAsync("/api/bookings", request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.True(problem!.Errors.ContainsKey("flight.pricePerPassenger"));
+    }
+
+    [Fact]
     public async Task CreateBooking_HappyPath_ResponseHasNoLocationHeader()
     {
         // Gap-fill BF-05: no GET /api/bookings/{reference} endpoint exists, so no

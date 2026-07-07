@@ -36,9 +36,43 @@ public sealed class BookingRequestValidator
             AddError(errors, "flight", "Flight details are incomplete.");
         }
 
+        // SEC-001 (Phase 16 security review): the flight snapshot fields above are only
+        // checked for *presence*, not correctness — a client can submit a zero/negative
+        // PricePerPassenger/BaseFare or an arbitrary CabinClass string and have it flow
+        // straight into BookingService's total-price computation and persisted record.
+        // These checks do not short-circuit on flight-completeness (FR-063) so a partially
+        // complete flight snapshot still reports every applicable structural problem.
+        if (request.Flight is not null)
+        {
+            if (request.Flight.PricePerPassenger is <= 0)
+            {
+                AddError(errors, "flight.pricePerPassenger", "Price per passenger must be greater than zero.");
+            }
+
+            if (request.Flight.BaseFare is <= 0)
+            {
+                AddError(errors, "flight.baseFare", "Base fare must be greater than zero.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Flight.CabinClass) &&
+                !CabinClasses.ValidCabinClasses.Contains(request.Flight.CabinClass))
+            {
+                AddError(errors, "flight.cabinClass", "Cabin class must be one of: Economy, Business, First Class.");
+            }
+        }
+
         if (request.PassengerCount != passengers.Count)
         {
             AddError(errors, "passengerCount", "Passenger count must match the number of passenger records submitted.");
+        }
+
+        // SEC-002 (Phase 16 security review): mirrors SearchRequestValidator.ValidatePassengerCount
+        // exactly — same 1-9 bound, same error message — so the booking endpoint enforces the same
+        // upper bound the search endpoint already enforces, rather than relying solely on the
+        // Angular UI never allowing more than 9 passengers in practice.
+        if (request.PassengerCount < 1 || request.PassengerCount > 9)
+        {
+            AddError(errors, "passengerCount", "Passenger count must be a whole number between 1 and 9.");
         }
 
         for (var i = 0; i < passengers.Count; i++)
@@ -55,6 +89,53 @@ public sealed class BookingRequestValidator
             {
                 AddError(errors, $"passengers[{i}].email", "A valid email address is required.");
             }
+        }
+
+        return ToArrayDictionary(errors);
+    }
+
+    /// <summary>
+    /// SEC-001 (Phase 16 security review, BR-006, NFR-DATA-002) — step 2b: validates the
+    /// client-submitted flight-fare snapshot against the fare BookingService's
+    /// FlightFareResolver has already authoritatively re-derived server-side from the same
+    /// provider pricing logic used at search time. Mirrors <see cref="ValidateDocuments"/>'s
+    /// shape (resolution happens in the service, this method only validates the resolved
+    /// fact against the request) — invoked by BookingService after RouteTypeResolver and
+    /// FlightFareResolver have both run, before document validation is relied upon to gate
+    /// price computation. Pricing is deterministic given Provider+FlightNumber+CabinClass, so
+    /// an exact match is required — there is no legitimate reason for the two values to
+    /// differ even by a rounding cent, since both sides use the identical rounding rule.
+    /// </summary>
+    public IDictionary<string, string[]> ValidateFare(
+        BookingRequest request, bool fareResolved, decimal expectedBaseFare, decimal expectedPricePerPassenger)
+    {
+        var errors = new Dictionary<string, List<string>>();
+
+        if (request.Flight is null)
+        {
+            // ValidateStructure already reports "flight" as incomplete; nothing further to
+            // check here without a flight snapshot to compare against.
+            return ToArrayDictionary(errors);
+        }
+
+        if (!fareResolved)
+        {
+            AddError(errors, "flight.flightNumber",
+                "Flight could not be verified against the selected provider's published schedule.");
+            return ToArrayDictionary(errors);
+        }
+
+        if (request.Flight.PricePerPassenger.HasValue &&
+            request.Flight.PricePerPassenger.Value != expectedPricePerPassenger)
+        {
+            AddError(errors, "flight.pricePerPassenger",
+                "Price per passenger does not match the provider's published fare for this flight and cabin class.");
+        }
+
+        if (request.Flight.BaseFare.HasValue && request.Flight.BaseFare.Value != expectedBaseFare)
+        {
+            AddError(errors, "flight.baseFare",
+                "Base fare does not match the provider's published fare for this flight and cabin class.");
         }
 
         return ToArrayDictionary(errors);
