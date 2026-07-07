@@ -12,15 +12,7 @@ public sealed class BudgetWingsProvider : IFlightProvider
 {
     public string ProviderName => "BudgetWings";
 
-    private sealed record ScheduledFlight(
-        string FlightNumber,
-        string Origin,
-        string Destination,
-        TimeOnly DepartureTimeOfDay,
-        int DurationMinutes,
-        decimal EconomyBaseFare);
-
-    private static readonly IReadOnlyList<ScheduledFlight> Schedule = new List<ScheduledFlight>
+    private static readonly IReadOnlyList<ProviderScheduleMapper.ScheduledFlight> Schedule = new List<ProviderScheduleMapper.ScheduledFlight>
     {
         new("BW210", "LHR", "JFK", new TimeOnly(11, 0), 495, 220.00m),
         new("BW225", "SYD", "LAX", new TimeOnly(23, 0), 780, 450.00m),
@@ -30,31 +22,9 @@ public sealed class BudgetWingsProvider : IFlightProvider
 
     public Task<IReadOnlyList<FlightResult>> SearchAsync(SearchRequest request, CancellationToken cancellationToken)
     {
-        var departureDate = request.DepartureDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var cabinMultiplier = CabinClassMultipliers.ForCabinClass(request.CabinClass);
+        var results = ProviderScheduleMapper.BuildResults(Schedule, request, ProviderName, ApplyBudgetWingsPricing);
 
-        var results = Schedule.Select(flight =>
-        {
-            var baseFare = Math.Round(flight.EconomyBaseFare * cabinMultiplier, 2, MidpointRounding.AwayFromZero);
-            var departureDateTime = DateTime.SpecifyKind(departureDate.ToDateTime(flight.DepartureTimeOfDay), DateTimeKind.Utc);
-            var arrivalDateTime = departureDateTime.AddMinutes(flight.DurationMinutes);
-
-            return new FlightResult
-            {
-                Provider = ProviderName,
-                FlightNumber = flight.FlightNumber,
-                Origin = flight.Origin,
-                Destination = flight.Destination,
-                DepartureDateTime = departureDateTime,
-                ArrivalDateTime = arrivalDateTime,
-                DurationMinutes = flight.DurationMinutes,
-                CabinClass = request.CabinClass,
-                BaseFare = baseFare,
-                PricePerPassenger = ApplyBudgetWingsPricing(baseFare),
-            };
-        }).ToList();
-
-        return Task.FromResult<IReadOnlyList<FlightResult>>(results);
+        return Task.FromResult(results);
     }
 
     /// <summary>
