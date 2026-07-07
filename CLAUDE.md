@@ -190,6 +190,8 @@ The full workflow should move through these phases:
 24. Retrospective
 25. Direct merge to main
 
+Phases 16–19 (Code, Security, Accessibility, Performance Review) each run their own Iterative Review-Fix Loop (see §22) and are not merged until their review report shows zero `Open` findings. Phase 20 ("Fix review/test findings") is a consolidation sweep for `QA-*` findings and anything a loop genuinely could not close — it is no longer the default venue for fixing `CR-*`/`SEC-*`/`A11Y-*`/`PERF-*` findings.
+
 ---
 
 ## 8. Spec-Driven Development Rule
@@ -623,5 +625,28 @@ For example:
 
 - Requirements phase must not implement code.
 - Architecture phase must not implement code.
-- Review phase must not fix code.
+- Review phase must not fix code directly — findings are routed through the Iterative Review-Fix Loop below.
 - Fix phase must fix only tracked findings.
+
+---
+
+### Iterative Review-Fix Loop (Phases 15–18)
+
+Code Review, Security Review, Accessibility Review, and Performance Review each run as a loop, not a single findings-only pass. The reviewer itself never edits source code — only developer agents do.
+
+For each phase:
+
+1. The reviewer agent files findings (all `Open`) in the phase's review report under `docs/reviews/`.
+2. For every `Open` finding, the orchestrator routes it to a developer agent by severity/complexity, per the routing table in `.claude/rules/delegation-rules.md` ("Review Finding → Developer Agent Routing").
+3. The developer agent fixes the finding (source + tests), records evidence in a handoff note, and never edits the review report itself.
+4. The orchestrator re-invokes the same reviewer agent, scoped to the changed files/finding IDs, to verify the fix.
+5. The reviewer sets the finding's status to `Resolved` (fix verified), leaves it `Open`/`Partially Resolved` (loop continues on that finding), or files a new incremented finding ID (e.g. `CR-006`) if the fix revealed something new.
+6. Repeat steps 2–5 until the review report shows zero `Open` findings.
+
+`Resolved`, `Accepted Risk`, `Deferred`, and `Rejected` are all valid terminal statuses that stop the loop for a given finding. Only `Open`, `In Progress`, and `Partially Resolved` keep it going.
+
+A developer agent must never itself set a finding to `Accepted Risk`, `Deferred`, or `Rejected` — that requires human approval recorded by the reviewer, except a narrow carve-out: a Low/informational finding whose original review text already stated no fix was required may be marked `Accepted Risk` by the reviewer directly, without a fresh human round-trip.
+
+Fixing a Critical/High finding within its loop and marking it `Resolved` does not itself trigger the §21 human-approval gate — that gate is for *accepting* a Critical/High finding *unresolved*. As good practice, still send the human a non-blocking FYI before starting the fix for a Critical/High finding.
+
+A review phase is not merged to `main` until its report shows zero `Open` findings (or the human has explicitly accepted every remaining item).
