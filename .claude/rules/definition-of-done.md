@@ -1,5 +1,7 @@
 # Definition of Done
 
+Owner concept: this file is the canonical Definition of Done. Other rules files cite it rather than restating it.
+
 Work is done only when:
 
 - Implementation matches approved specs.

@@ -1,5 +1,7 @@
 # NFR Governance
 
+Owner concept: this file owns NFR governance — the required NFR spec, its quality bar, and its category list.
+
 The Solution Architect owns:
 
 - `docs/specs/non-functional-requirements.md`

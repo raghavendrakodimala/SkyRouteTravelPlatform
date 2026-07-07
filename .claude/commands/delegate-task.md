@@ -19,7 +19,7 @@ Create/update:
 
 - `docs/delivery/delegation-log.md`
 - `docs/handoffs/current-handoff.md`
-- appropriate `docs/handoffs/<sequence>-<from>-to-<to>.md`
+- at a phase boundary: `docs/handoffs/<sequence>-<from>-to-<to>-<scope>.md`; inside an iterative review-fix loop: append to `docs/handoffs/<phase>-loop-log.md` instead of a numbered file
 
 Delegation brief must include:
 

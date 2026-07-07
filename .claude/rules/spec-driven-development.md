@@ -1,5 +1,7 @@
 # Spec-Driven Development Rules
 
+Owner concept: this file owns the canonical per-work-type spec requirements, spec statuses, and traceability chain.
+
 No implementation should begin before required specs are ready.
 
 ## Backend/API Work Requires

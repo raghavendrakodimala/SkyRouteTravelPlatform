@@ -1,5 +1,7 @@
 # Definition of Ready
 
+Owner concept: this file is the canonical Definition of Ready. Other rules files cite it rather than restating it.
+
 A backlog item is ready only when:
 
 - Business value is clear.

@@ -134,6 +134,13 @@ Every agent must create or update a handoff note after completing work.
 
 The orchestrator must read the handoff note before continuing.
 
+Handoff file economy:
+
+- Numbered handoff files (`docs/handoffs/<sequence>-<from-agent>-to-<to-agent>-<scope>.md`) are created at phase boundaries only.
+- Inside an Iterative Review-Fix Loop (§22, Phases 15–18), participants do not mint numbered handoff files per iteration. All loop participants append entries to a single per-phase loop log: `docs/handoffs/<phase>-loop-log.md` (e.g. `docs/handoffs/15-code-review-loop-log.md`).
+- `docs/handoffs/current-handoff.md` always mirrors the latest handoff state, whether it came from a numbered file or a loop-log entry.
+- `docs/handoffs/handoff-index.md` lists each numbered handoff file and each phase's loop log once; individual loop iterations do not get index rows.
+
 ---
 
 ## 6. Required Handoff Format
@@ -156,41 +163,48 @@ Every handoff must include:
 - Completion criteria for the next step
 - Relevant files
 
+These required fields apply equally to numbered handoff files and to each appended entry in a per-phase loop log (see §5).
+
 If a handoff is missing, request the responsible agent to create it before continuing.
 
 ---
 
 ## 7. Required SDLC Phases
 
-The full workflow should move through these phases:
+This phase numbering is canonical for the entire rulebook. Every other file (rules, commands, agents, branch names, workflow state, handoffs) must cite these numbers and must not restate or renumber the list.
 
-1. Repository/tooling setup
-2. Scrum operating model
-3. SDLC delivery operating model
-4. Requirements analysis
-5. Non-functional requirements specification
-6. Test strategy and acceptance planning
-7. Architecture planning
-8. Project backlog creation
-9. Parallel delivery planning
-10. Sprint planning
-11. Feature-level specifications
-12. Spec readiness check
-13. Implementation
-14. Test writing
-15. Test execution summary
-16. Code review
-17. Security review
-18. Accessibility review, if UI is involved
-19. Performance review, if relevant
-20. Fix review/test findings
-21. Re-test and re-review
-22. Delivery tracking update
-23. Sprint review
-24. Retrospective
-25. Direct merge to main
+**Phase 00 — Repository/tooling setup** is a one-time pre-phase that runs before the delivery loop starts. It sits outside the numbered 01–24 loop and is not repeated per run.
 
-Phases 16–19 (Code, Security, Accessibility, Performance Review) each run their own Iterative Review-Fix Loop (see §22) and are not merged until their review report shows zero `Open` findings. Phase 20 ("Fix review/test findings") is a consolidation sweep for `QA-*` findings and anything a loop genuinely could not close — it is no longer the default venue for fixing `CR-*`/`SEC-*`/`A11Y-*`/`PERF-*` findings.
+The delivery workflow moves through these phases:
+
+- Phase 01 — Scrum operating model
+- Phase 02 — SDLC delivery operating model
+- Phase 03 — Requirements analysis
+- Phase 04 — Non-functional requirements specification
+- Phase 05 — Test strategy and acceptance planning
+- Phase 06 — Architecture planning
+- Phase 07 — Project backlog creation
+- Phase 08 — Parallel delivery planning
+- Phase 09 — Sprint planning
+- Phase 10 — Feature-level specifications
+- Phase 11 — Spec readiness check
+- Phase 12 — Implementation
+- Phase 13 — Test writing
+- Phase 14 — Test execution summary
+- Phase 15 — Code review
+- Phase 16 — Security review
+- Phase 17 — Accessibility review, if UI is involved
+- Phase 18 — Performance review, if relevant
+- Phase 19 — Fix review/test findings (findings fixes)
+- Phase 20 — Re-test and re-review
+- Phase 21 — Delivery tracking update
+- Phase 22 — Sprint review
+- Phase 23 — Retrospective
+- Phase 24 — Final SDLC summary
+
+There is no separate merge phase: in phased mode each phase merges its own branch to `main` as part of the phase transaction (§22 and `.claude/rules/phased-execution.md`).
+
+Phases 15–18 (Code, Security, Accessibility, Performance Review) each run their own Iterative Review-Fix Loop (see §22) and are not merged until their review report shows zero `Open` findings. Phase 19 ("Fix review/test findings") is a consolidation sweep for `QA-*` findings and anything a loop genuinely could not close — it is not the default venue for fixing `CR-*`/`SEC-*`/`A11Y-*`/`PERF-*` findings.
 
 ---
 
@@ -387,7 +401,7 @@ Forbidden unless explicitly approved:
 - package publishing
 - secret management
 - database reset/drop commands
-- long-running server processes
+- long-running server processes (exception: transient dev-server runs for rendered-UI verification, PO demos, or e2e execution are pre-approved, provided the servers are stopped once evidence is captured — see `.claude/rules/ui-ux-quality-gates.md`)
 - heavy load tests
 
 Before deletion, the agent must ask:
@@ -417,6 +431,8 @@ Safe commands may include:
 - `dir`
 - `mkdir`
 
+Running the project's existing test suites, builds, linters, and type-checks is pre-approved for every agent whose role requires validation — no per-run human approval is needed (see `.claude/rules/tool-safety.md`). Installs, upgrades, and destructive operations remain gated below.
+
 Agents must ask before:
 
 - installing dependencies
@@ -427,7 +443,7 @@ Agents must ask before:
 - publishing
 - secret management
 - database reset/drop/migration
-- long-running processes
+- long-running processes (transient dev-server runs for UI verification/e2e are pre-approved per §14)
 - heavy load/performance tests
 
 ---
@@ -494,6 +510,8 @@ The main Claude agent must not commit, merge, push, or delete branches unless th
 
 ## 18. Branch Naming
 
+This section applies to out-of-band (non-phased) work — fixes, docs, chores requested outside the phased SDLC loop. Phased autopilot branches use the `sdlc/<phase-number>-<phase-name>-<scope-slug>` scheme defined in `.claude/rules/phased-execution.md`.
+
 Recommended branches:
 
 - `chore/claude-sdlc-setup`
@@ -534,15 +552,14 @@ At each phase:
 5. Update workflow state.
 6. Invoke next responsible agent.
 
-Stop only when:
+Efficiency rules:
 
-- human approval is required
-- source requirements are missing
-- destructive action is required
-- dependency installation is required
-- deployment is requested
-- merge/commit is requested but not approved
-- a blocking risk or ambiguity exists
+- The orchestrator may run independent specialist agents in parallel within a phase when their file sets are disjoint (no artifact is edited by more than one parallel agent).
+- Adjacent documentation-only phases may be batched onto one branch when the Product Owner pre-approves batching for the run; record the batching approval and the covered phase numbers in the commit message.
+- Between consecutive phases, do not re-read unchanged artifacts. `docs/handoffs/workflow-state.md` plus `docs/handoffs/current-handoff.md` are the authoritative resume point.
+- Safe validation commands (build, test, lint, type-check, `git status`, `git diff`, `git log`) never require a human stop.
+
+Stop only when a §21 human approval gate is reached (§21 covers destructive action, dependency installation, deployment, and unapproved merge/commit), when source requirements are missing, or when a blocking risk or ambiguity exists. These are the only stop conditions.
 
 Otherwise continue.
 
@@ -603,6 +620,8 @@ This approval may be provided by including:
 
 in the user command.
 
+`--auto-commit-merge` explicitly includes approval to delete a phase branch after its successful `--no-ff` merge to `main` (step 10 of the transaction model) — no separate deletion approval is needed for that specific case. All other deletions remain gated by §14.
+
 Do not push unless the user explicitly includes:
 
 ```text
@@ -629,6 +648,13 @@ For example:
 - Review phase must not fix code directly — findings are routed through the Iterative Review-Fix Loop below.
 - Fix phase must fix only tracked findings.
 
+Autopilot efficiency rules (see also §20):
+
+1. Within a phase, invoke independent specialist agents in parallel when their file sets are disjoint.
+2. Adjacent documentation-only phases may be batched onto a single phase branch when the Product Owner has pre-approved batching for the run; record the batching approval and covered phase numbers in the commit message.
+3. Between consecutive phases, do not re-read unchanged artifacts — resume from `docs/handoffs/workflow-state.md` and `docs/handoffs/current-handoff.md`.
+4. Safe validation commands (§15) never require a stop; the only stop conditions are the §21 gates and the blocker list above.
+
 ---
 
 ### Iterative Review-Fix Loop (Phases 15–18)
@@ -639,7 +665,7 @@ For each phase:
 
 1. The reviewer agent files findings (all `Open`) in the phase's review report under `docs/reviews/`.
 2. For every `Open` finding, the orchestrator routes it to a developer agent by severity/complexity, per the routing table in `.claude/rules/delegation-rules.md` ("Review Finding → Developer Agent Routing").
-3. The developer agent fixes the finding (source + tests), records evidence in a handoff note, and never edits the review report itself.
+3. The developer agent fixes the finding (source + tests), records evidence by appending an entry to the phase's loop log (`docs/handoffs/<phase>-loop-log.md`, see §5), and never edits the review report itself.
 4. The orchestrator re-invokes the same reviewer agent, scoped to the changed files/finding IDs, to verify the fix.
 5. The reviewer sets the finding's status to `Resolved` (fix verified), leaves it `Open`/`Partially Resolved` (loop continues on that finding), or files a new incremented finding ID (e.g. `CR-006`) if the fix revealed something new.
 6. Repeat steps 2–5 until the review report shows zero `Open` findings.

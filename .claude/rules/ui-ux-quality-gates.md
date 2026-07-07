@@ -1,5 +1,7 @@
 # UI/UX Quality Gates
 
+Owner concept: this file owns the UI/UX quality gates — design-before-build, shift-left visual QA, rendered-UI review evidence, the PO visual demo gate, and the Production Layout Checklist.
+
 Visual design quality and production-layout UX are first-class quality gates, with the same standing as code correctness, security, and accessibility.
 
 These gates exist because code-reading reviews alone cannot catch layout, spacing, hierarchy, and polish problems. Someone must look at the rendered application in a browser before the Product Owner does.
@@ -73,6 +75,7 @@ Checklist deviations must be explicitly approved by the Product Owner and record
 
 In-sprint design review happens BEFORE the implementation task starts. This reflects the real agile model:
 
+- The SDLC Orchestrator schedules the UX/UI Designer's design-spec task BEFORE the corresponding implementation task during sprint planning (Phase 09, numbering per `CLAUDE.md` §7), so the approved spec exists when implementation starts (shift-left).
 - Design and spec work is part of Definition of Ready — a story without an approved design spec does not enter implementation.
 - Demos happen every sprint, not once at project end.
 - Feedback loops are per-story, not per-project: the PO sees each UI story rendered before its review phases close, so visual quality issues surface within the sprint that built them.

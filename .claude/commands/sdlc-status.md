@@ -4,21 +4,19 @@ argument-hint: ""
 allowed-tools: Read, Grep, Glob, LS, Bash
 ---
 
-Show SDLC workflow status.
+Show SDLC workflow status. This is a fast status check — no full-tree scan.
 
-Read:
+Read ONLY:
 
 - `docs/handoffs/workflow-state.md`
 - `docs/handoffs/current-handoff.md`
-- `docs/delivery/project-backlog.md`
-- `docs/delivery/sprint-plan.md`
-- `docs/reviews/`
-- `docs/testing/execution/`
+- `docs/handoffs/handoff-index.md`
+
+Do not read `docs/delivery/`, `docs/reviews/`, `docs/testing/`, or source files. If a status item is not recorded in the three files above, report it as "not recorded in workflow state" instead of scanning for it.
 
 Allowed Bash:
 
 - `git status`
-- `git diff --stat`
 - `git log --oneline -n 10`
 
 Report:
@@ -28,6 +26,6 @@ Report:
 - last completed agent
 - next agent
 - open blockers
-- open review findings
-- open QA findings
+- open review findings (as recorded in workflow state / current handoff)
+- open QA findings (as recorded in workflow state / current handoff)
 - recommended next command
