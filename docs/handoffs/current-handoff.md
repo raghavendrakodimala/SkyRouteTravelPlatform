@@ -1,33 +1,43 @@
-# Current Handoff — HO-036
+# Current Handoff — HO-037
 
 | Field | Value |
 |---|---|
-| Handoff ID | HO-036 |
+| Handoff ID | HO-037 |
 | Date | 2026-07-07 |
-| Branch | sdlc/18-performance-review-skyroute-mvp |
-| Phase | 18 — Performance Review |
-| From agent | performance-tester |
+| Branch | sdlc/20-retest-rereview-skyroute-mvp (base: main @ f4ae3da) |
+| Phase | 20 — Re-test and re-review |
+| From agent | functional-tester |
 | To agent | sdlc-orchestrator |
-| Status | Complete — loop closed, zero Open findings |
+| Status | Complete — Go for Phases 21–24 |
 
 ## Work completed
 
-Runtime performance review with mandatory measured evidence: cold + warm curl timings (20 warm iterations per endpoint) for POST /api/search and /api/bookings (1 and 9 passengers), payload capture, production bundle build, aggregation-concurrency code verification (`Task.WhenAll`, FlightAggregatorService.cs:27-28).
+Independent Phase 20 re-verification pass (fresh runs, not Phase 19's claims):
 
-## Results
-
-All NFR Section 3 targets pass by 1–2 orders of magnitude (search warm p50 3.2 ms vs 800 ms target; bookings warm p50 ≤3.0 ms vs 400 ms; initial bundle 368.15 kB vs 500 kB budget; cold starts 253/83 ms). Findings: PERF-001 (Low/informational, Accepted Risk per the Low carve-out — DevTools re-render timings never numerically traced; no fix required). Zero Open.
+- **All suites green:** backend `dotnet test` 157/157 (Application.Tests) + 15/15 (Api.IntegrationTests); frontend Vitest 181/181 (17 files); Playwright e2e 12/12 (chromium, real API :5094 + ng serve :4200, both started and stopped by QA, ports verified free after). Both builds clean. Grand total 365/365, 0 failed.
+- **QA dispositions re-verified against source:** QA-001 Resolved, QA-002 Resolved, QA-004 Closed - Moot, QA-005 Closed - Moot. Zero Open QA-* findings. Statuses updated in `docs/testing/execution/phase-14-test-execution-summary.md` (dated Phase 20 note + Section 10 addendum superseding historical counts).
+- **Zero-Open sweep:** Phase 15/16/17/18 review reports all 0 Open. Ad-hoc `booking-ui-redesign-review-2026-07-07.md` retains 6 Low advisory report-only Open items by design (no unresolved Critical/High anywhere).
 
 ## Artifacts
 
-- docs/reviews/performance-review-phase-18.md
-- docs/testing/performance/phase-18-measurements.md
-- docs/handoffs/18-performance-review-loop-log.md
+- Created: `docs/testing/execution/phase-20-retest-summary.md`, `docs/handoffs/34-functional-tester-to-sdlc-orchestrator-phase-20-retest.md` (HO-037)
+- Updated: `docs/testing/execution/phase-14-test-execution-summary.md`
 
-## Process evidence
+## Open questions (for human PO via orchestrator)
 
-Two transient API servers started and terminated (taskkill); port 5094 verified free at close — §14 transient-server carve-out honored.
+1. Formally disposition the 6 Low advisory booking-UI review findings (Accepted Risk/Deferred) before closure?
+2. Run the NFR-TEST-005 coverage measurement (needs approval) before closure?
 
-## Required next action
+## Required next agent action
 
-Orchestrator merges phase 18 (criterion satisfied) and proceeds to Phase 19 — Findings Fixes (QA-001/QA-002/QA-004/QA-005 consolidation).
+sdlc-orchestrator: verify artifacts, update `workflow-state.md` and `handoff-index.md`, commit/merge the Phase 20 branch per phased-execution rules, proceed to Phases 21–24, surfacing the two open questions to the human PO.
+
+## Completion criteria for next step
+
+Phase 20 merged to `main`; workflow state updated; Phases 21–24 initiated.
+
+## Relevant files
+
+- `docs/testing/execution/phase-20-retest-summary.md`
+- `docs/handoffs/34-functional-tester-to-sdlc-orchestrator-phase-20-retest.md`
+- `docs/reviews/` (all five reports)
