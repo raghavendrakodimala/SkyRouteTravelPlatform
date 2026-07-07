@@ -157,6 +157,119 @@ public class BookingRequestValidatorTests
         Assert.False(errors.ContainsKey("passengers[0].email"));
     }
 
+    // ---------------------------------------------------------------------
+    // ValidateStructure — flight-fare snapshot range/allow-list checks (SEC-001)
+    // ---------------------------------------------------------------------
+
+    [Fact]
+    public void ValidateStructure_PricePerPassengerZero_ReturnsPricePerPassengerMessage()
+    {
+        var request = MakeValidRequest();
+        request.Flight.PricePerPassenger = 0m;
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(
+            new[] { "Price per passenger must be greater than zero." },
+            errors["flight.pricePerPassenger"]);
+    }
+
+    [Fact]
+    public void ValidateStructure_PricePerPassengerNegative_ReturnsPricePerPassengerMessage()
+    {
+        var request = MakeValidRequest();
+        request.Flight.PricePerPassenger = -50.00m;
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(
+            new[] { "Price per passenger must be greater than zero." },
+            errors["flight.pricePerPassenger"]);
+    }
+
+    [Fact]
+    public void ValidateStructure_BaseFareZero_ReturnsBaseFareMessage()
+    {
+        var request = MakeValidRequest();
+        request.Flight.BaseFare = 0m;
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(
+            new[] { "Base fare must be greater than zero." },
+            errors["flight.baseFare"]);
+    }
+
+    [Fact]
+    public void ValidateStructure_BaseFareNegative_ReturnsBaseFareMessage()
+    {
+        var request = MakeValidRequest();
+        request.Flight.BaseFare = -10.00m;
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(
+            new[] { "Base fare must be greater than zero." },
+            errors["flight.baseFare"]);
+    }
+
+    [Fact]
+    public void ValidateStructure_BaseFareNull_DoesNotReturnBaseFareMessage()
+    {
+        // BaseFare is not a required field on the snapshot (IsFlightSnapshotComplete does not
+        // require it); the >0 check should only apply when a value is actually present.
+        var request = MakeValidRequest();
+        request.Flight.BaseFare = null;
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.False(errors.ContainsKey("flight.baseFare"));
+    }
+
+    [Theory]
+    [InlineData("Coach")]
+    [InlineData("economy")]
+    [InlineData("first class")]
+    [InlineData("Business Plus")]
+    public void ValidateStructure_CabinClassNotInAllowList_ReturnsCabinClassMessage(string cabinClass)
+    {
+        var request = MakeValidRequest();
+        request.Flight.CabinClass = cabinClass;
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(
+            new[] { "Cabin class must be one of: Economy, Business, First Class." },
+            errors["flight.cabinClass"]);
+    }
+
+    [Theory]
+    [InlineData("Economy")]
+    [InlineData("Business")]
+    [InlineData("First Class")]
+    public void ValidateStructure_CabinClassInAllowList_IsValid(string cabinClass)
+    {
+        var request = MakeValidRequest();
+        request.Flight.CabinClass = cabinClass;
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.False(errors.ContainsKey("flight.cabinClass"));
+    }
+
+    [Fact]
+    public void ValidateStructure_ValidPriceAndCabinClass_ReturnsEmptyDictionary()
+    {
+        var request = MakeValidRequest();
+        request.Flight.PricePerPassenger = 199.99m;
+        request.Flight.BaseFare = 150.00m;
+        request.Flight.CabinClass = "Business";
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Empty(errors);
+    }
+
     [Fact]
     public void ValidateStructure_NullFlightAndNullPassengers_ReturnsFlightError_DoesNotThrow()
     {
@@ -172,6 +285,82 @@ public class BookingRequestValidatorTests
         var errors = _validator.ValidateStructure(request);
 
         Assert.Equal(new[] { "Flight details are incomplete." }, errors["flight"]);
+    }
+
+    // ---------------------------------------------------------------------
+    // ValidateStructure — passenger-count upper bound (SEC-002)
+    // ---------------------------------------------------------------------
+
+    [Fact]
+    public void ValidateStructure_PassengerCountZero_ReturnsPassengerCountRangeMessage()
+    {
+        var request = new BookingRequest
+        {
+            Flight = MakeValidFlight(),
+            PassengerCount = 0,
+            Passengers = new List<PassengerRequest>(),
+        };
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(
+            new[] { "Passenger count must be a whole number between 1 and 9." },
+            errors["passengerCount"]);
+    }
+
+    [Fact]
+    public void ValidateStructure_PassengerCountAboveNine_ReturnsPassengerCountRangeMessage()
+    {
+        var request = MakeValidRequest(10);
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(
+            new[] { "Passenger count must be a whole number between 1 and 9." },
+            errors["passengerCount"]);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(9)]
+    public void ValidateStructure_PassengerCountWithinRange_DoesNotReturnPassengerCountRangeMessage(int passengerCount)
+    {
+        var request = MakeValidRequest(passengerCount);
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.False(errors.ContainsKey("passengerCount"));
+    }
+
+    // ---------------------------------------------------------------------
+    // ValidateStructure — email length upper bound (SEC-004)
+    // ---------------------------------------------------------------------
+
+    [Fact]
+    public void ValidateStructure_PassengerEmailOverMaxLength_ReturnsEmailMessage()
+    {
+        var request = MakeValidRequest(1);
+        // Local part padded so the overall address is 255 characters — one over the RFC 5321
+        // practical maximum of 254 enforced by DocumentPatterns.EmailPattern's lookahead bound.
+        var oversizedLocalPart = new string('a', 255 - "@example.com".Length);
+        request.Passengers[0].Email = oversizedLocalPart + "@example.com";
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(new[] { "A valid email address is required." }, errors["passengers[0].email"]);
+    }
+
+    [Fact]
+    public void ValidateStructure_PassengerEmailAtMaxLength_IsValid()
+    {
+        var request = MakeValidRequest(1);
+        // Exactly 254 characters total, the boundary the pattern's lookahead permits.
+        var localPart = new string('a', 254 - "@example.com".Length);
+        request.Passengers[0].Email = localPart + "@example.com";
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.False(errors.ContainsKey("passengers[0].email"));
     }
 
     // ---------------------------------------------------------------------

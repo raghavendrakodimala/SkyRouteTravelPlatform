@@ -36,9 +36,43 @@ public sealed class BookingRequestValidator
             AddError(errors, "flight", "Flight details are incomplete.");
         }
 
+        // SEC-001 (Phase 16 security review): the flight snapshot fields above are only
+        // checked for *presence*, not correctness — a client can submit a zero/negative
+        // PricePerPassenger/BaseFare or an arbitrary CabinClass string and have it flow
+        // straight into BookingService's total-price computation and persisted record.
+        // These checks do not short-circuit on flight-completeness (FR-063) so a partially
+        // complete flight snapshot still reports every applicable structural problem.
+        if (request.Flight is not null)
+        {
+            if (request.Flight.PricePerPassenger is <= 0)
+            {
+                AddError(errors, "flight.pricePerPassenger", "Price per passenger must be greater than zero.");
+            }
+
+            if (request.Flight.BaseFare is <= 0)
+            {
+                AddError(errors, "flight.baseFare", "Base fare must be greater than zero.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Flight.CabinClass) &&
+                !CabinClasses.ValidCabinClasses.Contains(request.Flight.CabinClass))
+            {
+                AddError(errors, "flight.cabinClass", "Cabin class must be one of: Economy, Business, First Class.");
+            }
+        }
+
         if (request.PassengerCount != passengers.Count)
         {
             AddError(errors, "passengerCount", "Passenger count must match the number of passenger records submitted.");
+        }
+
+        // SEC-002 (Phase 16 security review): mirrors SearchRequestValidator.ValidatePassengerCount
+        // exactly — same 1-9 bound, same error message — so the booking endpoint enforces the same
+        // upper bound the search endpoint already enforces, rather than relying solely on the
+        // Angular UI never allowing more than 9 passengers in practice.
+        if (request.PassengerCount < 1 || request.PassengerCount > 9)
+        {
+            AddError(errors, "passengerCount", "Passenger count must be a whole number between 1 and 9.");
         }
 
         for (var i = 0; i < passengers.Count; i++)
