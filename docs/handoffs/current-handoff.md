@@ -1,45 +1,48 @@
-# Handoff: HO-014 (Current)
+# Handoff: HO-015 (Current)
 
 | Field | Value |
 |---|---|
-| Handoff ID | HO-014 |
+| Handoff ID | HO-015 |
 | Date | 2026-07-06 |
-| Branch | sdlc/14-test-execution-summary-skyroute-mvp |
-| Phase | Phase 14 — Test Execution Summary |
-| From agent | functional-tester |
+| Branch | sdlc/15-code-review-skyroute-mvp |
+| Phase | Phase 15 — Code Review |
+| From agent | code-reviewer |
 | To agent | sdlc-orchestrator |
-| Status | Complete — formal, consolidated QA Test Execution Summary produced. All three automated test layers independently re-run and re-verified green: backend 114/114, frontend unit/component 145/145, E2E 11/11. No discrepancy vs. Phase 13's reports. No new QA finding. Final QA recommendation: proceed to Phase 15 (Code Review). |
+| Status | Complete — independent code review performed. 5 findings recorded (CR-001–CR-005): 0 Critical, 0 High, 1 Medium (CR-003, TOCTOU race in booking-reference uniqueness), 4 Low. No code modified. Recommendation: proceed to Phase 16 (Security Review). |
 
 This is a pointer file. The full handoff record is maintained at:
 
-- `docs/handoffs/14-functional-tester-to-sdlc-orchestrator-test-execution-summary.md` (HO-014, this handoff)
+- `docs/handoffs/15-code-reviewer-to-sdlc-orchestrator-code-review.md` (HO-015, this handoff)
 
-The previous current handoff (HO-013E, Phase 13 extension — IMP-002 resolution/frontend unit test execution) remains available at `docs/handoffs/13e-lead-full-stack-engineer-to-sdlc-orchestrator-frontend-test-execution.md`.
+The previous current handoff (HO-014, Phase 14 — Test Execution Summary) remains available at `docs/handoffs/14-functional-tester-to-sdlc-orchestrator-test-execution-summary.md`.
 
 ---
 
 ## Summary
 
-Phase 14's job was to produce the formal, consolidated QA Test Execution Summary — a reporting/consolidation phase, not new test writing (that happened in Phase 13). Rather than trusting Phase 13's prior reports at face value, **independently re-ran all three automated test layers** this session:
+Phase 15's job was an independent code review of the implementation delivered in Phase 12 (unchanged since), for maintainability, architecture consistency, and production-readiness — findings only, no code fixes (fixes are Phase 19). Re-verified the architectural gates HO-012A/HO-012B self-reported (no `Microsoft.AspNetCore.*`/`ClaimsPrincipal`/`IIdentity` in `SkyRoute.Application`, DI composition correctness, single HTTP boundary per frontend feature, single Observable→Signal conversion point, single pricing calculation point) — all confirmed structurally sound. Read every backend source file and every frontend non-spec source file directly, plus a light pass over representative tests and config.
 
-- **Backend (xUnit):** `dotnet build SkyRoute.slnx --no-incremental` (0/0) then `dotnet test SkyRoute.slnx` → **114/114 passing** (103 Application.Tests + 11 Api.IntegrationTests).
-- **Frontend unit/component (Vitest):** `npm test` from `frontend/` → **145/145 passing**, 16/16 files.
-- **E2E (Playwright):** started backend (:5094) and frontend (:4200) as background processes, confirmed both responsive, ran `npx playwright test` → **11/11 passing**, then stopped both servers via `taskkill //F //PID <pid> //T` and confirmed via `netstat` that no LISTENING socket remained on either port.
+Filed 5 findings at `docs/reviews/code-review-phase-15.md`:
 
-All three results matched Phase 13's reported counts exactly — no discrepancy, no flakiness, no new QA finding raised. Produced the formal deliverable at `docs/testing/execution/phase-14-test-execution-summary.md`, spot-checked test-strategy.md v1.1's traceability matrix (6 representative rows, all confirmed), and reconfirmed QA-003 Resolved with no regression. QA-001 (Medium), QA-002/QA-004/QA-005 (Low) remain Open, deferred to Phase 19 — none block Phase 15.
+- **CR-001** (Low) — duplicated `ToModelState(...)` helper in `SearchController`/`BookingController`.
+- **CR-002** (Low) — `GlobalAirProvider`/`BudgetWingsProvider` duplicate the schedule-to-`FlightResult` mapping pipeline.
+- **CR-003** (Medium) — `InMemoryBookingStore.CreateAsync` blindly overwrites instead of using `TryAdd`, creating a TOCTOU race with `BookingService`'s check-then-act reference-uniqueness loop; a concurrent reference collision could silently lose a booking record. Low practical probability (36^6 keyspace) but a real structural gap in the exact area (BR-004/BR-008) the architecture/NFR docs call out.
+- **CR-004** (Low) — no production environment file/`fileReplacements` wired for the Angular frontend; a "production" build still targets `localhost:5094`. No functional impact for this local-only MVP.
+- **CR-005** (Low, informational) — reflection-based tests on private provider pricing methods duplicate coverage already available via the public API; test-brittleness note only, not a defect.
 
-**Final QA recommendation: proceed to Phase 15 (Code Review).** Explicit caveat: accessibility (Phase 17), security (Phase 16), and performance (Phase 18) reviews have not yet occurred — not a Phase 14 blocker, but not covered by this recommendation either.
+QA-001/QA-002/QA-004/QA-005 (Open) and QA-003 (Resolved) were cross-checked against current source and confirmed still accurate — not re-reported as new CR findings, per task brief.
 
-`docs/handoffs/workflow-state.md` intentionally **not** updated by this handoff — reserved for the orchestrator per standing task-brief convention.
+**No Critical/High finding.** No human approval gate is triggered by this phase. **Recommendation: proceed to Phase 16 (Security Review).** CR-003 is flagged for priority attention within Phase 19's findings-fix queue, alongside QA-001, but is not a blocker.
+
+`docs/handoffs/workflow-state.md` intentionally **not** updated by this handoff — reserved for the orchestrator per standing convention.
 
 ---
 
 ## Required Next Agent Action
 
-1. SDLC Orchestrator to review HO-014 and `docs/testing/execution/phase-14-test-execution-summary.md` in full.
-2. Update `docs/handoffs/workflow-state.md` to reflect Phase 14 complete and the recommendation to proceed to Phase 15.
-3. Decide whether the NFR-TEST-005 coverage-measurement follow-up (flagged as a risk, not a blocker, in the formal summary's Section 8) should run before or in parallel with Phase 15.
-4. Proceed to Phase 15 (Code Review, owned by code-reviewer).
-5. Continue tracking QA-001, QA-002, QA-004, QA-005 for Phase 19.
+1. SDLC Orchestrator to review HO-015 and `docs/reviews/code-review-phase-15.md` in full.
+2. Update `docs/handoffs/workflow-state.md` to reflect Phase 15 complete and the recommendation to proceed to Phase 16.
+3. Proceed to Phase 16 (Security Review, owned by security-reviewer).
+4. Continue tracking CR-001–CR-005 alongside QA-001, QA-002, QA-004, QA-005 for Phase 19 (Findings Fixes).
 
-See `docs/handoffs/14-functional-tester-to-sdlc-orchestrator-test-execution-summary.md` for full detail.
+See `docs/handoffs/15-code-reviewer-to-sdlc-orchestrator-code-review.md` for full detail.
