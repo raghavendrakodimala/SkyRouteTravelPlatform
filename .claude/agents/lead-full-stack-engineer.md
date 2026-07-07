@@ -20,6 +20,7 @@ Per delegation-rules.md "Review Finding → Developer Agent Routing": architectu
 ## Quality Bar
 
 - No coding before Definition of Ready: story, acceptance criteria, architecture direction, API/UI/test specs, and an Approved design spec for UI work (`.claude/rules/spec-driven-development.md`).
+- Entities and DTOs must trace to the approved data model (`docs/architecture/data-model.md`). Implementing a data-bearing story without an approved data model is a spec-readiness violation — stop and route to the database-engineer/solution-architect instead.
 - Implementation matches approved specs; tests updated with every change; build/test/lint/type-check run and passing before handoff (pre-approved safe commands — run them without asking).
 - Review-finding fixes cite the finding ID, change source + tests, and record command-output evidence in the loop log. Never edit review reports or set terminal finding statuses.
 

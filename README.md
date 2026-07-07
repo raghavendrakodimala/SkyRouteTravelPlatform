@@ -1,6 +1,6 @@
 # SkyRoute Travel Platform
 
-SkyRoute is a flight search and booking module built for the arrivia Senior Full-Stack Developer hiring challenge. It aggregates flight results from two mock airline providers — **GlobalAir** and **BudgetWings** — behind a single search API, filtering each provider's fixed schedule to the requested route, and lets a user carry a selected flight through a multi-passenger booking flow to a confirmation screen. The search form captures origin, destination, departure date, and cabin class; passengers are then added one at a time on the booking screen (up to 9), each saved passenger appearing as an editable summary card before the booking is confirmed and a reference code is returned. The backend is ASP.NET Core (.NET 10); the frontend is Angular (v22, standalone components, signal-based state).
+SkyRoute is a flight search and booking module built for the arrivia Senior Full-Stack Developer hiring challenge. It aggregates flight results from two mock airline providers — **GlobalAir** and **BudgetWings** — behind a single search API, filtering each provider's fixed schedule to the requested route, and lets a user carry a selected flight through a multi-passenger booking flow to a confirmation screen. The search form captures origin, destination, departure date, and cabin class; passengers are then added one at a time on the booking screen (up to 9) — each providing a full name, age, email address, and document number — with every saved passenger appearing as an editable summary card before the booking is confirmed and a reference code is returned. The backend is ASP.NET Core (.NET 10); the frontend is Angular (v22, standalone components, signal-based state).
 
 ---
 
@@ -12,7 +12,7 @@ SkyRoute is a flight search and booking module built for the arrivia Senior Full
 |---|---|---|
 | .NET SDK | **10.0** | All four backend projects (`SkyRoute.Api`, `SkyRoute.Application`, `SkyRoute.Infrastructure`, and both test projects) target `net10.0`. |
 | Node.js | Compatible with Angular CLI 22 (`^22.22.3 \|\| ^24.15.0 \|\| >=26.0.0`, per `@angular/cli@22.0.5`'s published `engines` field) | Check with `node --version`. |
-| npm | **11.17.0** (pinned via `frontend/package.json`'s `packageManager` field) | Other npm 11.x releases will likely work, but this is the version the project was built and tested with. |
+| npm | **11.17.0** (pinned via `src/UI/package.json`'s `packageManager` field) | Other npm 11.x releases will likely work, but this is the version the project was built and tested with. |
 
 The backend and frontend are two independent projects with no shared package manager — install/run each separately as shown below.
 
@@ -23,21 +23,21 @@ From the repository root:
 ```bash
 dotnet restore SkyRoute.slnx
 dotnet build SkyRoute.slnx
-dotnet run --project src/SkyRoute.Api
+dotnet run --project src/Service/SkyRoute.Api
 ```
 
-This starts the API on **`http://localhost:5094`** (see `src/SkyRoute.Api/Properties/launchSettings.json`; the `https` profile also exposes `https://localhost:7252`). CORS is restricted to `http://localhost:4200` (`src/SkyRoute.Api/appsettings.json`), so the frontend must be served from exactly that origin for requests to succeed.
+This starts the API on **`http://localhost:5094`** (see `src/Service/SkyRoute.Api/Properties/launchSettings.json`; the `https` profile also exposes `https://localhost:7252`). CORS is restricted to `http://localhost:4200` (`src/Service/SkyRoute.Api/appsettings.json`), so the frontend must be served from exactly that origin for requests to succeed. Business endpoints are versioned under `/api/v1/` (e.g. `POST /api/v1/search`, `POST /api/v1/bookings`); the service also exposes `GET /api/health` (health checks) and, in Development, OpenAPI 3.1 docs at `/api/openapi/v1.json` with an interactive Scalar reference at `/api/scalar/v1`.
 
 ### 1.3 Frontend (Angular)
 
-From the `frontend/` directory:
+From the `src/UI/` directory:
 
 ```bash
 npm install
 npm start
 ```
 
-`npm start` runs `ng serve`, which starts the Angular dev server on **`http://localhost:4200`**. The frontend's API base URL is hardcoded to `http://localhost:5094/api` in `frontend/src/environments/environment.ts` — start the backend first (or at least before submitting a search), on that exact port.
+`npm start` runs `ng serve`, which starts the Angular dev server on **`http://localhost:4200`**. The frontend’s API base URL is configured as `http://localhost:5094/api/v1` (URL-segment API versioning, v1 default) in `src/UI/src/environments/environment.ts` — start the backend first (or at least before submitting a search), on that exact port.
 
 Once both are running, open `http://localhost:4200` in a browser.
 
@@ -49,16 +49,16 @@ Once both are running, open `http://localhost:4200` in a browser.
 dotnet test SkyRoute.slnx
 ```
 
-Covers `tests/SkyRoute.Application.Tests` (service/domain-logic unit tests) and `tests/SkyRoute.Api.IntegrationTests`.
+Covers `src/Service/tests/SkyRoute.Application.Tests` (service/domain-logic unit tests) and `src/Service/tests/SkyRoute.Api.IntegrationTests`.
 
 **Frontend unit/component tests (Vitest, via Angular's test builder):**
 
 ```bash
-cd frontend
+cd src/UI
 npm test
 ```
 
-`npm test` runs `ng test`, which uses `@angular/build:unit-test` with the `vitest` runner (see `frontend/angular.json`). For a single non-interactive run (e.g. in CI), use:
+`npm test` runs `ng test`, which uses `@angular/build:unit-test` with the `vitest` runner (see `src/UI/angular.json`). For a single non-interactive run (e.g. in CI), use:
 
 ```bash
 npm test -- --watch=false
@@ -66,17 +66,17 @@ npm test -- --watch=false
 
 **End-to-end tests (Playwright):**
 
-E2E tests exercise a real backend and a real Angular dev server together; `frontend/playwright.config.ts` deliberately does **not** auto-start either server (`baseURL: 'http://localhost:4200'` assumes both are already running). One-time browser install:
+E2E tests exercise a real backend and a real Angular dev server together; `src/UI/playwright.config.ts` deliberately does **not** auto-start either server (`baseURL: 'http://localhost:4200'` assumes both are already running). One-time browser install:
 
 ```bash
-cd frontend
+cd src/UI
 npx playwright install chromium
 ```
 
-Then, with the backend running (`dotnet run --project src/SkyRoute.Api`, or `dotnet run --no-build --launch-profile http` if already built) and the frontend running (`npm start`) in separate terminals/processes:
+Then, with the backend running (`dotnet run --project src/Service/SkyRoute.Api`, or `dotnet run --no-build --launch-profile http` if already built) and the frontend running (`npm start`) in separate terminals/processes:
 
 ```bash
-cd frontend
+cd src/UI
 npx playwright test
 ```
 
@@ -90,9 +90,9 @@ The full rationale lives in `docs/architecture/architecture-plan.md`; the key st
 
 - **3-project .NET solution split**: `SkyRoute.Api` (ASP.NET Core `Sdk.Web` — the only project referencing MVC/HTTP types; thin controllers plus the composition root in `Program.cs`), `SkyRoute.Application` (plain class library — domain models, contracts, interfaces, business-logic services, validators; zero ASP.NET Core reference, which structurally guarantees the API layer can't be bypassed), and `SkyRoute.Infrastructure` (concrete adapters: the two mock providers, the in-memory booking store, the default tenant context). Dependencies flow one way: `Api → Application`, `Infrastructure → Application`; `Infrastructure` is never referenced outside `Program.cs`'s DI wiring.
 - **Provider abstraction**: `IFlightProvider` (`ProviderName` + `SearchAsync(SearchRequest, CancellationToken)`) is implemented independently by `GlobalAirProvider` and `BudgetWingsProvider`. `FlightAggregatorService` fans out to every registered `IFlightProvider` via `Task.WhenAll`, with each provider call wrapped in its own try/catch *before* joining the batch — so one provider throwing doesn't take down the aggregate search (it's simply treated as returning zero results for that provider). Adding a third provider is a new class plus one DI registration line, with no change to the aggregator.
-- **Shared pricing/mapping pipeline**: both providers keep their own named pricing method (`ApplyGlobalAirPricing`, `ApplyBudgetWingsPricing`) so pricing rules stay independently unit-testable per provider, but the surrounding mapping mechanics — route filtering (case-insensitive origin/destination match against the provider's fixed schedule), cabin-class fare multiplier lookup, base-fare rounding, UTC departure/arrival timestamp construction, and building the `FlightResult` — are factored into a single shared `ProviderScheduleMapper.BuildResults()` helper (`src/SkyRoute.Infrastructure/Providers/ProviderScheduleMapper.cs`) used by both providers, avoiding duplicating that pipeline twice.
+- **Shared pricing/mapping pipeline**: both providers keep their own named pricing method (`ApplyGlobalAirPricing`, `ApplyBudgetWingsPricing`) so pricing rules stay independently unit-testable per provider, but the surrounding mapping mechanics — route filtering (case-insensitive origin/destination match against the provider's fixed schedule), cabin-class fare multiplier lookup, base-fare rounding, UTC departure/arrival timestamp construction, and building the `FlightResult` — are factored into a single shared `ProviderScheduleMapper.BuildResults()` helper (`src/Service/SkyRoute.Infrastructure/Providers/ProviderScheduleMapper.cs`) used by both providers, avoiding duplicating that pipeline twice.
 - **Booking flow**: `BookingRequest` carries a full flight-detail snapshot (provider, flight number, route, times, cabin class, price) rather than an opaque flight ID, since the mock providers have no independent lookup store to match against. On submission, `BookingService` re-resolves the route type and re-derives the true fare server-side from the same provider schedule the original search used, rather than trusting the client-submitted price outright, and rejects the booking if the two disagree. Booking records are held in an in-memory `ConcurrentDictionary`-backed store (`InMemoryBookingStore`) behind an `IBookingStore` interface.
-- **Passenger entry on the booking screen**: passenger details are collected one passenger at a time through a single in-place form rather than rendering all forms at once. "Add another passenger" validates the current form, saves the passenger as a compact summary card (with Edit and Remove actions and positional renumbering), and clears the same form for the next passenger, up to a cap of 9; "Confirm Booking" saves a filled form (if any) and submits every saved passenger. The document field's label and validation switch together by route type — "Passport Number" for international routes, "National ID" for domestic. A live price breakdown shows per-passenger price × the number of passengers added (minimum 1), with the total as the dominant figure; server-side `passengers[i].*` validation errors are mapped back onto the offending passenger card, which reopens in edit mode. Focus is managed explicitly on every state transition (buttons use `aria-disabled` plus click guards, never the native `disabled` attribute, so keyboard focus never drops to `<body>`), state changes are announced through a persistent polite live region, and both a `canDeactivate` router guard and a `beforeunload` listener confirm before unconfirmed passenger data is destroyed. `BookingRequest.passengerCount` is always `passengers.length`.
+- **Passenger entry on the booking screen**: passenger details (full name, age, email, document number) are collected one passenger at a time through a single in-place form rather than rendering all forms at once. Age is a required whole number from 0 to 120, captured as data only — no pricing, eligibility, or other business logic is bound to it (PO decision 2026-07-08) — validated in the Angular form and authoritatively re-validated by the backend. "Add another passenger" validates the current form, saves the passenger as a compact summary card (with Edit and Remove actions and positional renumbering), and clears the same form for the next passenger, up to a cap of 9; "Confirm Booking" saves a filled form (if any) and submits every saved passenger. The document field's label and validation switch together by route type — "Passport Number" for international routes, "National ID" for domestic. A live price breakdown shows per-passenger price × the number of passengers added (minimum 1), with the total as the dominant figure; server-side `passengers[i].*` validation errors are mapped back onto the offending passenger card, which reopens in edit mode. Focus is managed explicitly on every state transition (buttons use `aria-disabled` plus click guards, never the native `disabled` attribute, so keyboard focus never drops to `<body>`), state changes are announced through a persistent polite live region, and both a `canDeactivate` router guard and a `beforeunload` listener confirm before unconfirmed passenger data is destroyed. `BookingRequest.passengerCount` is always `passengers.length`.
 - **Frontend structure**: Angular 22 standalone components (no `NgModule`), organized by feature (`search/`, `results/`, `booking/`, `confirmation/`). `HttpClient` is only ever injected inside a feature's own service (`FlightSearchService`, `BookingService`) — never directly inside a component. State downstream of that single HTTP boundary is signal-based: each feature has a small state service (`SearchStateService`, `BookingStateService`) holding `signal()` state, with a single Observable→Signal conversion point per data flow and no mixing of RxJS and Signals for the same piece of state. Routing between `/search`, `/results`, `/booking`, and `/confirmation` reads from these state services rather than re-fetching data.
 - **Validation**: field-level rules use `System.ComponentModel.DataAnnotations` (already part of the BCL — no new dependency); cross-field/context-dependent rules (e.g. passenger count matching the passengers array length, document format depending on domestic/international route type) live in dedicated `SearchRequestValidator`/`BookingRequestValidator` classes.
 - **Auth and tenancy seams, deliberately inert in MVP**: a no-op Angular `AuthService`, a backend named authorization-policy stub that's registered but never applied to any endpoint, and an `ITenantContext` interface with a single `DefaultTenantContext` implementation returning a constant tenant ID. These exist so a future auth/multi-tenant implementation can slot in without changing existing service or controller code, without any of that behavior actually being exercised in this MVP.
@@ -105,7 +105,7 @@ These are honest, current-state limitations of the MVP as delivered for this cha
 
 - **No persistent database.** Bookings are held in an in-memory `ConcurrentDictionary` (`InMemoryBookingStore`). All booking data is lost when the API process restarts. The `IBookingStore` interface is designed so a real database-backed implementation could be substituted without touching `BookingService` or any controller, but no such implementation exists in this MVP.
 - **No authentication or authorization.** Every endpoint is publicly accessible; there is no login, no user account, and no per-user booking ownership check. The frontend's `AuthService` and the backend's named authorization-policy stub are inert placeholders for a future implementation, not functioning security controls.
-- **Mock provider data is a small, fixed schedule, not a real airline API.** Each provider (`GlobalAirProvider`, `BudgetWingsProvider`) owns a fixed schedule of 4 hardcoded flights, and a search returns only the schedule entries whose origin **and** destination match the requested route (case-insensitive exact match, applied in the shared `ProviderScheduleMapper.BuildResults()`). A route served by neither provider legitimately returns an empty list — the UI's empty state, not an error. The requested departure date still does **not** filter the data: only the calendar-date component of the returned departure/arrival timestamps reflects it, and only the requested cabin class affects pricing (via the per-cabin fare multiplier). A real provider integration would additionally filter by date and would call an external service rather than an in-process constant list. (Route filtering is the v1.5 revision of the original fixed-schedule assumption — see `docs/requirements.md` ASM-006.)
+- **Mock provider data is in-process and deterministic, not a real airline API.** Each provider (`GlobalAirProvider`, `BudgetWingsProvider`) owns 4 hardcoded fixture flights plus deterministically generated flights (`RouteScheduleGenerator`) for every ordered pair of the 6 supported airports its fixtures don't cover — so **any valid route returns results** (fixture routes return exactly their documented flights; generated routes get 2 flights per provider with duration-derived fares, fed through the same pricing rules and cabin multipliers). One deliberate exception: MAN↔SYD intentionally has no direct service (DEC-021 — true to the real world) so the styled empty state stays reachable through a real search. A search returns only the schedule entries whose origin **and** destination match the requested route (case-insensitive exact match, applied in the shared `ProviderScheduleMapper.BuildResults()`), and identical searches always return identical flights (generation is a pure function of the route — no randomness, no clock reads). The requested departure date still does **not** filter the data: only the calendar-date component of the returned departure/arrival timestamps reflects it, and only the requested cabin class affects pricing (via the per-cabin fare multiplier). A real provider integration would additionally filter by date and would call an external service rather than an in-process schedule. (Route filtering is the v1.5 revision of the original fixed-schedule assumption — see `docs/requirements.md` ASM-006; full route coverage is the 2026-07-07 PO defect fix — see `docs/features/feature-provider-aggregation.md` Section 3.3.)
 - **Passenger count is captured on the booking screen, not the search form.** Per a Product Owner UX decision (2026-07-07), the search form has no passenger-count field; every search request is sent with `passengerCount: 1` (the API contract still validates 1–9), so result prices effectively show the per-passenger fare. The number of passengers is then decided during booking by adding passengers one at a time (up to 9), and the booking screen's live price breakdown reflects the actual count entered.
 - **One-way, single-leg search only.** No round-trip or multi-city itineraries.
 - **Single-tenant.** The multi-tenancy seam (`ITenantContext`) exists structurally but only one tenant (`"default"`) is ever used.

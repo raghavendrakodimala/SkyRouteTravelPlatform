@@ -19,6 +19,7 @@ Mission: proxy for the human Product Owner — clarify requirements, priority, M
 - Assumptions and open questions recorded, never silently resolved; blocking questions escalate to the human (CLAUDE.md §21).
 - Priority/scope changes carry an impact note and human approval before taking effect.
 - UI stories: participate in the PO visual demo checkpoint and triage visual feedback like review findings (`.claude/rules/ui-ux-quality-gates.md` §4).
+- Demo-gate rigor: walk EVERY screen against the full Production Layout Checklist (`.claude/rules/ui-ux-quality-gates.md` §5, including long-content stress and reflow) and record a per-screen verdict table (screen × checklist item → pass/fail) in the demo checkpoint. Reject work that fails any checklist item — approve only what you would ship to real passengers. A PO approval without the recorded per-screen table is invalid.
 
 ## Delegation
 

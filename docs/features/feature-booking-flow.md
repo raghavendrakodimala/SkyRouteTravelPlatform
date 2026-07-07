@@ -7,9 +7,9 @@
 | Field | Value |
 |---|---|
 | Document ID | FEAT-BF-001 |
-| Version | 1.1 |
-| Date | 2026-07-03 (v1.1 amendments 2026-07-07) |
-| Status | Implemented (2026-07-07) — v1.1 amendments: passenger details are collected one passenger at a time through a single in-place form with saved-passenger summary cards (Product Owner UX direction 2026-07-07, Sections 1.2, 2, 2.4), replacing the original all-at-once one-section-per-passenger layout; wire contracts (Sections 3–7) unchanged |
+| Version | 1.3 |
+| Date | 2026-07-03 (v1.1 amendments 2026-07-07; v1.2 amendments 2026-07-08; v1.3 amendments 2026-07-08) |
+| Status | Implemented (2026-07-08) — v1.1 amendments: passenger details are collected one passenger at a time through a single in-place form with saved-passenger summary cards (Product Owner UX direction 2026-07-07, Sections 1.2, 2, 2.4), replacing the original all-at-once one-section-per-passenger layout; wire contracts (Sections 3–7) unchanged. v1.2 amendments (PO age feature 2026-07-08): every passenger additionally submits a required `age` (whole number 0–120), and the booking response echoes each passenger's age — Sections 2.5, 3, 4, 7. v1.3 amendments (PO decision 2026-07-08, DEC-022): age is **pure data capture** — the v1.2 lead-adult business rule AGE-LEAD-18 was removed the same day it was added, after a requirements check confirmed the challenge PDF contains no age requirements (age is a documented PO extension, kept logic-free); the 0–120 bounds remain as sanity bounds only — Sections 2.5, 3, 7 |
 | Owner | solution-architect |
 | Source | `docs/requirements.md` v1.4 (US-004, US-005, US-006, FR-025–045, BR-003, BR-004, BR-005, BR-006, DP-015, DP-016), `docs/architecture/architecture-plan.md` v1.0 (Section 3.3, Section 5) |
 | Phase | Phase 10 — Feature Specifications |
@@ -40,7 +40,7 @@ Displayed fields: per-passenger price, number of passengers, total price — com
 
 **v1.1 amendment (Product Owner UX direction 2026-07-07 — implemented in `BookingFormComponent`):** passenger details are collected **one passenger at a time**, not through simultaneously rendered per-passenger sections. Exactly one `PassengerFormSectionComponent` (BL-034) instance is ever active — a single reusable form rendered in place below the saved-passenger cards — with two persistent actions under it:
 
-1. **"Add another passenger"** (secondary): validates the active form; if valid, the passenger is appended as a compact summary card (full name, email, document number shown unmasked, with **Edit** and **Remove** actions and positional renumbering) and the same form resets in place for the next passenger, with focus moved to its first field. At the cap of **9 passengers** the blank form and the add action are removed and Confirm Booking is the only remaining action.
+1. **"Add another passenger"** (secondary): validates the active form; if valid, the passenger is appended as a compact summary card (full name, age, email, document number shown unmasked, with **Edit** and **Remove** actions and positional renumbering) and the same form resets in place for the next passenger, with focus moved to its first field. At the cap of **9 passengers** the blank form and the add action are removed and Confirm Booking is the only remaining action.
 2. **"Confirm Booking"** (primary): a filled active form is validated and saved first, then **all** saved passengers are submitted; a blank form with at least one saved passenger submits as-is; a blank form with nothing saved surfaces the required-field errors for passenger 1.
 
 While a card is being edited, the actions become **"Save changes"** / **"Cancel edit"** in the same slot; editing another card while the edit form is dirty is blocked (`aria-disabled` with an explanatory accessible-name suffix — a dirty form is never silently discarded), and an in-progress new-passenger draft is parked and restored when an edit resolves. All state changes are announced through a single persistent polite live region, every DOM-removing transition names an explicit focus target (focus never drops to `<body>`), and a `canDeactivate` router guard (`bookingLeaveGuard`) plus a `beforeunload` listener confirm before unconfirmed passenger data is destroyed.
@@ -87,11 +87,26 @@ Both patterns are named constants (`DocumentPatterns.PassportPattern`, `Document
 
 The "Confirm Booking" button is **never natively disabled** (consistent with the A11Y-007/A11Y-008 pattern adopted across the app — a focused button that becomes `disabled` drops keyboard focus to `<body>`). Gating is enforced at submit time instead: activating Confirm Booking validates and saves the active form when it contains input (invalid input keeps the flow on the form, with touched-field errors shown and focus moved to the first invalid control), and a blank form with no saved passengers surfaces the required-field errors for passenger 1 — the API request is only ever sent with a fully valid saved-passenger list. While the POST is in flight, every mutating control (Confirm, Add another, Edit, Remove, Save changes, Cancel edit) is locked via `aria-disabled` plus click guards. Server-side validation errors keyed `passengers[{i}].*` are mapped back to the offending passenger: an error-summary banner (`role="alert"`) is focused, flagged cards show a "Needs correction" badge, and the lowest-indexed flagged passenger reopens in the edit form, chaining through the remaining flagged passengers as each is corrected.
 
+### 2.5 Age (v1.2 Amendment — PO Age Feature 2026-07-08; v1.3 — Pure Data Capture, DEC-022)
+
+Rendered between Full Name and Email Address in the passenger form (`input type="number" inputmode="numeric" min="0" max="120"`, label "Age (required)").
+
+| Rule | Detail | Source |
+|---|---|---|
+| Required | Non-empty, per passenger | PO age feature 2026-07-08 |
+| Range | Whole number, 0–120 inclusive — **sanity bounds only, not business logic** | PO age feature 2026-07-08; DEC-022 |
+| No business rules | Age is pure data capture: no pricing, eligibility, or position-dependent rule is bound to it. Every 0–120 age is valid at every position, including a minor as the lead passenger/primary contact. No persistent hint is rendered under the field (the inline error states the range). | PO decision 2026-07-08 (DEC-022) |
+| Named constants (both layers, DP-015 spirit) | Backend: `BookingRequestValidator.MinAge`/`MaxAge`. Frontend: `AGE_MIN`/`AGE_MAX` + `ageValidator()` in `document-number.validators.ts` — backend authoritative (DP-014), mirroring the existing document-validation split. | DP-014, DP-015 |
+
+Age is submitted as a JSON number, never a string.
+
+**v1.3 removal note (PO decision 2026-07-08, DEC-022):** v1.2 briefly introduced business rule **AGE-LEAD-18** (lead passenger ≥ 18, with a dedicated error message and a persistent lead-form hint). A same-day requirements check established that the challenge PDF contains no age requirements at all — age itself is a documented PO extension — and the PO directed that "no calculations and business logic should be bound to age for now." AGE-LEAD-18 was therefore removed from both layers (validator branch, dedicated message, lead hint, and the frontend's index-0 validator switching); only the required/range data-capture checks above remain.
+
 ---
 
 ## 3. Booking Request — Exact JSON Shape (FR-039, FR-040, AD-004)
 
-`POST /api/bookings`
+`POST /api/v1/bookings`
 
 ```json
 {
@@ -108,8 +123,8 @@ The "Confirm Booking" button is **never natively disabled** (consistent with the
   },
   "passengerCount": 2,
   "passengers": [
-    { "fullName": "Jane Doe", "email": "jane@example.com", "documentType": "Passport", "documentNumber": "AB1234C" },
-    { "fullName": "John Doe", "email": "john@example.com", "documentType": "Passport", "documentNumber": "CD5678E" }
+    { "fullName": "Jane Doe", "age": 34, "email": "jane@example.com", "documentType": "Passport", "documentNumber": "AB1234C" },
+    { "fullName": "John Doe", "age": 8, "email": "john@example.com", "documentType": "Passport", "documentNumber": "CD5678E" }
   ]
 }
 ```
@@ -119,6 +134,7 @@ The "Confirm Booking" button is **never natively disabled** (consistent with the
 | `flight` | object | The full flight-detail snapshot carried from search (AD-004) — not an opaque ID. Required sub-fields: `provider`, `flightNumber`, `origin`, `destination`, `departureDateTime`, `arrivalDateTime`, `cabinClass`, `pricePerPassenger`. `durationMinutes`/`baseFare` may be included but are not required by the backend for booking creation. |
 | `passengerCount` | integer | Must equal `passengers.length` (FR-062) |
 | `passengers[].fullName` | string | Section 2.1 rules |
+| `passengers[].age` | integer | **v1.2/v1.3** — Section 2.5 rules: required, whole number 0–120 (sanity bounds only; no business rule is bound to age — DEC-022, PO 2026-07-08). Submitted as a JSON number, never a string |
 | `passengers[].email` | string | Section 2.2 rules |
 | `passengers[].documentType` | string | Exactly `"Passport"` or `"National ID"` (FR-040's literal enum values — note the space in `"National ID"`) — submitted by the frontend based on its own client-side `RouteTypeResolver`-equivalent determination, but **not trusted**; the backend independently re-resolves route type from `flight.origin`/`flight.destination` and rejects a mismatch (see Section 5, DP-016, NFR-DATA-004) |
 | `passengers[].documentNumber` | string | Section 2.3 rules, validated against the *backend-resolved* route type, not the client-submitted `documentType` |
@@ -146,16 +162,16 @@ No client-submitted total price exists in this contract (AD-004/AD-005) — the 
   },
   "totalPrice": 575.00,
   "passengers": [
-    { "fullName": "Jane Doe" },
-    { "fullName": "John Doe" }
+    { "fullName": "Jane Doe", "age": 34 },
+    { "fullName": "John Doe", "age": 8 }
   ],
   "createdAtUtc": "2026-07-03T12:00:00Z"
 }
 ```
 
-Note: the response's `passengers` array intentionally carries only `fullName` per passenger (matching the architecture plan's example and FR-035's confirmation-screen field list, "the full name of each passenger") — email/document data is not echoed back in the booking response body, even though it was submitted and persisted (data-minimization consistent with NFR-PRIV-001/002 spirit; no requirement mandates echoing it back).
+Note: the response's `passengers` array intentionally carries only `fullName` and (since v1.2, PO age feature 2026-07-08) `age` per passenger — email/document data is not echoed back in the booking response body, even though it was submitted and persisted (data-minimization consistent with NFR-PRIV-001/002 spirit; no requirement mandates echoing it back).
 
-**Gap-fill BF-05:** the controller returns `StatusCode(201, response)` rather than `CreatedAtAction(...)`/`Created(uri, response)` with a populated `Location` header, because no `GET /api/bookings/{reference}` endpoint exists in this MVP (Out of Scope item 3 — no booking retrieval in the UI; AD-002-style scope boundary) to point a `Location` header at. An empty or omitted `Location` header is acceptable.
+**Gap-fill BF-05:** the controller returns `StatusCode(201, response)` rather than `CreatedAtAction(...)`/`Created(uri, response)` with a populated `Location` header, because no `GET /api/v1/bookings/{reference}` endpoint exists in this MVP (Out of Scope item 3 — no booking retrieval in the UI; AD-002-style scope boundary) to point a `Location` header at. An empty or omitted `Location` header is acceptable.
 
 ---
 
@@ -201,6 +217,7 @@ All entries below use the canonical error envelope defined in `docs/features/fea
 |---|---|---|
 | `passengerCount` does not equal `passengers.length` | `passengerCount` | `"Passenger count must match the number of passenger records submitted."` |
 | Passenger full name missing, too short, too long, or numeric-only | `passengers[{i}].fullName` | `"Full name is required, must be 2–100 characters, and must contain at least one letter."` |
+| Passenger age missing, negative, or above 120 (v1.2/v1.3, Section 2.5 — the only age rule; the v1.2 AGE-LEAD-18 lead-adult entry was removed by DEC-022) | `passengers[{i}].age` | `"Age is required and must be a whole number between 0 and 120."` |
 | Passenger email missing or malformed | `passengers[{i}].email` | `"A valid email address is required."` |
 | Passenger document number missing or failing the applicable pattern | `passengers[{i}].documentNumber` | For International: `"Passport number must be 6–9 uppercase letters and digits, with no spaces."` For Domestic: `"National ID must be 5–20 letters, digits, or hyphens, with no spaces."` |
 | Submitted `documentType` does not match the server-resolved route type | `passengers[{i}].documentType` | `"Document type does not match the route for this booking."` |
@@ -227,7 +244,7 @@ Reads exclusively from `BookingStateService`'s `bookingResponse` signal (BL-032/
 
 ## 9. Compliance Statement
 
-This document introduces no new field, endpoint, or business rule beyond `docs/requirements.md` v1.4 (US-004, US-005, US-006, FR-025–045, BR-003–006) and `docs/architecture/architecture-plan.md` v1.0 Section 3.3/Section 5 (AD-004, AD-008). Exact regex patterns, message text, and bounded-retry logic not already specified at that level of detail are labelled Gap-fill decisions (Section 10).
+This document introduces no new field, endpoint, or business rule beyond `docs/requirements.md` v1.4 (US-004, US-005, US-006, FR-025–045, BR-003–006) and `docs/architecture/architecture-plan.md` v1.0 Section 3.3/Section 5 (AD-004, AD-008), with one explicitly PO-directed exception: the v1.2 passenger `age` field (PO age feature 2026-07-08 — Sections 2.5, 3, 4, 7; also reflected in `docs/architecture/data-model.md` §1.7), kept deliberately logic-free per DEC-022 (v1.3 — the briefly-added AGE-LEAD-18 business rule was removed the same day; the challenge PDF has no age requirements). Exact regex patterns, message text, and bounded-retry logic not already specified at that level of detail are labelled Gap-fill decisions (Section 10).
 
 ---
 
@@ -239,8 +256,10 @@ This document introduces no new field, endpoint, or business rule beyond `docs/r
 | GAP-BF-02 | Full name maximum length: 100 characters. | FR-029/FR-064 specify a minimum and a letter requirement but no maximum; an unbounded field has no product value and is a minor data-hygiene risk. |
 | GAP-BF-03 | Booking reference collision-retry loop capped at 10 attempts; exhaustion throws, handled as a 500 by the centralized middleware. | BR-004 requires "regenerate on collision" without a bound; an unbounded loop is a latent hang risk with a keyspace (36⁶ ≈ 2.176 billion) that makes exhaustion effectively unreachable — the cap is code hygiene, not an anticipated real path. |
 | GAP-BF-04 | National ID pattern permits both letter cases: `^[A-Za-z0-9-]{5,20}$` (unlike Passport, which is explicitly uppercase-only). | US-005 AC6/BR-003 state the Passport case restriction explicitly but are silent on case for National ID — the asymmetry between the two rules' wording is read as intentional. |
-| GAP-BF-05 | Booking creation returns `StatusCode(201, response)` with no populated `Location` header (rather than `CreatedAtAction`). | No `GET /api/bookings/{reference}` endpoint exists in this MVP for a `Location` header to reference (Out of Scope item 3); avoids Phase 12 needing to build or fake a route target. |
+| GAP-BF-05 | Booking creation returns `StatusCode(201, response)` with no populated `Location` header (rather than `CreatedAtAction`). | No `GET /api/v1/bookings/{reference}` endpoint exists in this MVP for a `Location` header to reference (Out of Scope item 3); avoids Phase 12 needing to build or fake a route target. |
 
 ---
 
-*End of Feature Specification — Booking Flow v1.1 (2026-07-07 amendments: single in-place passenger form with saved-passenger cards, live price breakdown, submit-time gating).*
+*End of Feature Specification — Booking Flow v1.3 (2026-07-07 amendments: single in-place passenger form with saved-passenger cards, live price breakdown, submit-time gating; 2026-07-08 amendments: required passenger age 0–120 echoed in the booking response — pure data capture per DEC-022, with the briefly-added AGE-LEAD-18 lead-adult rule removed the same day by PO decision).*
+
+> Endpoint paths in this document reflect the URL-segment API versioning introduced 2026-07-08 (DEC-023): all business endpoints live under `/api/v1/` with v1 as the default version.

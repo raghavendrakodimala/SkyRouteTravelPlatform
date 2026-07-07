@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    // nodenext replaces the commonjs/node10 pair (deprecated in TS 6, removed in TS 7):
+    // .ts files here have no ESM package marker, so they compile as CJS exactly as before,
+    // and @playwright/test resolves through its package "exports" map.
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    // No Node APIs are used in the e2e suite or playwright.config.ts, and @types/node is
+    // not a dependency — an empty list keeps unrelated transitive @types packages out too.
+    "types": []
+  },
+  "include": ["**/*.ts", "../playwright.config.ts"]
+}

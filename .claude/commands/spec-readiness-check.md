@@ -15,6 +15,7 @@ Check:
 - architecture direction
 - API contract if applicable
 - data expectations if applicable
+- approved data model (`docs/architecture/data-model.md`, database-engineer) for any data-bearing story — entities/DTOs must be derivable from it; missing or unapproved model means not Ready
 - UI flow if applicable
 - approved visual design spec under `docs/design/` for UI work (`.claude/rules/ui-ux-quality-gates.md`) — missing or unapproved spec means not Ready
 - test plan

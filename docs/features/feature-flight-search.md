@@ -71,7 +71,7 @@ The backend independently maintains its own static `AirportDataService` (BL-004)
 
 ## 2. Search Request — Exact JSON Shape
 
-`POST /api/search`
+`POST /api/v1/search`
 
 ```json
 {
@@ -99,7 +99,7 @@ This shape is taken verbatim from `docs/architecture/architecture-plan.md` Secti
 
 ## 3. Search Response — Success (200)
 
-Full response shape (per flight result) and sorting behavior are specified in `docs/features/feature-search-results-and-sorting.md`. This document only confirms: `POST /api/search` returns `200 OK` with a JSON array of `FlightResult` objects (possibly empty — see Section 5.2) on any successful, valid request, regardless of whether one or more providers failed (BR-007; see `docs/features/feature-provider-aggregation.md`).
+Full response shape (per flight result) and sorting behavior are specified in `docs/features/feature-search-results-and-sorting.md`. This document only confirms: `POST /api/v1/search` returns `200 OK` with a JSON array of `FlightResult` objects (possibly empty — see Section 5.2) on any successful, valid request, regardless of whether one or more providers failed (BR-007; see `docs/features/feature-provider-aggregation.md`).
 
 ---
 
@@ -155,7 +155,7 @@ Multiple simultaneous failures (e.g., past date AND passenger count out of range
 
 ### 5.3 Error State
 
-- Triggered: the HTTP call to `POST /api/search` fails — either a non-2xx response (400 validation failure surfaced inline on the form per Section 4, or an unexpected 500) or a network-level failure (timeout, connection refused).
+- Triggered: the HTTP call to `POST /api/v1/search` fails — either a non-2xx response (400 validation failure surfaced inline on the form per Section 4, or an unexpected 500) or a network-level failure (timeout, connection refused).
 - **400 validation errors** are rendered inline, next to the offending field(s), using the field-error messages from Section 4.1 — the form is not submitted; no generic error banner is shown for a 400 (this is a form-correction flow, not a service-failure flow).
 - **500 / unexpected server error and network failures** are rendered as a single, generic banner-style message, without exposing backend details (FR-015, FR-071):
   - Server error (500): `"We couldn't complete your search. Please try again."` (**Gap-fill FS-04**)

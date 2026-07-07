@@ -66,6 +66,8 @@ Used by the UX/UI Designer (when authoring/verifying the design spec) and by rev
 - [ ] Responsive and unbroken at 360px, 768px, and 1280px widths.
 - [ ] Loading, empty, and error states are styled — not browser defaults or bare text.
 - [ ] Visible focus indication (`:focus-visible`) everywhere interactive.
+- [ ] Long-content stress: every control, card, and label verified with the longest realistic data — nothing crosses its container boundary.
+- [ ] Reflow: no two-dimensional scrolling or clipped/overlapping content at 320px width and 400% zoom (WCAG 1.4.10) and text resized to 200% (WCAG 1.4.4).
 
 Checklist deviations must be explicitly approved by the Product Owner and recorded.
 

@@ -91,7 +91,9 @@ Exactly four items await Human Product Owner ruling (`docs/delivery/risk-registe
 
 ## 8. Final Delivery Statement
 
-The SkyRoute Travel Platform MVP is complete and releasable locally: all 24 SDLC phases are closed, all 37 committed backlog items are Done, all 365 automated tests pass fresh on `main`, all four numbered review phases show zero Open findings with zero unresolved Critical/High anywhere, and the only outstanding items are the four Product Owner gates listed in Section 7. To run it locally, follow `README.md` Section 1 (backend `dotnet run --project src/SkyRoute.Api`, frontend `npm start`, open `http://localhost:4200`).
+The SkyRoute Travel Platform MVP is complete and releasable locally: all 24 SDLC phases are closed, all 37 committed backlog items are Done, all 365 automated tests pass fresh on `main`, all four numbered review phases show zero Open findings with zero unresolved Critical/High anywhere, and the only outstanding items are the four Product Owner gates listed in Section 7. To run it locally, follow `README.md` Section 1 (backend `dotnet run --project src/Service/SkyRoute.Api`, frontend `npm start`, open `http://localhost:4200`).
+
+> Note: the workspace was restructured at closure (src/UI + src/Service, DEC-019/DEC-020); path references inside historical records (handoffs, review reports, execution summaries) reflect the layout at the time they were written.
 
 ---
 

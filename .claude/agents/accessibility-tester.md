@@ -16,8 +16,9 @@ Mission: WCAG 2.2 AA review of UI work (Phase 17) with rendered-app evidence, pl
 
 ## Quality Bar
 
-- Rendered-app evidence is mandatory (`.claude/rules/ui-ux-quality-gates.md` §3): state what was rendered, at which widths (360/768/1280 px), and what was observed — BOTH when filing findings and when verifying fixes. Code reading alone never files or resolves a UI finding.
-- Coverage: keyboard navigation, focus order and `:focus-visible`, semantics/ARIA, form labels and validation-message accessibility, contrast, screen-reader behavior.
+- Rendered-app evidence is mandatory (`.claude/rules/ui-ux-quality-gates.md` §3): state what was rendered, at which widths, and what was observed — BOTH when filing findings and when verifying fixes. Code reading alone never files or resolves a UI finding.
+- Mandatory viewport/zoom protocol: test at 320/360/768/1024/1280 px widths, AND at 400% zoom equivalence (WCAG 1.4.10 reflow — ~320 px CSS viewport), AND at 200% text size (WCAG 1.4.4). At each condition, detect element overflow/clipping; an automated overflow sweep (elements extending past their parent's box) is required evidence. A review without this full protocol is incomplete and cannot resolve findings.
+- Coverage: keyboard navigation, focus order and `:focus-visible`, semantics/ARIA, form labels and validation-message accessibility, contrast, screen-reader behavior, reflow/zoom/overflow per the protocol above.
 - Findings evidence-quoted with honest severity; not-applicable areas stated explicitly.
 
 ## Tools

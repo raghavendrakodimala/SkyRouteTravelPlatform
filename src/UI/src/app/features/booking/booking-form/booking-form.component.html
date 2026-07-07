@@ -1,0 +1,218 @@
+<section class="booking-page">
+  <div class="page-head">
+    <!-- tabindex="-1": defensive last-resort programmatic focus anchor only (focus must never
+         silently drop to <body>); never in the tab order. -->
+    <h1 tabindex="-1">Booking Details</h1>
+    <a class="back-link" routerLink="/results">← Back to results</a>
+  </div>
+
+  @if (flight(); as f) {
+    <div class="booking-layout">
+    <aside class="order-summary" aria-label="Order summary">
+    <section class="flight-summary">
+      <h2>{{ f.origin }} → {{ f.destination }}</h2>
+      <p>{{ f.provider }} · Flight {{ f.flightNumber }} · {{ f.cabinClass }}</p>
+      <p>
+        Departs {{ formatFlightTime(f.departureDateTime) }} · Arrives {{ formatFlightTime(f.arrivalDateTime) }} ·
+        {{ formatFlightDuration(f.durationMinutes) }}
+      </p>
+
+    @if (priceBreakdown(); as pb) {
+      <!-- Live price breakdown: total dominant (NFR-USE-002), per-person secondary.
+           Count rule (PO 2026-07-07): max(saved, 1) — a blank in-progress form never inflates it. -->
+      <section class="price-breakdown">
+        <p class="total-price">{{ formatPrice(pb.total) }} total</p>
+        <p class="per-person-price">
+          {{ formatPrice(pb.perPerson) }} per person × {{ pb.count }} {{ passengerNoun(pb.count) }}
+        </p>
+      </section>
+    }
+    </section>
+    </aside>
+
+    <div class="booking-main">
+    <h2>Passengers</h2>
+
+    <!-- Simple visible status (replaces the old searched-count progress list); the polite
+         live region below handles announcements, so this is deliberately not aria-live. -->
+    @if (savedCountLabel(); as label) {
+      <p class="saved-count-status">{{ label }}</p>
+    }
+
+    <!-- Server validation error summary: directly above the list holding the reopened passenger. -->
+    @if (errorSummaryLines().length > 0) {
+      <div class="banner-error error-summary" id="error-summary" role="alert" tabindex="-1">
+        <p class="error-summary-lead">We couldn't confirm your booking. Please correct the details below.</p>
+        <ul>
+          @for (line of errorSummaryLines(); track line) {
+            <li>{{ line }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    <!-- Saved-passenger list; renumbering is positional by construction. -->
+    @if (savedPassengers().length > 0) {
+      <ul class="passenger-list" aria-label="Saved passengers">
+        @for (p of savedPassengers(); track $index) {
+          <li class="passenger-card" [class.passenger-card-editing]="isEditingIndex($index)">
+            <span class="passenger-avatar" aria-hidden="true">{{ p.fullName.trim().charAt(0).toUpperCase() }}</span>
+            <div class="passenger-card-body">
+              <p class="card-eyebrow">
+                Passenger {{ $index + 1 }}
+                @if ($index === 0) {
+                  <span class="lead-badge">(Primary Contact)</span>
+                }
+              </p>
+              <h3 class="card-name">{{ p.fullName }}</h3>
+              <p class="card-line">Age {{ p.age }}</p>
+              <p class="card-line">{{ p.email }}</p>
+              <p class="card-line">{{ documentLabel() }}: {{ p.documentNumber }}</p>
+              @if (isEditingIndex($index)) {
+                <span class="editing-badge">Editing below</span>
+              }
+              @if (isFlagged($index)) {
+                <span class="needs-correction-badge">Needs correction</span>
+              }
+            </div>
+            @if (!alreadyConfirmed() && !isEditingIndex($index)) {
+              <div class="card-actions">
+                <!-- aria-disabled + click guard, never `disabled` — focus must survive. -->
+                <button
+                  type="button"
+                  class="btn-secondary btn-compact"
+                  [id]="'card-edit-' + $index"
+                  [attr.aria-disabled]="editDirtyLock() || mutationLocked() ? true : null"
+                  [attr.aria-label]="editAriaLabel($index, p.fullName)"
+                  (click)="beginEdit($index)"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  class="btn-danger btn-compact"
+                  [id]="'card-remove-' + $index"
+                  [attr.aria-disabled]="mutationLocked() ? true : null"
+                  [attr.aria-label]="removeAriaLabel($index, p.fullName)"
+                  (click)="removePassenger($index)"
+                >
+                  Remove
+                </button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+
+    <!-- Non-passenger submit failures (network/5xx, flight/passengerCount keys). -->
+    @if (genericServerError()) {
+      <p class="banner-error" id="generic-error-banner" role="alert" tabindex="-1">
+        {{ genericServerError() }}
+      </p>
+    }
+
+    @if (alreadyConfirmed()) {
+      <p class="banner-info" role="status">
+        This booking has already been confirmed. Start a new search to book again.
+      </p>
+      <button
+        type="button"
+        class="btn-primary confirm-btn"
+        id="confirm-booking-btn"
+        aria-disabled="true"
+        (click)="onConfirm()"
+      >
+        Confirm Booking
+      </button>
+    } @else if (showActiveForm()) {
+      <!-- The single in-place passenger form (new OR edit), always in this same slot below
+           the cards. Real [formGroup] binding so ngSubmit is intercepted (QA-003: no native
+           page-reload submit); Enter routes to Save changes while editing, Confirm otherwise. -->
+      <form [formGroup]="activeForm" (ngSubmit)="onFormSubmit()" novalidate>
+        <app-passenger-form-section
+          [group]="activeForm"
+          [index]="activeFormIndex()"
+          [isLead]="activeFormIndex() === 0"
+          [documentLabel]="documentLabel()"
+          [documentHint]="documentHint()"
+          [serverErrors]="activeServerErrors()"
+        />
+        <div class="form-actions">
+          @if (phase().kind === 'editing') {
+            <!-- Edit mode: Save changes takes the primary slot; Cancel edit restores the blank form. -->
+            <button
+              type="submit"
+              class="btn-primary"
+              id="save-changes-btn"
+              [attr.aria-disabled]="mutationLocked() ? true : null"
+            >
+              Save changes
+            </button>
+            <button
+              type="button"
+              class="btn-secondary"
+              id="cancel-edit-btn"
+              [attr.aria-disabled]="mutationLocked() ? true : null"
+              (click)="cancelEdit()"
+            >
+              Cancel edit
+            </button>
+          } @else {
+            <!-- The exactly-two persistent actions (PO 2026-07-07). -->
+            <button
+              type="button"
+              class="btn-secondary"
+              id="add-another-btn"
+              [attr.aria-disabled]="mutationLocked() ? true : null"
+              (click)="addAnotherPassenger()"
+            >
+              Add another passenger
+            </button>
+            <!-- type="submit": Enter in any field confirms; aria-disabled (never `disabled`)
+                 so in-flight focus survives; onConfirm() re-checks the loading guard. -->
+            <button
+              type="submit"
+              class="btn-primary"
+              id="confirm-booking-btn"
+              [attr.aria-disabled]="loading() ? true : null"
+            >
+              @if (loading()) {
+                Confirming…
+              } @else {
+                Confirm Booking
+              }
+            </button>
+          }
+        </div>
+      </form>
+    } @else {
+      <!-- 9 passengers saved: the blank form and the add path are gone; Confirm remains. -->
+      <p class="cap-note">You've reached the maximum of 9 passengers for one booking.</p>
+      <button
+        type="button"
+        class="btn-primary confirm-btn"
+        id="confirm-booking-btn"
+        [attr.aria-disabled]="loading() ? true : null"
+        (click)="onConfirm()"
+      >
+        @if (loading()) {
+          Confirming…
+        } @else {
+          Confirm Booking
+        }
+      </button>
+    }
+    </div>
+    </div>
+  } @else {
+    <section class="empty-state">
+      <p>No flight selected. Please start a new search.</p>
+      <button type="button" class="btn-primary" (click)="startNewSearch()">Start a New Search</button>
+    </section>
+  }
+
+  <!-- The single persistent polite live region — rendered unconditionally (a conditionally-
+       rendered live region misses its first announcement). -->
+  <p class="visually-hidden" role="status" aria-live="polite">{{ liveMessage() }}</p>
+</section>

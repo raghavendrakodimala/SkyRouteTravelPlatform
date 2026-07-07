@@ -389,6 +389,7 @@ Create/update:
 - `docs/architecture/api-strategy.md`
 - `docs/architecture/backend-architecture.md`
 - `docs/architecture/frontend-architecture.md`
+- `docs/architecture/data-model.md` — database-engineer (delegated by solution-architect) designs the relational data model FIRST: entities, attributes, keys, relationships, mermaid ERD, and an in-memory persistence mapping note. Every API DTO and domain entity must be derivable from it. Phase 06 is not complete without this artifact.
 - `docs/architecture/persistence-strategy.md`
 - `docs/architecture/testing-strategy.md`
 - `docs/delivery/decision-log.md`

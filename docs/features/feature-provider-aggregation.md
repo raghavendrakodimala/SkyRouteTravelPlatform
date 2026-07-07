@@ -7,9 +7,9 @@
 | Field | Value |
 |---|---|
 | Document ID | FEAT-PA-001 |
-| Version | 1.1 |
+| Version | 1.2 |
 | Date | 2026-07-07 |
-| Status | Implemented (v1.1 route-filtering revision applied to Sections 1–3, 5, 6.1, and 8 on 2026-07-07, matching `ProviderScheduleMapper.BuildResults()` — post-Phase-17 ASM-006/OQ-003 route-filtering reversal, see Section 2) |
+| Status | Implemented (v1.1 route-filtering revision applied to Sections 1–3, 5, 6.1, and 8 on 2026-07-07, matching `ProviderScheduleMapper.BuildResults()` — post-Phase-17 ASM-006/OQ-003 route-filtering reversal, see Section 2. v1.2 route-coverage revision applied to Sections 2–3 on 2026-07-07, matching `RouteScheduleGenerator` — PO defect fix: every valid route returns results except the deliberate DEC-021 `MAN ↔ SYD` no-direct-service pair, see Section 3.3) |
 | Owner | solution-architect |
 | Source | `docs/requirements.md` v1.5 (US-007, FR-046–053, BR-001, BR-002, BR-007, BR-009, ASM-006, ASM-007), `docs/architecture/architecture-plan.md` v1.0 (Section 3.1–3.2), `docs/testing/test-strategy.md` v1.0 (Section 3, 6) |
 | Phase | Phase 10 — Feature Specifications |
@@ -42,19 +42,19 @@ public interface IFlightProvider
 
 ## 2. Fixed-Schedule Behavior — Route-Filtered per ASM-006 v1.5 (Revised 2026-07-07)
 
-Per `docs/requirements.md` ASM-006 as revised in v1.5 (the post-Phase-17 Human Product Owner-directed reversal of the original ASM-006/OQ-003 behavior): **each provider filters its fixed schedule to only the entries whose `Origin` and `Destination` both exactly match the requested route (case-insensitive)**. The filtering lives once, in the shared `ProviderScheduleMapper.BuildResults()` (`src/SkyRoute.Infrastructure/Providers/ProviderScheduleMapper.cs`), so both providers behave identically. In practice:
+Per `docs/requirements.md` ASM-006 as revised in v1.5 (the post-Phase-17 Human Product Owner-directed reversal of the original ASM-006/OQ-003 behavior): **each provider filters its fixed schedule to only the entries whose `Origin` and `Destination` both exactly match the requested route (case-insensitive)**. The filtering lives once, in the shared `ProviderScheduleMapper.BuildResults()` (`src/Service/SkyRoute.Infrastructure/Providers/ProviderScheduleMapper.cs`), so both providers behave identically. In practice:
 
 - A search for `LHR → JFK` returns only the fixed entries for that route (GA101 from GlobalAir, BW210 from BudgetWings — 2 results total).
-- A searched route present in **neither** provider's fixed schedule (e.g., `LHR → MAN`, the reverse of the fixed `MAN → LHR` entries) returns an **empty list** — a legitimate `200 OK` empty state (FR-014), not an error.
 - Results never show a route other than the one searched for.
+- **v1.2 route-coverage revision (PO defect fix, 2026-07-07):** each provider's schedule is its 4 fixed fixtures (Section 3.1/3.2) **plus** deterministic generated flights for every served ordered airport pair its fixtures do not cover (Section 3.3). Every valid pair of the 6 supported airports therefore returns results, with one deliberate exception: **`MAN ↔ SYD` is the DEC-021 no-direct-service pair (PO 2026-07-08)** — empty in both directions from both providers (no fixture, no generated entry) — kept unserved so the styled empty state (FR-014, a legitimate `200 OK` with `[]`) remains demonstrable through a real search (challenge PDF 3.2: "a clear empty state if no flights match"). The same search always returns identical flights: generation is a pure function of the route, with no randomness and no clock reads.
 
-The requested **departure date still does not filter** the schedule — only the calendar-date component of the returned `departureDateTime`/`arrivalDateTime` reflects it (Section 5, unchanged). Only `cabinClass` affects the returned fare (BR-009). This section previously restated the original ASM-006 assumption ("the same flight schedule is returned for any valid search input"); that behavior is **superseded** — implementers, test authors, and reviewers should treat route-filtered results (including genuinely empty results for unserved routes) as the expected behavior.
+The requested **departure date still does not filter** the schedule — only the calendar-date component of the returned `departureDateTime`/`arrivalDateTime` reflects it (Section 5, unchanged). Only `cabinClass` affects the returned fare (BR-009). This section previously restated the original ASM-006 assumption ("the same flight schedule is returned for any valid search input"); that behavior is **superseded** by route filtering, and the v1.1 statement that unserved routes return an empty list is in turn superseded by the v1.2 route coverage above.
 
 ---
 
-## 3. Fixed Mock Flight Dataset (**Gap-fill PA-01**)
+## 3. Mock Flight Dataset — Fixtures plus Deterministic Route Coverage (**Gap-fill PA-01**)
 
-Each provider owns a fixed schedule of exactly **4 flights**, each available in all 3 cabin classes (see Section 4 for per-class fare derivation). A search returns only the subset of that schedule matching the requested route (Section 2), so the raw result count per search is the number of matching entries, not a constant 8. With the current datasets: `LHR → JFK` and `MAN → LHR` are served by **both** providers (2 results each); `LHR → DXB` and `JFK → LAX` only by GlobalAir, `SYD → LAX` and `LAX → JFK` only by BudgetWings (1 result each); every other airport pair returns 0 results (the empty state). A provider failure (BR-007) removes that provider's contribution from whatever the route match would have been. All routes are drawn from the approved airport list (`docs/requirements.md` Section 3.7 / `airports.constants.ts`), mixing domestic (`MAN → LHR`) and international pairs so the fixed dataset exercises both route types.
+Each provider owns a fixed **fixture** schedule of exactly **4 flights** (Sections 3.1–3.2), completed by deterministic generated flights for every ordered airport pair its fixtures do not cover (Section 3.3) — every flight available in all 3 cabin classes (see Section 4 for per-class fare derivation). A search returns only the subset of that full schedule matching the requested route (Section 2). Fixture routes return **exactly** their documented fixture flights — generation never adds to a covered route, so the fixture tables below remain the authoritative, test-pinned values. With the current datasets: `LHR → JFK` and `MAN → LHR` are served by both providers' fixtures (2 results each); `LHR → DXB` and `JFK → LAX` by a GlobalAir fixture plus 2 generated BudgetWings flights, and `SYD → LAX` and `LAX → JFK` by a BudgetWings fixture plus 2 generated GlobalAir flights (3 results each); every other ordered pair returns 4 generated results (2 per provider) — except `MAN ↔ SYD`, the deliberate DEC-021 no-direct-service pair (0 results in both directions, Section 3.3). A provider failure (BR-007) removes that provider's contribution from whatever the route match would have been. All routes are drawn from the approved airport list (`docs/requirements.md` Section 3.7 / `airports.constants.ts`), mixing domestic (`MAN → LHR`) and international pairs so the dataset exercises both route types.
 
 ### 3.1 GlobalAir — Fixed Schedule
 
@@ -74,7 +74,19 @@ Each provider owns a fixed schedule of exactly **4 flights**, each available in 
 | BW238 | LAX | JFK | 06:00 | 300 | 5h 0m | $150.00 |
 | BW241 | MAN | LHR | 14:00 | 65 | 1h 5m | $60.00 |
 
-Each provider's dataset is a private, hardcoded, static list within its own class (`SkyRoute.Infrastructure/Providers/GlobalAirProvider.cs`, `BudgetWingsProvider.cs`), consistent with named-constant/no-magic-numbers guidance (NFR-MAINT-002). Values above are the authoritative fixture — Phase 12 must not substitute a different dataset without recording a new decision, since Phase 13's test scenarios (per `docs/testing/test-strategy.md` Section 3) will assert against this fixed content.
+Each provider's fixture dataset is a private, hardcoded, static list within its own class (`SkyRoute.Infrastructure/Providers/GlobalAirProvider.cs`, `BudgetWingsProvider.cs`), consistent with named-constant/no-magic-numbers guidance (NFR-MAINT-002). Values above are the authoritative fixture — Phase 12 must not substitute a different dataset without recording a new decision, since Phase 13's test scenarios (per `docs/testing/test-strategy.md` Section 3) will assert against this fixed content.
+
+### 3.3 Deterministic Route Coverage (v1.2 — PO defect fix, 2026-07-07)
+
+`RouteScheduleGenerator.BuildFullSchedule()` (`SkyRoute.Infrastructure/Providers/RouteScheduleGenerator.cs`) appends generated schedule entries — the same `ScheduledFlight` shape as the fixtures, flowing unchanged through `ProviderScheduleMapper` — for every served ordered airport pair the provider's own fixtures do not cover. Generation is a pure function of the route (no randomness, no clock reads), so identical searches always return identical flights:
+
+- **Durations** come from a fixed 14-row table of symmetric per-pair values (minutes): LHR-MAN 65, LHR-JFK 490, LHR-LAX 660, LHR-DXB 420, LHR-SYD 1320, MAN-JFK 500, MAN-LAX 680, MAN-DXB 435, JFK-LAX 350, JFK-DXB 760, JFK-SYD 1330, LAX-DXB 980, LAX-SYD 900, DXB-SYD 840.
+- **DEC-021 no-direct-service pair (PO 2026-07-08)**: `MAN-SYD` is deliberately absent from the table (true to the real world — no nonstop Manchester–Sydney flight exists). Generation is table-driven, so the absent pair is simply skipped: both directions return zero flights from both providers, keeping the styled empty state demonstrable through a real search (challenge PDF 3.2).
+- **Two flights per provider per uncovered route**: GlobalAir departs 07:30 and 16:45; BudgetWings departs 10:15 and 21:30 (same time-of-day convention as the fixtures; arrival = departure + duration via Section 5's existing rule, including overnight rollover).
+- **Flight numbers** are deterministic and collision-free with the fixtures (which use 101–412): `number = 500 + pairIndex × 4 + directionOffset (0 forward / 2 reverse) + flightIndex (0/1)`, where `pairIndex` is the route's row in the duration table — so generated numbers occupy 500–555 and every ordered route has its own distinct pair (e.g. `LHR → DXB` is BW512/BW513 for BudgetWings; the reverse `DXB → LHR` is GA514/GA515 and BW514/BW515).
+- **Economy base fares** derive from duration: GlobalAir `round(60 + duration × 0.55, 2)`, BudgetWings `round(45 + duration × 0.42, 2)`. The existing pricing rules (BR-001 +15%; BR-002 −10% with the 29.99 floor) and the Section 4 cabin multipliers then apply unchanged — no pricing logic is duplicated.
+
+Booking works identically on generated flights: each provider's `TryResolveFare` (SEC-001) resolves against its full schedule, fixtures and generated entries alike.
 
 ---
 

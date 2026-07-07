@@ -41,14 +41,14 @@ Tone: blameless. Every observation names a process cause, not an agent at fault.
 | F-2 | Canonical phase model 00 + 01–24 defined once in CLAUDE.md §7; all files cite it | DEC-016 |
 | F-3 | Handoff loop-log economy: numbered handoffs at phase boundaries only; per-phase loop logs inside review loops | DEC-017 |
 | F-4 | Register reconciliation: all 7 delivery registers brought current at Phase 21 | HO-039 |
-| F-5 | E2E ownership rule: functional-tester explicitly owns keeping `frontend/e2e/` aligned whenever UX changes | autopilot-efficiency-review §Pass B |
+| F-5 | E2E ownership rule: functional-tester explicitly owns keeping `src/UI/e2e/` aligned whenever UX changes | autopilot-efficiency-review §Pass B |
 
 ## 4. Action Items for a Next Sprint
 
 | # | Action | Owner agent | Trigger |
 |---|---|---|---|
 | A-1 | Register-currency check added to every phase-boundary checklist: confirm dependency register, task board, and impediment log reflect the phase just closed before merging its branch | project-coordinator | Every phase boundary (before merge) |
-| A-2 | E2E alignment task auto-spawned by any UX-changing story: the story is not Done until `frontend/e2e/` is updated and re-run green | functional-tester | Any story or PO directive that changes UI flow or markup contracts |
+| A-2 | E2E alignment task auto-spawned by any UX-changing story: the story is not Done until `src/UI/e2e/` is updated and re-run green | functional-tester | Any story or PO directive that changes UI flow or markup contracts |
 | A-3 | Working-tree hygiene check at phase start: verify clean tree, no unexpected untracked directories (e.g. nested repo copies), correct branch base, before creating the phase branch | sdlc-orchestrator | Start of every phase |
 | A-4 | Velocity baseline: record actual effort per phase from this sprint and use it to size the next sprint plan instead of a fixed one-day assumption | scrum-master | Phase 09 sprint planning of the next sprint |
 | A-5 | Design-spec-first scheduling verified in practice: sprint plan sequences the UX/UI design task before its implementation task for every UI story | scrum-master (plan) + ux-ui-designer (spec) | Phase 09 sprint planning; DoR check at Phase 11 |

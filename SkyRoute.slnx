@@ -1,11 +1,11 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/SkyRoute.Api/SkyRoute.Api.csproj" />
-    <Project Path="src/SkyRoute.Application/SkyRoute.Application.csproj" />
-    <Project Path="src/SkyRoute.Infrastructure/SkyRoute.Infrastructure.csproj" />
+  <Folder Name="/Service/">
+    <Project Path="src/Service/SkyRoute.Api/SkyRoute.Api.csproj" />
+    <Project Path="src/Service/SkyRoute.Application/SkyRoute.Application.csproj" />
+    <Project Path="src/Service/SkyRoute.Infrastructure/SkyRoute.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/SkyRoute.Api.IntegrationTests/SkyRoute.Api.IntegrationTests.csproj" />
-    <Project Path="tests/SkyRoute.Application.Tests/SkyRoute.Application.Tests.csproj" />
+  <Folder Name="/Service-tests/">
+    <Project Path="src/Service/tests/SkyRoute.Api.IntegrationTests/SkyRoute.Api.IntegrationTests.csproj" />
+    <Project Path="src/Service/tests/SkyRoute.Application.Tests/SkyRoute.Application.Tests.csproj" />
   </Folder>
 </Solution>

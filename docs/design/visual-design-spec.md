@@ -7,7 +7,7 @@
 | Author | ux-ui-designer |
 | Branch | `fix/requirements-compliance-gaps-skyroute-mvp` |
 | Phase | Requirements Compliance Fix (post-Phase-17) |
-| Status | Implemented (2026-07-07) — applied CSS-only across `frontend/src/styles.css`, `app.css`, and the feature component stylesheets |
+| Status | Implemented (2026-07-07) — applied CSS-only across `src/UI/src/styles.css`, `app.css`, and the feature component stylesheets |
 | Scope | Visual/CSS polish only. No new components, no behavior changes, no new dependencies (no UI/component library, no external fonts). |
 | Trigger | Human Product Owner live-tested the app in Chrome and rated the UI "poorly designed" — specifically visual polish (layout, spacing, colors, typography), not booking-form UX or search/results layout logic. |
 
@@ -15,21 +15,21 @@
 
 ## 0. Verification Against Actual Source
 
-Before drafting this spec, every CSS file under `frontend/src/**/*.css` and every template under `frontend/src/app/features/**/*.html` (plus `frontend/src/app/app.css`/`app.html`, `frontend/src/styles.css`, `frontend/src/index.html`) was read directly. Findings, confirmed against source (not assumed from the summary):
+Before drafting this spec, every CSS file under `src/UI/src/**/*.css` and every template under `src/UI/src/app/features/**/*.html` (plus `src/UI/src/app/app.css`/`app.html`, `src/UI/src/styles.css`, `src/UI/src/index.html`) was read directly. Findings, confirmed against source (not assumed from the summary):
 
-1. **Font mismatch — confirmed.** `grep -r "font-family" frontend/src` returns **zero matches** anywhere in the codebase. No component CSS and no global stylesheet sets a `font-family`. Every `<h1>`/`<h2>`/`<h3>` therefore falls back to the browser's default serif font (e.g., Georgia/Times New Roman in Chrome), while every other element (labels, inputs, buttons, paragraphs) falls back to the browser's default sans-serif font. This is exactly as described — an unintentional pairing, not a deliberate design choice.
-2. **Unstyled native controls — confirmed.** `search-form.component.css` (`select, input { padding: 0.5rem; font-size: 1rem; }`), `passenger-form-section.component.css` (`input { padding: 0.5rem; font-size: 1rem; }`) — no `border`, no `border-radius`, no `background`, no `:focus` treatment anywhere. Zero occurrences of `outline` or `:focus` in `frontend/src` (grep-confirmed) — the browser's default control chrome and default focus ring are the only visual treatment present today.
+1. **Font mismatch — confirmed.** `grep -r "font-family" src/UI/src` returns **zero matches** anywhere in the codebase. No component CSS and no global stylesheet sets a `font-family`. Every `<h1>`/`<h2>`/`<h3>` therefore falls back to the browser's default serif font (e.g., Georgia/Times New Roman in Chrome), while every other element (labels, inputs, buttons, paragraphs) falls back to the browser's default sans-serif font. This is exactly as described — an unintentional pairing, not a deliberate design choice.
+2. **Unstyled native controls — confirmed.** `search-form.component.css` (`select, input { padding: 0.5rem; font-size: 1rem; }`), `passenger-form-section.component.css` (`input { padding: 0.5rem; font-size: 1rem; }`) — no `border`, no `border-radius`, no `background`, no `:focus` treatment anywhere. Zero occurrences of `outline` or `:focus` in `src/UI/src` (grep-confirmed) — the browser's default control chrome and default focus ring are the only visual treatment present today.
 3. **No card/container system — confirmed, but partial.** `.result-card` (results-list) and `.price-breakdown` (booking-form) do have a border + `border-radius` + (for `.price-breakdown`) a light background. `.passenger-section` (a `<fieldset>`) has a border + radius but no background. But `.flight-summary` (both `booking-form` and `confirmation`) has **no border, no background, no radius at all** — it is a bare text block. The four containers are also inconsistent with each other: radii of 4px (`.price-breakdown`, `.passenger-section`) vs. 6px (`.result-card`) vs. none (`.flight-summary`); no shadows anywhere.
 4. **Header — confirmed.** `app.css`: `.app-header { background: #1a5fb4; color: #fff; }`. This is the only deliberate color statement in the app outside of status colors (error red, warning yellow) and the confirmation screen's booking-reference badge.
 5. **Buttons — confirmed.** Every `button` rule across all five component stylesheets (`search-form`, `results-list`, `booking-form`, `confirmation`, `sort-control` is the one exception, see below) sets only `padding`, `font-size`, `cursor`, and a `:disabled` opacity — no `background`, `border`, `border-radius`, or `:hover`/`:focus` treatment, so they render as the browser's default grey 3D-bevel button. The one exception already in the codebase is `sort-control.component.css`'s `.sort-option`/`.sort-option.active`, which already has a real border, radius, and an active-state fill in the brand blue — this is the one place in the app that already resembles a "designed" control and is used below as a pattern to extend, not replace.
 
-**CSP note (relevant to the type system below):** `frontend/src/index.html`'s `Content-Security-Policy` meta tag sets `font-src 'self'` and `style-src 'self' 'unsafe-inline'` — there is no allowance for a remote font host (e.g., Google Fonts). This independently confirms the constraint already given: the type system below must use only local/system font stacks, no `@font-face` remote imports, no new dependency.
+**CSP note (relevant to the type system below):** `src/UI/src/index.html`'s `Content-Security-Policy` meta tag sets `font-src 'self'` and `style-src 'self' 'unsafe-inline'` — there is no allowance for a remote font host (e.g., Google Fonts). This independently confirms the constraint already given: the type system below must use only local/system font stacks, no `@font-face` remote imports, no new dependency.
 
 ---
 
 ## 1. Design Tokens
 
-Add this block to `frontend/src/styles.css`, inside a new (or the existing) `:root` selector. Every other rule in this spec references these custom properties — do not hard-code the hex/px values a second time anywhere else.
+Add this block to `src/UI/src/styles.css`, inside a new (or the existing) `:root` selector. Every other rule in this spec references these custom properties — do not hard-code the hex/px values a second time anywhere else.
 
 ```css
 :root {
@@ -126,7 +126,7 @@ Add this block to `frontend/src/styles.css`, inside a new (or the existing) `:ro
   sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 ```
 
-Apply globally in `frontend/src/styles.css`, extending the **existing** `html, body` rule (do not duplicate the selector, and do not remove or reorder the existing `background-color: #ffffff` line — that belongs to the concurrent dark-mode fix):
+Apply globally in `src/UI/src/styles.css`, extending the **existing** `html, body` rule (do not duplicate the selector, and do not remove or reorder the existing `background-color: #ffffff` line — that belongs to the concurrent dark-mode fix):
 
 ```css
 html,
@@ -398,14 +398,14 @@ This component already has the most "designed" treatment in the app. Retokenize 
 
 | File | Changes |
 |---|---|
-| `frontend/src/styles.css` | Add the `:root` token block (§1) and the `box-sizing` reset (§1) to the existing file. Extend the existing `html, body` rule with `font-family`/`font-size`/`line-height`/`color` (§2) — do not touch its existing `background-color: #ffffff` line. Add global `h1`–`h6` rules (§2). Add a global `a`/`a:hover`/`a:focus-visible` rule reusing `--color-link` (no `<a>` elements exist in the templates today, but this satisfies "applied consistently to buttons, links, and accents" for when one is added) and a global `button:focus-visible`/form-control `:focus-visible` rule if not colocated per-component (§5.1/§5.2). |
-| `frontend/src/app/app.css` | Retokenize `.app-header` (`background: var(--color-primary)`, padding via `--space-4`/`--space-5`) and `.app-header h1` (`font-size: var(--font-size-2xl)`). Optional: add `box-shadow: var(--shadow-sm)` to `.app-header` for a hairline of depth under the bar — not required, PO's complaint didn't target the header. |
-| `frontend/src/app/features/search/search-form/search-form.component.css` | `.search-form-page` retokenize padding/margin (§4.1). `.field` margin-bottom `--space-4` (unchanged value). `select, input` full form-control treatment (§5.1). `button` primary treatment (§5.2). `.error`/`.required-indicator`/`.banner-error` retokenize font-size/colors/radius (values unchanged, see §2/§3.1). |
-| `frontend/src/app/features/results/results-list/results-list.component.css` | `.results-page` retokenize. `.result-card` card treatment (§4.2, adds shadow). `.timing`/`.per-person-price` retokenize (§2). `.total-price` → `--font-size-2xl` (harmonization, §2). `button` secondary treatment (§5.2). `.banner-error` retokenize. |
-| `frontend/src/app/features/booking/booking-form/booking-form.component.css` | `.booking-page` retokenize. `.flight-summary` **add full card treatment** (currently has none — see §4.2, the most visible change in this file). `.price-breakdown` card treatment, radius 4px→6px (§4.2). `.total-price` → `--font-size-2xl` (harmonization). `button` primary treatment. `.banner-error`/`.banner-info` retokenize. |
-| `frontend/src/app/features/booking/passenger-form-section/passenger-form-section.component.css` | `.passenger-section` card treatment, radius 4px→6px (§4.2). `legend` new explicit `font-size: var(--font-size-lg)` (§2). `.field` margin-bottom 12px→16px (harmonization, §4.1). `input` full form-control treatment (§5.1). `.error`/`.required-indicator`/`.lead-badge` retokenize. |
-| `frontend/src/app/features/confirmation/confirmation/confirmation.component.css` | `.confirmation-page` retokenize. `.booking-reference` retokenize only (all values unchanged, see §2 table note on why this one is untouched). `.flight-summary` **add full card treatment** (currently has none, keep existing `text-align: left`). `.total-price` → `--font-size-2xl` (harmonization). `button` primary treatment. `.passengers` retokenize heading/list font sizes only, no card treatment (out of scope, §4.2). |
-| `frontend/src/app/features/results/sort-control/sort-control.component.css` | Retokenize existing values (no changes) and add the missing inactive-option `:hover` state (§5.3). |
+| `src/UI/src/styles.css` | Add the `:root` token block (§1) and the `box-sizing` reset (§1) to the existing file. Extend the existing `html, body` rule with `font-family`/`font-size`/`line-height`/`color` (§2) — do not touch its existing `background-color: #ffffff` line. Add global `h1`–`h6` rules (§2). Add a global `a`/`a:hover`/`a:focus-visible` rule reusing `--color-link` (no `<a>` elements exist in the templates today, but this satisfies "applied consistently to buttons, links, and accents" for when one is added) and a global `button:focus-visible`/form-control `:focus-visible` rule if not colocated per-component (§5.1/§5.2). |
+| `src/UI/src/app/app.css` | Retokenize `.app-header` (`background: var(--color-primary)`, padding via `--space-4`/`--space-5`) and `.app-header h1` (`font-size: var(--font-size-2xl)`). Optional: add `box-shadow: var(--shadow-sm)` to `.app-header` for a hairline of depth under the bar — not required, PO's complaint didn't target the header. |
+| `src/UI/src/app/features/search/search-form/search-form.component.css` | `.search-form-page` retokenize padding/margin (§4.1). `.field` margin-bottom `--space-4` (unchanged value). `select, input` full form-control treatment (§5.1). `button` primary treatment (§5.2). `.error`/`.required-indicator`/`.banner-error` retokenize font-size/colors/radius (values unchanged, see §2/§3.1). |
+| `src/UI/src/app/features/results/results-list/results-list.component.css` | `.results-page` retokenize. `.result-card` card treatment (§4.2, adds shadow). `.timing`/`.per-person-price` retokenize (§2). `.total-price` → `--font-size-2xl` (harmonization, §2). `button` secondary treatment (§5.2). `.banner-error` retokenize. |
+| `src/UI/src/app/features/booking/booking-form/booking-form.component.css` | `.booking-page` retokenize. `.flight-summary` **add full card treatment** (currently has none — see §4.2, the most visible change in this file). `.price-breakdown` card treatment, radius 4px→6px (§4.2). `.total-price` → `--font-size-2xl` (harmonization). `button` primary treatment. `.banner-error`/`.banner-info` retokenize. |
+| `src/UI/src/app/features/booking/passenger-form-section/passenger-form-section.component.css` | `.passenger-section` card treatment, radius 4px→6px (§4.2). `legend` new explicit `font-size: var(--font-size-lg)` (§2). `.field` margin-bottom 12px→16px (harmonization, §4.1). `input` full form-control treatment (§5.1). `.error`/`.required-indicator`/`.lead-badge` retokenize. |
+| `src/UI/src/app/features/confirmation/confirmation/confirmation.component.css` | `.confirmation-page` retokenize. `.booking-reference` retokenize only (all values unchanged, see §2 table note on why this one is untouched). `.flight-summary` **add full card treatment** (currently has none, keep existing `text-align: left`). `.total-price` → `--font-size-2xl` (harmonization). `button` primary treatment. `.passengers` retokenize heading/list font sizes only, no card treatment (out of scope, §4.2). |
+| `src/UI/src/app/features/results/sort-control/sort-control.component.css` | Retokenize existing values (no changes) and add the missing inactive-option `:hover` state (§5.3). |
 
 No `.html` template file needs any edit for this spec — every change above is achievable through the existing class names and Angular's automatically-applied `.ng-invalid`/`.ng-touched` classes.
 
@@ -416,7 +416,7 @@ No `.html` template file needs any edit for this spec — every change above is 
 - CSS-only. No new Angular components, directives, or template structural changes.
 - No new dependencies — no icon font, no UI component library, no CSS framework, no remote web font. The type system in §2 is chosen specifically to satisfy this with a system-font stack.
 - No behavior changes — every interactive element stays the same native `<button>`/`<select>`/`<input>` it is today; only visual treatment changes.
-- Do not touch `html, body`'s existing `background-color: #ffffff` declaration or the `color-scheme: light` rule in `frontend/src/styles.css` — both are owned by a concurrent dark-mode-inversion fix landing separately on this same branch. Coordinate before editing that block if it has moved by implementation time.
+- Do not touch `html, body`'s existing `background-color: #ffffff` declaration or the `color-scheme: light` rule in `src/UI/src/styles.css` — both are owned by a concurrent dark-mode-inversion fix landing separately on this same branch. Coordinate before editing that block if it has moved by implementation time.
 - Do not remove or override the native browser focus outline (`outline: none`/`outline: 0`) anywhere — every `:focus-visible` addition in this spec is additive, preserving the zero-findings state the Phase 17 accessibility review confirmed for focus visibility.
 - Do not add `appearance: none` to `<select>` elements.
 - Every existing WCAG contrast pass in `docs/reviews/accessibility-review-phase-17.md`'s table is reused unchanged (§3.1); the three genuinely new pairs introduced (§3.2) were computed and all clear their applicable threshold with margin.
@@ -429,13 +429,13 @@ No `.html` template file needs any edit for this spec — every change above is 
 
 ## 9. Relevant Files Read During Verification
 
-- `frontend/src/styles.css`, `frontend/src/app/app.css`, `frontend/src/app/app.ts`, `frontend/src/app/app.html`, `frontend/src/index.html`
-- `frontend/src/app/features/search/search-form/search-form.component.css`, `.html`
-- `frontend/src/app/features/results/results-list/results-list.component.css`, `.html`
-- `frontend/src/app/features/results/sort-control/sort-control.component.css`, `.html`
-- `frontend/src/app/features/booking/booking-form/booking-form.component.css`, `.html`
-- `frontend/src/app/features/booking/passenger-form-section/passenger-form-section.component.css`, `.html`
-- `frontend/src/app/features/confirmation/confirmation/confirmation.component.css`, `.html`
+- `src/UI/src/styles.css`, `src/UI/src/app/app.css`, `src/UI/src/app/app.ts`, `src/UI/src/app/app.html`, `src/UI/src/index.html`
+- `src/UI/src/app/features/search/search-form/search-form.component.css`, `.html`
+- `src/UI/src/app/features/results/results-list/results-list.component.css`, `.html`
+- `src/UI/src/app/features/results/sort-control/sort-control.component.css`, `.html`
+- `src/UI/src/app/features/booking/booking-form/booking-form.component.css`, `.html`
+- `src/UI/src/app/features/booking/passenger-form-section/passenger-form-section.component.css`, `.html`
+- `src/UI/src/app/features/confirmation/confirmation/confirmation.component.css`, `.html`
 - `docs/reviews/accessibility-review-phase-17.md` (contrast table, §3.1 cross-check)
 
 *End of Visual Design Spec.*

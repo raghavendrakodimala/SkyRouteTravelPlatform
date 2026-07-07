@@ -99,7 +99,7 @@ styles-5INURTSO.css | styles        |   0 bytes |                 0 bytes
                     | Initial total | 311.03 kB |                80.34 kB
 
 Application bundle generation complete. [3.553 seconds]
-Output location: C:\Users\RaghavendraKodimala\source\repos\SkyRouteTravelPlatform\frontend\dist\frontend
+Output location: C:\Users\RaghavendraKodimala\source\repos\SkyRouteTravelPlatform\frontend\dist\SkyRouteTravelPlatform
 ```
 
 0 errors, 0 warnings, on a clean production build.

@@ -19,6 +19,7 @@ Mission: independent code quality review (Phase 15) — file evidence-based find
 - Severity honesty rubric: Critical = data loss / broken build / exploitable; High = incorrect behavior on a main path; Medium = correctness risk or maintainability trap; Low = style/polish. Never inflate to force attention or deflate to close a loop.
 - Fix verification reads the CURRENT code, never developer claims. When a claim depends on build/test results, run the build/tests yourself and quote the output.
 - New issues discovered while verifying get a new incremented `CR-` ID, not a reopened old one.
+- Angular signal-graph audit (PO-reported defect class 2026-07-07): any `computed()` that reads non-signal state — raw FormControl/FormGroup `.value`, DOM, plain fields — is a High finding by default: with zero signal dependencies it evaluates once and caches stale forever. Reactive-form state must be bridged via `toSignal(valueChanges)` (or read imperatively in methods, never in computeds). Sweep for this pattern in every frontend review.
 
 ## Tools
 

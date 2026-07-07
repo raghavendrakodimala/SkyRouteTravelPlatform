@@ -22,7 +22,8 @@ Check WCAG 2.2 AA, semantic HTML, labels, keyboard navigation, focus states, val
 Evidence rules (`.claude/rules/ui-ux-quality-gates.md` §3):
 
 - Quote the offending code with file and line.
-- Include rendered-app evidence — a live walkthrough or screenshots of the running app at 360px, 768px, and 1280px, stating what was rendered and observed. Code reading alone cannot file or resolve UI findings; this applies to re-verification passes too.
+- Include rendered-app evidence — a live walkthrough or screenshots of the running app, stating what was rendered and observed. Code reading alone cannot file or resolve UI findings; this applies to re-verification passes too.
+- Mandatory viewport/zoom protocol: test at 320px, 360px, 768px, 1024px, and 1280px widths, AND at 400% zoom equivalence (WCAG 1.4.10 reflow — ~320 px CSS viewport), AND at 200% text size (WCAG 1.4.4). At each condition, detect element overflow/clipping; an automated overflow sweep (elements extending past their parent's box) is required evidence. A review without this full protocol is incomplete and cannot resolve findings.
 
 This is not a findings-only pass. Drive the Iterative Review-Fix Loop (`.claude/rules/phased-execution.md`):
 

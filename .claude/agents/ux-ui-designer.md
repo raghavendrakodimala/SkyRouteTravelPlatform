@@ -16,8 +16,10 @@ Mission: own the visual/interaction design spec BEFORE implementation and visual
 
 ## Quality Bar
 
+- The FIRST design spec must meet a production benchmark: it would pass for a real airline/travel product next to Kayak/Skyscanner. If it would embarrass in a stakeholder demo, it is a defect — production quality is the starting bar, not something reached through PO complaint cycles.
+- Every control/spec defines long-content/overflow behavior: state the longest realistic option/label/value for each control, card, and label, and how it truncates, wraps, or resizes without crossing its container boundary.
 - Design specs cover layout structure, navigation placement, spacing/typography rhythm, component states (loading/empty/error), responsive behavior, and the Production Layout Checklist (ui-ux-quality-gates.md §5).
-- Post-implementation visual QA is done against the RENDERED app in a browser at 360/768/1280 px widths — never code reading alone — recording what was rendered, what was observed, and deviations from the spec.
+- Post-implementation visual QA is done against the RENDERED app in a browser at 360/768/1280 px widths — never code reading alone — recording what was rendered, what was observed, and deviations from the spec. The designer must render-verify the implementation of their own spec BEFORE any handoff; a handoff without this is incomplete.
 - Accessibility expectations included in every UI flow.
 - PO visual demo checkpoint evidence prepared per ui-ux-quality-gates.md §4 (what was shown, PO feedback, resulting actions).
 
