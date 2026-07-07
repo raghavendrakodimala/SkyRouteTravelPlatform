@@ -7,8 +7,8 @@
   </legend>
 
   <div class="field">
-    <label [for]="'fullName-' + index()">Full Name</label>
-    <input [id]="'fullName-' + index()" type="text" formControlName="fullName" />
+    <label [for]="'fullName-' + index()">Full Name <span class="required-indicator">(required)</span></label>
+    <input [id]="'fullName-' + index()" type="text" formControlName="fullName" required aria-required="true" />
     @if (group().get('fullName')?.touched && group().get('fullName')?.invalid) {
       <p class="error" role="alert">Full name is required, must be 2–100 characters, and must contain at least one letter.</p>
     }
@@ -18,8 +18,8 @@
   </div>
 
   <div class="field">
-    <label [for]="'email-' + index()">Email Address</label>
-    <input [id]="'email-' + index()" type="email" formControlName="email" />
+    <label [for]="'email-' + index()">Email Address <span class="required-indicator">(required)</span></label>
+    <input [id]="'email-' + index()" type="email" formControlName="email" required aria-required="true" />
     @if (group().get('email')?.touched && group().get('email')?.invalid) {
       <p class="error" role="alert">A valid email address is required.</p>
     }
@@ -29,8 +29,8 @@
   </div>
 
   <div class="field">
-    <label [for]="'documentNumber-' + index()">{{ documentLabel() }}</label>
-    <input [id]="'documentNumber-' + index()" type="text" formControlName="documentNumber" />
+    <label [for]="'documentNumber-' + index()">{{ documentLabel() }} <span class="required-indicator">(required)</span></label>
+    <input [id]="'documentNumber-' + index()" type="text" formControlName="documentNumber" required aria-required="true" />
     @if (group().get('documentNumber')?.touched && group().get('documentNumber')?.invalid) {
       <p class="error" role="alert">{{ documentLabel() }} does not match the required format.</p>
     }

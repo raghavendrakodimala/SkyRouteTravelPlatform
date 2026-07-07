@@ -44,14 +44,14 @@ describe('PassengerFormSectionComponent', () => {
     render({ documentLabel: 'Passport Number' });
 
     const label = fixture.nativeElement.querySelector('label[for="documentNumber-0"]');
-    expect(label.textContent.trim()).toBe('Passport Number');
+    expect(label.textContent.trim()).toContain('Passport Number');
   });
 
   it('renders "National ID" as the document label when documentLabel input is "National ID"', () => {
     render({ documentLabel: 'National ID' });
 
     const label = fixture.nativeElement.querySelector('label[for="documentNumber-0"]');
-    expect(label.textContent.trim()).toBe('National ID');
+    expect(label.textContent.trim()).toContain('National ID');
   });
 
   it('renders "Passenger {index + 1}" in the legend', () => {

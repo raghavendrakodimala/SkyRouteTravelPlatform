@@ -27,7 +27,11 @@
             <span class="total-price">{{ totalPriceText(result) }}</span>
             <span class="per-person-price">{{ perPersonPriceText(result) }}</span>
           </div>
-          <button type="button" (click)="selectFlight(result)">Select</button>
+          <button
+            type="button"
+            (click)="selectFlight(result)"
+            [attr.aria-label]="selectButtonLabel(result)"
+          >Select</button>
         </li>
       }
     </ul>

@@ -1,7 +1,9 @@
 <section class="booking-page">
+  <h1>Booking Details</h1>
+
   @if (flight(); as f) {
     <section class="flight-summary">
-      <h1>{{ f.origin }} → {{ f.destination }}</h1>
+      <h2>{{ f.origin }} → {{ f.destination }}</h2>
       <p>{{ f.provider }} · Flight {{ f.flightNumber }} · {{ f.cabinClass }}</p>
       <p>
         Departs {{ formatFlightTime(f.departureDateTime) }} · Arrives {{ formatFlightTime(f.arrivalDateTime) }} ·
@@ -44,6 +46,9 @@
           Confirm Booking
         }
       </button>
+      @if (loading()) {
+        <p class="visually-hidden" role="status" aria-live="polite">Submitting your booking…</p>
+      }
     </form>
   } @else {
     <p>No flight selected. Please start a new search.</p>

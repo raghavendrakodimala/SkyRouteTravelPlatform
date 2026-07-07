@@ -2,11 +2,11 @@
 
 Project: SkyRoute MVP
 Run mode: Phased --auto-commit-merge --no-push
-Current phase: Phase 16 — Security Review (Complete — Iterative Review-Fix Loop closed, zero Open findings; merged to main) / Phase 15a — Iterative Review-Fix Loop closure for Code Review (Complete, merged to main)
-Next phase: Phase 17 — Accessibility Review
-Last agent: security-reviewer (Phase 16 closure)
-Next agent: accessibility-tester
-Branch: main (both `sdlc/15a-code-review-fixes-skyroute-mvp` and `sdlc/16-security-review-skyroute-mvp` merged with `--no-ff` and deleted per human "go ahead" instruction)
+Current phase: Phase 17 — Accessibility Review (Complete — Iterative Review-Fix Loop closed, zero Open findings; pending merge to main)
+Next phase: Phase 18 — Performance Review
+Last agent: accessibility-tester (Phase 17 closure, HO-026)
+Next agent: performance-tester
+Branch: sdlc/17-accessibility-review-skyroute-mvp (pending merge to main)
 Blockers: None. The process changed mid-flight: review phases (15–18) now run an Iterative Review-Fix Loop internally (reviewer files findings → route to developer agent → fix → re-review → repeat until zero Open) instead of deferring all fixes to Phase 19 — see CLAUDE.md §22 and `.claude/rules/phased-execution.md`. This was applied retroactively to Phase 15's CR-001–CR-005 and Phase 16's SEC-001–SEC-004, both now zero Open and merged to `main`. **SEC-001 (High) is Resolved (not accepted) — the CLAUDE.md §21 human-approval gate is cleared by fixing the underlying gap, not by accepting it unresolved.** The two branches diverged from the same `main@9da8566` base and both independently edited `BookingService.cs`, `FakeBookingStore.cs`, and the four tracking files; merging `sdlc/16-...` after `sdlc/15a-...` produced conflicts in all six, resolved manually per `.claude/rules/git-workflow.md` — `BookingService.cs`'s `CreateBookingWithUniqueReferenceAsync` now takes both CR-003's TOCTOU-safe retry loop and SEC-001's `resolvedPricePerPassenger` parameter, preserving both fixes simultaneously.
 Status: Phase 14 (Test Execution Summary) complete — functional-tester independently re-ran all three suites fresh (not just trusting Phase 13's reports): backend 114/114, frontend unit 145/145, E2E 11/11. Grand total 270/270 passing, 0 failed, 0 skipped, zero discrepancy vs. Phase 13. Both dev servers confirmed stopped after the E2E run. QA-001/QA-002/QA-004/QA-005 (Medium/Low) remain Open, deferred to Phase 19 (Findings Fixes now only receives QA-* and undeferred review leftovers, not CR-*/SEC-*/A11Y-*/PERF-* by default); QA-003 (Critical) confirmed still Resolved with no regression. Phase 15 (Code Review) filed CR-001–CR-005, closed to zero Open via the fix loop on `sdlc/15a-...` (4 Resolved, 1 Accepted Risk; see HO-021), merged to `main`. Phase 16 (Security Review) filed SEC-001 (High)/SEC-002 (Medium)/SEC-003 (Low)/SEC-004 (Low), all closed to zero Open via the fix loop on `sdlc/16-...` (see HO-016E), merged to `main`.
 
@@ -32,7 +32,7 @@ Status: Phase 14 (Test Execution Summary) complete — functional-tester indepen
 | 14 | Test Execution Summary | Complete — merged to main (commit 0b633d9, 2026-07-06) | sdlc/14-test-execution-summary-skyroute-mvp (deleted) | functional-tester | HO-014 |
 | 15 | Code Review | Complete — findings filed (HO-015), then fix loop closed to zero Open on reopened branch 15a (HO-017–021); merged to main | sdlc/15a-code-review-fixes-skyroute-mvp (deleted) | code-reviewer + junior/senior-full-stack-engineer | HO-015, HO-017, HO-018, HO-019, HO-020, HO-021 |
 | 16 | Security Review | Complete — Iterative Review-Fix Loop closed, zero Open findings; merged to main | sdlc/16-security-review-skyroute-mvp (deleted) | security-reviewer, lead-full-stack-engineer, junior-developer | HO-016, HO-016A, HO-016B, HO-016C, HO-016D, HO-016E |
-| 17 | Accessibility Review | Ready to start — no blocker | Pending | accessibility-tester | Pending |
+| 17 | Accessibility Review | Complete — Iterative Review-Fix Loop closed, zero Open findings; pending merge to main | sdlc/17-accessibility-review-skyroute-mvp | accessibility-tester, lead/senior-full-stack-engineer, junior-developer | HO-022–HO-026 |
 | 18 | Performance Review | Not Started | Pending | performance-tester | Pending |
 | 19 | Findings Fixes | Not Started | Pending | lead-full-stack-engineer | Pending |
 | 20 | Re-test and Re-review | Not Started | Pending | functional-tester | Pending |
@@ -72,28 +72,25 @@ None — Phase 03 approval gate cleared 2026-07-03.
 
 ## Last Completed Phase
 
-Phase 16 — Security Review (Iterative Review-Fix Loop, full closure), merged to main after Phase 15a
-Branches: sdlc/15a-code-review-fixes-skyroute-mvp (7 commits, merged first, no conflicts) then sdlc/16-security-review-skyroute-mvp (committed: 9f3cfed, fcbd7e9, 8f20aa3, 1b20586; merged second, with manual conflict resolution on `BookingService.cs`, `FakeBookingStore.cs`, and the four tracking files). Both branches deleted after merge.
-Agents: code-reviewer (Phase 15a verification), junior-developer + senior-full-stack-engineer (CR-* fixes), security-reviewer (findings + two re-verifications), lead-full-stack-engineer (SEC-001 minimal fix, then SEC-001 full fix), junior-developer (SEC-002/003/004 fixes)
-Handoffs: HO-017–HO-021 (Phase 15a loop) and HO-016 → HO-016A → HO-016B → HO-016C → HO-016D → HO-016E (Phase 16 loop)
+Phase 17 — Accessibility Review (Iterative Review-Fix Loop, full closure), on branch `sdlc/17-accessibility-review-skyroute-mvp`, pending merge to `main`.
+Agents: accessibility-tester (findings + two re-verification passes), lead-full-stack-engineer (A11Y-001 fix), senior-full-stack-engineer (A11Y-002 fix), junior-developer (A11Y-003/004/005/006 fixes)
+Handoffs: HO-022 (initial findings) → HO-023 (A11Y-001) → HO-024 (A11Y-002) → HO-025 (A11Y-003/004/005/006) → HO-026 (final re-verification, loop closure)
 Artefacts:
-- Prerequisite: fixed a pre-existing, unrelated `CLAUDE.md` §1–21 duplication bug (stray heredoc artifact) — own commit.
-- Formalized the Iterative Review-Fix Loop durably in `CLAUDE.md` §22, `.claude/rules/phased-execution.md`, `.claude/rules/delegation-rules.md`, `.claude/rules/sdlc-rules.md`, `.claude/commands/run-full-sdlc.md` — own commit.
-- CR-001 fixed by junior-developer (shared `ValidationProblemExtensions.ToModelState()`), CR-002 fixed by senior-full-stack-engineer (shared `ProviderScheduleMapper.BuildResults()`), CR-003 fixed by senior-full-stack-engineer (`ConcurrentDictionary`-style `TryAdd` + `DuplicateBookingReferenceException`, new concurrency test), CR-004 fixed by junior-developer (`environment.prod.ts` + `fileReplacements`).
-- code-reviewer independently re-verified all four CR-* fixes and closed CR-005 as `Accepted Risk`. `docs/reviews/code-review-phase-15.md` shows **zero `Open` findings** (4 Resolved, 1 Accepted Risk).
-- SEC-001's fix: new `FlightFareResolver` service + `IFlightProvider.TryResolveFare(...)`, server-side price re-resolution in `BookingService.CreateBookingAsync`, rejecting any client-submitted fare that doesn't match the server-resolved fare exactly.
-- SEC-002–004 fixes: passenger-count 1–9 bound, security response headers + CSP, bounded email regex.
-- security-reviewer independently re-verified SEC-001–004. `docs/reviews/security-review-phase-16.md` shows all 4 findings **Resolved**; zero Open/In Progress/Partially Resolved.
-- Merge reconciliation: `BookingService.CreateBookingWithUniqueReferenceAsync` now takes a `resolvedPricePerPassenger` parameter, combining CR-003's TOCTOU-safe retry loop with SEC-001's server-resolved-fare persistence — both fixes preserved simultaneously, neither side discarded.
-- `docs/delivery/delegation-log.md` updated with DEL-010–DEL-019 (DEL-010–014 for the Phase 15a CR-* loop, DEL-015–019 for the Phase 16 SEC-* loop, renumbered during merge conflict resolution to avoid ID collision).
-- Recommendation (security-reviewer, HO-016E): proceed to Phase 17. SEC-001's human-approval gate is cleared by resolution, not acceptance.
+- A11Y-001 (Medium) fixed by lead-full-stack-engineer: new centralized `RouteFocusService` (`frontend/src/app/core/services/route-focus.service.ts`), wired into `App`'s constructor, moves focus to the new screen's heading on every `NavigationEnd` after bootstrap.
+- A11Y-002 (Medium) fixed by senior-full-stack-engineer: per-row composed `aria-label` on each results-list "Select" button (`selectButtonLabel()`), unique per flight/provider/time/price, visible text unchanged.
+- A11Y-003/004/005/006 (Low) fixed by junior-developer: per-route `<title>` via Router `DefaultTitleStrategy`; `required`/`aria-required`/visible `(required)` cue on all 8 mandatory fields; `role="status"` live region for both submit buttons' loading state; single page-purpose `<h1>` on all 4 routed screens (`booking-form`/`confirmation` gained new `<h1>`s, former route-code heading demoted to `<h2>`).
+- accessibility-tester independently re-verified all six fixes against current source (not developer claims). `docs/reviews/accessibility-review-phase-17.md` shows **zero `Open` findings** (all 6 Resolved: 2 Medium, 4 Low).
+- sdlc-orchestrator independently executed `npm run build` (clean, 0 errors) and `npm test -- --watch=false` (`Test Files 17 passed (17)`, `Tests 149 passed (149)`, 0 failed) against the current working tree, closing the report's one remaining "unverified build/test claim" caveat with zero discrepancy vs. developer-reported counts.
+- `docs/delivery/delegation-log.md` updated with DEL-020–DEL-023 for the Phase 17 A11Y-* loop.
+- `docs/handoffs/handoff-index.md` backfilled with HO-023–HO-025 rows (previously missing) plus the new HO-026 closure row.
+- Recommendation (accessibility-tester, HO-026): Phase 17 merge gate satisfied; proceed to commit/merge, then Phase 18 (Performance Review).
 
-Prior completed phase: Phase 14 — Test Execution Summary, merged to `main` 2026-07-06, commit `0b633d9`. See HO-014.
+Prior completed phase: Phase 16 — Security Review, merged to `main`, commit `ce4dd15`. See HO-016E.
 
 ---
 
 ## Next Action
 
-No blocker. Both `sdlc/15a-code-review-fixes-skyroute-mvp` (CR-001–005, zero Open) and `sdlc/16-security-review-skyroute-mvp` (SEC-001–004, zero Open) merged to `main` with explicit human authorization ("go ahead"), per CLAUDE.md §17. `sdlc/15a-...` merged first with zero conflicts; `sdlc/16-...` merged second with conflicts in `BookingService.cs`, `FakeBookingStore.cs`, `docs/delivery/delegation-log.md`, `docs/handoffs/current-handoff.md`, `docs/handoffs/handoff-index.md`, and this file, all resolved manually per `.claude/rules/git-workflow.md` Conflict Handling — preserving both branches' substantive changes rather than discarding either side. Both feature branches deleted after merge.
+No blocker. `docs/reviews/accessibility-review-phase-17.md` shows zero `Open`/`In Progress`/`Partially Resolved` findings (all 6 Resolved) and the report's build/test-evidence caveat is closed by the orchestrator's independent run. No Critical/High finding was ever raised in this phase, so no CLAUDE.md §21 gate applies to the findings themselves — only the standard §17 merge-to-main approval gate remains before `sdlc/17-accessibility-review-skyroute-mvp` is merged.
 
-Next: confirm combined `dotnet build`/`dotnet test` passes on the merged `main`, then proceed to Phase 17 (Accessibility Review, owned by accessibility-tester), which will run the same Iterative Review-Fix Loop live for the first time.
+Next: commit outstanding Phase 17 changes on `sdlc/17-accessibility-review-skyroute-mvp`, then — subject to human "go ahead" for the merge itself, per CLAUDE.md §17/§21 — merge to `main` with `--no-ff` and delete the branch, then proceed to Phase 18 (Performance Review, owned by performance-tester).

@@ -128,6 +128,30 @@ describe('ResultsListComponent', () => {
     expect(fakeSearchState.search).not.toHaveBeenCalled();
   });
 
+  it('gives each Select button a unique, descriptive accessible name (A11Y-002)', () => {
+    hasSearchedSignal.set(true);
+    resultsSignal.set([
+      buildFlight({ flightNumber: 'GA100', provider: 'GlobalAir' }),
+      buildFlight({ flightNumber: 'GA200', provider: 'SkyJet' }),
+    ]);
+    fixture.detectChanges();
+
+    const buttons: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('.result-card button'));
+    expect(buttons.length).toBe(2);
+
+    const labels = buttons.map((button) => button.getAttribute('aria-label'));
+    expect(labels[0]).toBeTruthy();
+    expect(labels[1]).toBeTruthy();
+    // Names must be unique so a screen reader does not announce "Select, Select" identically.
+    expect(labels[0]).not.toBe(labels[1]);
+    expect(labels[0]).toContain('GA100');
+    expect(labels[0]).toContain('GlobalAir');
+    expect(labels[1]).toContain('GA200');
+    expect(labels[1]).toContain('SkyJet');
+    // Visible label text must remain unchanged.
+    expect(buttons[0].textContent?.trim()).toBe('Select');
+  });
+
   it('selectFlight delegates to BookingStateService.selectFlight without an additional HTTP call', () => {
     lastCriteriaSignal.set({
       origin: 'LHR',

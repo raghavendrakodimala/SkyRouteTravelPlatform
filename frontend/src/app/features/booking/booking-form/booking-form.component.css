@@ -4,7 +4,7 @@
   padding: 1.5rem;
 }
 
-.flight-summary h1 {
+.flight-summary h2 {
   margin-bottom: 0.25rem;
 }
 
@@ -55,4 +55,15 @@ button {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* A11Y-005: kept in the accessibility tree (so aria-live/role="status" is announced) but hidden
+   visually, since the submit button's own visible text already shows the loading state. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }

@@ -38,3 +38,10 @@ input {
   font-size: 0.85rem;
   margin: 0.25rem 0 0;
 }
+
+/* A11Y-004: visible required-field cue, matching the search-form/booking-form convention. */
+.required-indicator {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: #555555;
+}
