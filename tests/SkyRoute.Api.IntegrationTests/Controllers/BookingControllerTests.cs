@@ -172,6 +172,67 @@ public class BookingControllerTests : IClassFixture<SkyRouteApiFactory>
     }
 
     [Fact]
+    public async Task CreateBooking_ExplicitNullPassengers_Returns400ValidationProblem_Not500()
+    {
+        // QA-001 (Phase 14 test execution summary): a crafted body sending "passengers": null
+        // (overriding BookingRequest's property initializer default — not producible via the
+        // real frontend, only via a raw HTTP client) previously reached code that assumed a
+        // non-null collection and surfaced as an unhandled 500. It must be a clean 400
+        // validation problem with field-level errors, never a 500.
+        var client = _factory.CreateHttpsClient();
+        const string rawJson = """
+            {
+              "flight": {
+                "provider": "GlobalAir",
+                "flightNumber": "GA101",
+                "origin": "LHR",
+                "destination": "JFK",
+                "departureDateTime": "2026-08-01T09:00:00Z",
+                "arrivalDateTime": "2026-08-01T17:30:00Z",
+                "durationMinutes": 510,
+                "cabinClass": "Economy",
+                "baseFare": 250.00,
+                "pricePerPassenger": 287.50
+              },
+              "passengerCount": 1,
+              "passengers": null
+            }
+            """;
+
+        using var content = new StringContent(rawJson, System.Text.Encoding.UTF8, "application/json");
+        var response = await client.PostAsync("/api/bookings", content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.NotNull(problem);
+        // Null passengers with passengerCount 1 is reported as a field-level error against the
+        // passenger data (exact key depends on which validation layer catches it first — either
+        // the framework's implicit required check on "passengers"/"Passengers" or
+        // BookingRequestValidator's "passengerCount" mismatch); what matters is a clean,
+        // field-addressed 400 rather than an unhandled 500.
+        Assert.NotEmpty(problem!.Errors);
+        Assert.Contains(problem.Errors.Keys, k => k.Contains("assenger"));
+    }
+
+    [Fact]
+    public async Task CreateBooking_ExplicitNullFlightAndNullPassengers_Returns400ValidationProblem_Not500()
+    {
+        // QA-001 sibling case: every nullable top-level member explicitly nulled at once.
+        var client = _factory.CreateHttpsClient();
+        const string rawJson = """{ "flight": null, "passengerCount": 1, "passengers": null }""";
+
+        using var content = new StringContent(rawJson, System.Text.Encoding.UTF8, "application/json");
+        var response = await client.PostAsync("/api/bookings", content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.NotEmpty(problem!.Errors);
+    }
+
+    [Fact]
     public async Task CreateBooking_HappyPath_ResponseHasNoLocationHeader()
     {
         // Gap-fill BF-05: no GET /api/bookings/{reference} endpoint exists, so no

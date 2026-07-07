@@ -39,21 +39,18 @@ public class ApiExceptionMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_WhenNextThrows_SetsJsonContentType()
+    public async Task InvokeAsync_WhenNextThrows_SetsProblemJsonContentType()
     {
-        // QA-002 (see phase-13 handoff): ApiExceptionMiddleware assigns
-        // context.Response.ContentType = "application/problem+json" (line 43) but then calls
-        // context.Response.WriteAsJsonAsync(body) without a contentType argument (line 53).
-        // HttpResponseJsonExtensions.WriteAsJsonAsync unconditionally overwrites
-        // response.ContentType with the ASP.NET Core default ("application/json; charset=
-        // utf-8") whenever no explicit contentType is passed, so the earlier
-        // "application/problem+json" assignment is dead code — the response actually observed
-        // by clients is "application/json; charset=utf-8", not "application/problem+json".
-        // This assertion documents the actual (buggy) behavior; do not fix ApiExceptionMiddleware
-        // in this phase.
+        // QA-002 (fixed in Phase 19): ApiExceptionMiddleware previously assigned
+        // context.Response.ContentType = "application/problem+json" and then called
+        // WriteAsJsonAsync(body) without a contentType argument, which unconditionally
+        // overwrote the header with the ASP.NET Core default ("application/json;
+        // charset=utf-8") — so the problem+json assignment was dead code. The middleware now
+        // passes the content type to WriteAsJsonAsync directly, so the RFC 7807 type is what
+        // clients actually observe on the wire.
         var (context, _) = await InvokeWithThrowingNextAsync(new InvalidOperationException("boom"));
 
-        Assert.StartsWith("application/json", context.Response.ContentType);
+        Assert.Equal("application/problem+json", context.Response.ContentType);
     }
 
     [Fact]
