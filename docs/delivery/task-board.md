@@ -1,7 +1,7 @@
 # Task Board — SkyRoute Travel Platform MVP
 
-Version: 1.0
-Date: 2026-07-03
+Version: 1.1
+Date: 2026-07-07 (Phase 21 reconciliation; baseline 2026-07-03)
 Author: Project Coordinator
 Status: Active
 
@@ -34,6 +34,24 @@ User stories and implementation tasks will be added at Phase 07 — Project Back
 |---|---|---|---|
 | PH-01 | Phase 01 — Scrum Operating Model | scrum-master | `docs/delivery/scrum-operating-model.md`, HO-001 |
 | PH-02 | Phase 02 — SDLC Delivery Operating Model | project-coordinator | Delivery model docs, HO-002 |
+| PH-03 | Phase 03 — Requirements Analysis | solution-architect + product-owner | `docs/requirements.md` v1.4 Approved (later v1.5 for OOB route filtering), HO-003 |
+| PH-04 | Phase 04 — NFR Specification | solution-architect | `docs/specs/non-functional-requirements.md` v1.0 Approved, HO-004 |
+| PH-05 | Phase 05 — Test Strategy | functional-tester | `docs/testing/test-strategy.md`, HO-005 |
+| PH-06 | Phase 06 — Architecture Planning | solution-architect | `docs/architecture/architecture-plan.md` v1.0, HO-006 |
+| PH-07 | Phase 07 — Project Backlog | project-coordinator + product-owner | `docs/delivery/project-backlog.md`, HO-007 |
+| PH-08 | Phase 08 — Parallel Delivery Plan | project-coordinator | `docs/delivery/parallel-delivery-plan.md` v1.0, HO-008 |
+| PH-09 | Phase 09 — Sprint Planning | scrum-master | `docs/delivery/sprint-1-plan.md` (Human PO approved), HO-009 |
+| PH-10 | Phase 10 — Feature Specifications | solution-architect | `docs/features/`, HO-010 |
+| PH-11 | Phase 11 — Spec Readiness Check | scrum-master | READY/GO verdict, HO-011 |
+| PH-12 | Phase 12 — Implementation | lead-full-stack-engineer | All 37 backlog items (Section 4); merged commit `0575a7c`; HO-012A/B |
+| PH-13 | Phase 13 — Test Writing | lead-full-stack-engineer + functional-tester | Backend 114/114, frontend 145/145, E2E 11/11 after QA-003 fix; merged `22d87db`; HO-013, HO-013C/D/E (detail preserved in Section 5 update log) |
+| PH-14 | Phase 14 — Test Execution Summary | functional-tester | `docs/testing/execution/phase-14-test-execution-summary.md`, 270/270 fresh; merged `0b633d9`; HO-014 |
+| PH-15 | Phase 15 — Code Review | code-reviewer + junior/senior-full-stack-engineer | CR-001–005 closed to zero Open via fix loop on branch 15a (4 Resolved, 1 Accepted Risk); `docs/reviews/code-review-phase-15.md`; HO-015, HO-017–HO-021 |
+| PH-16 | Phase 16 — Security Review | security-reviewer + lead-full-stack-engineer/junior-developer | SEC-001 (High)–SEC-004 all Resolved via fix loop (SEC-001 by full server-side price re-resolution, not acceptance); `docs/reviews/security-review-phase-16.md`; HO-016–HO-016E; merged `ce4dd15` |
+| PH-17 | Phase 17 — Accessibility Review | accessibility-tester + lead/senior/junior developers | A11Y-001–006 all Resolved via fix loop; `docs/reviews/accessibility-review-phase-17.md`; HO-022–HO-026; merged `3cf1617` |
+| PH-18 | Phase 18 — Performance Review | performance-tester | Zero Open (PERF-001 Low Accepted Risk); all NFR §3 targets pass with runtime evidence; `docs/reviews/performance-review-phase-18.md`; HO-036 |
+| PH-19 | Phase 19 — Findings Fixes (QA consolidation) | senior-full-stack-engineer | QA-001/002 fixed with new tests, QA-004/005 evidence for moot disposition; suites 172/172 + 181/181; HO-037; merged `f4ae3da` basis |
+| PH-20 | Phase 20 — Re-test and Re-review | functional-tester | 365/365 fresh across all suites; QA-001/002 Resolved, QA-004/005 Closed-Moot; zero-Open sweep of all numbered reviews; GO; `docs/testing/execution/phase-20-retest-summary.md`; HO-038 |
 
 ### In Review
 
@@ -45,34 +63,15 @@ User stories and implementation tasks will be added at Phase 07 — Project Back
 
 | ID | Task | Owner | Started | Blockers |
 |---|---|---|---|---|
-| — | None currently | — | — | — |
+| PH-21 | Phase 21 — Delivery Tracking Update | project-coordinator | 2026-07-07 | None — reconciling all `docs/delivery/` registers against Phases 12–20 outcomes on branch `sdlc/21-delivery-tracking-skyroute-mvp` |
 
 ### Backlog
 
 | ID | Task | Owner | Priority | Source | Notes |
 |---|---|---|---|---|---|
-| PH-03 | Phase 03 — Requirements Analysis | solution-architect + product-owner | Critical | DEP-002 | Human PO approval gate at end |
-| PH-04 | Phase 04 — NFR Specification | solution-architect | Critical | DEP-003 | Depends on Phase 03 approval |
-| PH-05 | Phase 05 — Test Strategy | functional-tester | High | DEP-002 | May run after Phase 03 |
-| PH-06 | Phase 06 — Architecture Planning | solution-architect | Critical | DEP-004, DEP-005 | Depends on Phases 03 and 04 |
-| PH-07 | Phase 07 — Project Backlog | project-coordinator + product-owner | Critical | DEP-024 | Human PO approval gate at end |
-| PH-08 | Phase 08 — Parallel Delivery Plan | project-coordinator | High | Phase 07 | Follows Phase 07 |
-| PH-09 | Phase 09 — Sprint Planning | scrum-master | Critical | Phase 07, 08 | Human PO approval gate |
-| PH-10 | Phase 10 — Feature Specifications | solution-architect | Critical | DEP-007, DEP-006 | Depends on Phases 06, 05 |
-| PH-11 | Phase 11 — Spec Readiness Check | scrum-master | Critical | Phase 10 | Definition of Ready gate |
-| PH-12 | Phase 12 — Implementation | lead-full-stack-engineer | Critical | DEP-010, DEP-011 | Stories added at Phase 07 |
-| PH-13 | Phase 13 — Test Writing | lead-full-stack-engineer + functional-tester | Critical | Phase 12 | **Done.** Backend complete (114/114 tests passing). Frontend unit/component suite written (145 tests, 16 files) and now **executed**: IMP-002 resolved per Human PO approval to install `vitest`/`jsdom`; final result **145/145 passing, 0 failed, 0 skipped** across all 16 files. See HO-013 (authoring) and HO-013E (execution + 5 spec-file fixes; `docs/testing/execution/frontend-unit-test-execution-summary.md`). E2E suite (Playwright, `frontend/e2e/`, 11 tests/6 files) written and executed against real backend+frontend per Human PO approval; first run 8 passed/3 failed due to new Critical finding QA-003 (booking form could not be submitted in a real browser — see HO-013C). **QA-003 fixed same-day per Human PO approval for an out-of-sequence fix** (`booking-form.component.html`/`.ts` — added missing `[formGroup]` binding); re-run confirmed **11/11 E2E tests passing**. See HO-013D. QA-001, QA-002, QA-004, QA-005 (Medium/Low) remain Open, deferred to Phase 19. |
-| PH-14 | Phase 14 — Test Execution Summary | functional-tester | Critical | Phase 13 | **Done.** Formal, consolidated QA Test Execution Summary produced at `docs/testing/execution/phase-14-test-execution-summary.md`. All three automated test layers independently re-run and re-verified green in this phase (not just consumed from Phase 13 reports): backend xUnit **114/114** (`dotnet build`/`dotnet test SkyRoute.slnx`), frontend unit/component Vitest **145/145** (16/16 files, `npm test`), E2E Playwright **11/11** (6/6 files, real backend+frontend servers started/stopped cleanly, verified via `netstat`). No discrepancy vs. Phase 13's reports; no new QA finding raised. QA-003 confirmed Resolved with no regression. QA-001 (Medium), QA-002/QA-004/QA-005 (Low) remain Open, deferred to Phase 19 — none block Phase 15. Final QA recommendation: proceed to Phase 15 (Code Review). See HO-014. |
-| PH-15 | Phase 15 — Code Review | code-reviewer | High | Phase 12 | **Done.** Independent code review of the Phase 12 implementation (backend + frontend, unchanged since) performed against architecture-plan.md v1.0 and requirements.md v1.4. Architectural gates re-verified structurally sound (no `Microsoft.AspNetCore.*`/`ClaimsPrincipal`/`IIdentity` in `SkyRoute.Application`, DI composition, single HTTP boundary/pricing point/conversion point on frontend). 5 findings recorded at `docs/reviews/code-review-phase-15.md`: CR-001 (Low, duplicated `ToModelState` helper in `SearchController`/`BookingController`), CR-002 (Low, duplicated provider mapping pipeline in `GlobalAirProvider`/`BudgetWingsProvider`), CR-003 (**Medium**, TOCTOU race — `InMemoryBookingStore.CreateAsync` blindly overwrites instead of `TryAdd`, racing `BookingService`'s check-then-act reference-uniqueness loop), CR-004 (Low, no production environment file/`fileReplacements` for the Angular frontend), CR-005 (Low/informational, reflection-based provider pricing tests duplicate public-API coverage). **0 Critical, 0 High — no human approval gate triggered.** QA-001/QA-002/QA-004/QA-005 re-confirmed accurate against current source, not re-reported as new CR findings. CR-003 flagged for priority attention in Phase 19 alongside QA-001. Recommendation: proceed to Phase 16 (Security Review). See HO-015. |
-| PH-16 | Phase 16 — Security Review | security-reviewer | High | Phase 12 | SEC-series findings |
-| PH-17 | Phase 17 — Accessibility Review | accessibility-tester | High | Phase 12 | A11Y-series findings |
-| PH-18 | Phase 18 — Performance Review | performance-tester | Medium | Phase 12 | PERF-series findings |
-| PH-19 | Phase 19 — Findings Fixes | lead-full-stack-engineer | Critical | DEP-017 | Fix by finding ID |
-| PH-20 | Phase 20 — Re-test and Re-review | functional-tester | Critical | Phase 19 | — |
-| PH-21 | Phase 21 — Delivery Tracking Update | project-coordinator | High | Phase 20 | — |
-| PH-22 | Phase 22 — Sprint Review | scrum-master | Critical | Phase 21 | Human PO participation required |
-| PH-23 | Phase 23 — Retrospective | scrum-master | Medium | Phase 22 | — |
-| PH-24 | Phase 24 — Final SDLC Summary + Merge | project-coordinator | Critical | Phase 23 | Human PO merge approval required |
+| PH-22 | Phase 22 — Sprint Review | scrum-master | Critical | Phase 21 | Human PO participation required; carry-forward items RISK-016–RISK-019 to be surfaced |
+| PH-23 | Phase 23 — Retrospective | scrum-master | Medium | Phase 22 | Out-of-cadence UI-quality retrospective already on file (`docs/delivery/retrospective-ui-quality-gap-2026-07-07.md`) as input |
+| PH-24 | Phase 24 — Final SDLC Summary + Merge | project-coordinator | Critical | Phase 23 | Human PO gates: push approval (RISK-017), nested-folder deletion (RISK-016), advisory-finding disposition (RISK-018) |
 
 ---
 
@@ -133,6 +132,17 @@ All 18 active frontend items (BL-020–BL-032, BL-034–BL-038) were implemented
 
 **BL-033 removed from this board at Phase 08** — decomposed into BL-036/BL-037/BL-038 above per SDLC Orchestrator decision on HO-007 (RISK-014). No scope change; see `docs/delivery/project-backlog.md` v1.1 and `docs/delivery/parallel-delivery-plan.md` v1.0.
 
+### 4.3 PO-Directed Out-of-Band Items (Done, 2026-07-07)
+
+Delivered outside the original 37-item backlog under explicit Human PO direction; all merged to `main`. Full detail: `docs/delivery/project-backlog.md` v1.2 Section 13.
+
+| ID | Task | Owner | Status | Evidence |
+|---|---|---|---|---|
+| OOB-01 | Backend route filtering (ASM-006 revised, requirements v1.5) | lead-full-stack-engineer | Done | HO-032 |
+| OOB-02 | Booking passenger-flow finalization (single-button in-place add; search passenger field removed — DEC-015) | lead-full-stack-engineer | Done | HO-032, HO-034 |
+| OOB-03 | Production UI overhaul v2 (top nav, journey strip, hero, flight-card timeline, footer) | lead-full-stack-engineer + ux-ui-designer | Done | HO-034 |
+| OOB-04 | SDLC process hardening (ui-ux-quality-gates + retrospective; autopilot efficiency review, canonical 01–24 model) | sdlc-orchestrator | Done | HO-033, HO-035 |
+
 Source: `docs/delivery/project-backlog.md` v1.1 (Phase 07, updated Phase 08). Parallel-track assignment across agents/roles is recorded in `docs/delivery/parallel-delivery-plan.md` v1.0 (Phase 08); sprint commitment is Phase 09 scope.
 
 ---
@@ -151,6 +161,7 @@ Source: `docs/delivery/project-backlog.md` v1.1 (Phase 07, updated Phase 08). Pa
 | 2026-07-06 | lead-full-stack-engineer | Phase 13 — QA-003 fixed out-of-sequence per explicit Human PO approval (Critical finding, blocked the entire booking flow). Root cause: `booking-form.component.html`'s `<form>` had no `[formGroup]` directive, so `(ngSubmit)` never intercepted the native submit event. Fix: added `[formGroup]="bookingForm"` binding and a wrapping `FormGroup` in `booking-form.component.ts` (the existing form model was a bare `FormArray`, which `FormGroupDirective` cannot bind to directly). `npm run build`/`dotnet build` both clean (0/0). Re-ran the full Playwright suite against the real app: **11/11 E2E tests now passing** (up from 8/11). QA-001, QA-002, QA-004, QA-005 untouched, remain Open, deferred to Phase 19. Phase 13 (Test Writing) is now **Done** in full. See HO-013D. |
 | 2026-07-06 | lead-full-stack-engineer | Phase 13 — IMP-002 resolved per explicit Human PO approval: installed `vitest@4.1.10` and `jsdom@29.1.1` as devDependencies in `frontend/` and executed the 145-test/16-file Vitest unit/component suite authored earlier in Phase 13 (HO-013) for the first time. First run failed to compile (4x `TS2345` across 3 spec files — `Array.from(...)` inferred `unknown[]` instead of `Element[]`); fixed by adding an explicit `Array.from<Element>(...)` type argument in each. Second run: 144/145 passed, 1 failed + 1 unhandled rejection, both `NG04002: Cannot match any routes` — two spec files (`search-form.component.spec.ts`, `results-list.component.spec.ts`) registered an empty test route table (`provideRouter([])`) while intentionally exercising success paths that call `router.navigate(['/results'])`/`['/booking'])`; fixed by registering trivial stub routes in each spec's `TestBed` config. All 5 fixes were test-authoring corrections only — no `frontend/src/app/**` application file was touched, and no new QA finding was warranted (the app's real route table already registers both routes, independently corroborated by the 11/11-passing Playwright E2E suite). **Final result: 145/145 passing, 0 failed, 0 skipped, across all 16 files.** `npm run build` re-verified clean (0 errors, 0 warnings) after the fixes. See HO-013E and `docs/testing/execution/frontend-unit-test-execution-summary.md`. |
 | 2026-07-06 | functional-tester | Phase 14 (Test Execution Summary) — independently re-ran all three automated test layers written/executed in Phase 13 rather than relying solely on the prior reports, per this role's "never claim tests passed unless command output confirms it" mandate. Backend: `dotnet build SkyRoute.slnx --no-incremental` (0/0) then `dotnet test SkyRoute.slnx` → **114/114 passing** (103 + 11). Frontend unit/component: `npm test` → **145/145 passing**, 16/16 files. E2E: started backend (`dotnet run --no-build --launch-profile http`, :5094) and frontend (`npm start`, :4200), confirmed both responsive, ran `npx playwright test` → **11/11 passing**, then stopped both servers (`taskkill //F //PID ... //T`) and confirmed via `netstat` that no LISTENING socket remained on either port. All three results matched Phase 13's reported counts exactly — no discrepancy, no flakiness, no new QA finding. Produced the formal consolidated Phase 14 report at `docs/testing/execution/phase-14-test-execution-summary.md`, spot-checked test-strategy.md v1.1's traceability matrix (6 representative rows, all confirmed), and reconfirmed QA-003 Resolved with no regression; QA-001/QA-002/QA-004/QA-005 remain Open, deferred to Phase 19. **Final QA recommendation: proceed to Phase 15 (Code Review).** See HO-014. |
+| 2026-07-07 | project-coordinator | Phase 21 — reconciled the SDLC Phase Board (Section 3): PH-03–PH-20 moved to Done with merge/handoff evidence (the board had not been updated since Phase 15's notes; Phases 16–20 detail lives in HO-016–HO-038 and the review reports); PH-21 moved to In Progress; PH-22–PH-24 remain Backlog with their Human PO gates noted. Added Section 4.3 (PO-directed out-of-band items OOB-01–OOB-04, all Done). Detailed PH-13/14/15 backlog-row notes condensed to evidence pointers — full text preserved in this update log's earlier rows and the referenced handoffs. |
 
 ---
 

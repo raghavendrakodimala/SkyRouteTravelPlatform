@@ -1,7 +1,7 @@
 # Decision Log — SkyRoute Travel Platform MVP
 
-Version: 1.0
-Date: 2026-07-03
+Version: 1.1
+Date: 2026-07-07 (Phase 21 reconciliation; baseline 2026-07-03)
 Author: Project Coordinator
 Status: Active
 
@@ -59,6 +59,10 @@ Decisions made in earlier phases carry forward unless explicitly superseded.
 | DEC-012 | 2026-07-03 | No PR-based review comments are used — all review findings are stored as markdown files under `docs/reviews/` | Project operating model decision from CLAUDE.md; ensures findings are persistent and traceable without PR tooling | Human PO (via CLAUDE.md) | Approved | Process — review artefact storage |
 | DEC-013 | 2026-07-03 | `BookingFormComponent` (BL-033, L-sized) split into BL-036/037/038 (S/M/M) at Phase 08 rather than implemented as one item | Reduces single-item concentration risk (RISK-014) ahead of a same-day delivery window; all three still implement one component file per architecture-plan.md — task decomposition only, no architecture change | sdlc-orchestrator (resolving HO-007 open question), executed by project-coordinator Phase 08 | Approved | Process — task decomposition |
 | DEC-014 | 2026-07-03 | Backend contract models (BL-003) and frontend shared models (BL-021) are built in parallel against the frozen architecture-plan.md §5 API contract, rather than strictly sequenced | Contract is already frozen at Phase 06; strict sequencing would cost time against the EOD deadline for no accuracy benefit | sdlc-orchestrator (resolving HO-007 open question), executed by project-coordinator Phase 08 | Approved | Process — parallel build sequencing |
+| DEC-015 | 2026-07-07 | Passenger count is captured at booking (one-passenger-at-a-time in-place add), not on the search form; the search passenger field is removed and `SearchRequest.passengerCount` always submits `1`. Deliberate deviation from the challenge PDF, documented in README | PO UX correction during the booking UI redesign — supersedes the original search passenger-count selector (US-001/BL-028) and DESIGN-FLOW-001 Part B's prompt/review wizard. See HO-032, HO-034 | Human PO | Approved | Scope — challenge-PDF deviation |
+| DEC-016 | 2026-07-07 | Canonical phase model adopted system-wide: Phase 00 (repository/tooling pre-phase) + Phases 01–24; Iterative Review-Fix Loops run inside Phases 15–18; Phase 19 is QA-* consolidation; no separate merge phase (each phase merges its own branch). Defined once in CLAUDE.md §7; all other files cite it | Resolved three mutually incompatible phase-numbering schemes (defect D-1, `docs/delivery/autopilot-efficiency-review-2026-07-07.md`); the delivered-history numbering was made canonical | Human PO (directive), executed by sdlc-orchestrator (DEL-025, HO-035) | Approved | Process — SDLC phase model |
+| DEC-017 | 2026-07-07 | Handoff loop-log economy: numbered handoff files at phase boundaries only; inside a review-fix loop all participants append to a single per-phase loop log (`docs/handoffs/<phase>-loop-log.md`); `current-handoff.md` mirrors latest state; the index lists each loop log once. Required handoff content fields unchanged | Loop iterations were minting per-iteration numbered handoff files (HO-027–HO-031 accumulated as unindexed noise — defect D-2, autopilot efficiency review) | Human PO (directive), executed by sdlc-orchestrator (DEL-025, HO-035) | Approved | Process — handoff economy |
+| DEC-018 | 2026-07-07 | Transient dev-server runs are pre-approved for rendered-UI verification, PO demos, and E2E execution (servers must be stopped after evidence capture); safe validation commands (existing test suites, builds, lint, type-check, read-only git) are pre-approved for every agent whose role requires validation and never require a human stop. Installs/upgrades and destructive operations remain gated; CLAUDE.md §21 gates intact | Resolved the dev-server-vs-§14 contradiction and autopilot friction (defect D-3, autopilot efficiency review); no safety rule weakened | Human PO (directive), executed by sdlc-orchestrator (DEL-025, HO-035) | Approved | Process — validation/dev-server pre-approval |
 
 ---
 
@@ -119,6 +123,7 @@ The explicit exclusion list prevents well-intentioned over-engineering during im
 | Date | Reviewer | Action |
 |---|---|---|
 | 2026-07-03 | project-coordinator | Initial log created for Phase 02; DEC-001 through DEC-006 sourced from HO-001 (scrum-master Phase 01 decisions); DEC-007 through DEC-012 raised from Phase 02 analysis |
+| 2026-07-07 | project-coordinator | Phase 21 — recorded DEC-015 (passenger-count-at-booking PDF deviation, PO-approved), DEC-016 (canonical phase model 01–24), DEC-017 (handoff loop-log economy), DEC-018 (transient dev-server + validation-command pre-approval), sourced from HO-032/HO-034/HO-035 and `docs/delivery/autopilot-efficiency-review-2026-07-07.md`. Note: DEC-011 (overlapped reviews) was never invoked — reviews ran sequentially as Phases 15–18; effectively lapsed without impact |
 
 ---
 
