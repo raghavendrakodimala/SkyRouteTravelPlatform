@@ -40,7 +40,6 @@ public sealed class ApiExceptionMiddleware
 
             context.Response.Clear();
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            context.Response.ContentType = "application/problem+json";
 
             var body = new
             {
@@ -50,7 +49,12 @@ public sealed class ApiExceptionMiddleware
                 traceId = context.TraceIdentifier,
             };
 
-            await context.Response.WriteAsJsonAsync(body);
+            // QA-002: the content type must be passed to WriteAsJsonAsync directly — assigning
+            // context.Response.ContentType beforehand is dead code, because WriteAsJsonAsync
+            // without an explicit contentType argument unconditionally overwrites the header
+            // with the ASP.NET Core default ("application/json; charset=utf-8"). Passing it
+            // here is what makes clients actually observe the RFC 7807 problem+json type.
+            await context.Response.WriteAsJsonAsync(body, options: null, contentType: "application/problem+json");
         }
     }
 }
