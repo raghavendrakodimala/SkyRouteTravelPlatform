@@ -32,7 +32,7 @@ Four findings were raised, all `Open`. **One High-severity finding (SEC-001) exi
 |---|---|
 | Severity | High |
 | File/area | `src/SkyRoute.Application/Contracts/BookingFlightRequest.cs`; `src/SkyRoute.Application/Validation/BookingRequestValidator.cs` (`IsFlightSnapshotComplete`, lines 94–102); `src/SkyRoute.Application/Services/BookingService.cs` (`CreateBookingAsync`, lines 44–104) |
-| Status | **Partially Resolved** (re-verified 2026-07-07, see Re-Verification Note below) |
+| Status | **Resolved** (final verification 2026-07-07, see Final Verification Note below; supersedes the earlier Partially Resolved verdict) |
 
 **Evidence:**
 
@@ -90,6 +90,28 @@ However, the finding's core business-logic gap — described in Impact as "a cli
 Weighing this MVP's actual context (`docs/requirements.md` Section 7: item 5 "Payment processing — No payment gateway integration" is explicitly out of scope; item 14 "Cloud deployment — Local development environment only"; item 15 "Database persistence — In-memory only... does not persist across application restarts") against the finding's original High-severity rationale (OWASP A04:2021 Insecure Design / CWE-840 Business Logic Errors, framed around BR-006 price-integrity and a *future* payment-processing path): the practical, exploitable-today impact remains low (no real money moves, no persistent record survives a restart, no internet-facing exposure), but the underlying business-logic control described in BR-006 ("Total price is also computed on the backend at booking time (for record)") is still not actually enforced against any authoritative source — it is enforced only as an arithmetic identity on a value the client fully controls. That is a genuine, unresolved structural gap, not a cosmetic one, and no human Product Owner sign-off accepting this residual risk has been recorded anywhere in the handoffs reviewed for this fix loop. Per CLAUDE.md §21 ("accepting unresolved Critical/High findings" requires explicit human approval) and the Definition of Done ("Critical and High findings are resolved or explicitly accepted by the human user"), this finding cannot be marked fully `Resolved` on the strength of a developer/reviewer decision alone — it is marked **Partially Resolved**.
 
 **Residual risk (open, requires action or explicit human acceptance):** A caller can still fabricate an arbitrary *positive* per-passenger price (and, independently, an arbitrary positive `BaseFare`) for any otherwise-valid `Provider`/`FlightNumber`/`CabinClass` combination and receive a confirmed booking priced at that fabricated value. This is acceptable as a **documented residual risk for this MVP specifically because**: (1) payment processing is out of scope (no monetary transaction actually occurs), (2) the platform is local-only/non-internet-facing per requirements Section 7 item 14, and (3) booking records do not persist across restarts (BR-008). It becomes unacceptable the moment payment processing, persistent storage, or any internet-facing deployment is introduced, and should be tracked as a required pre-requisite for any of those three future changes — do not carry this residual risk forward silently into a phase that adds payment or production deployment. Recommended next action: either (a) schedule the full server-side price re-resolution (option (a) in this finding) as explicit backlog work before any payment-processing or production-deployment phase begins, or (b) have the human Product Owner explicitly accept this residual risk for the MVP scope as currently defined, in writing, per CLAUDE.md §21. This review does not have authority to make that acceptance decision on the Product Owner's behalf; it can only close the "Resolved" gap left open by the minimal fix and flag it for that decision.
+
+**Final Verification Note (security-reviewer, 2026-07-07, commit `8f20aa3` on `sdlc/16-security-review-skyroute-mvp`, working tree clean):**
+
+Independently re-verified the full server-side price re-resolution (option (a)) implemented per handoff `docs/handoffs/16d-lead-full-stack-engineer-to-sdlc-orchestrator-sec001-full-fix.md`, reading the actual code rather than trusting the handoff's claims:
+
+1. **Pricing-logic reuse, not a divergent copy.** Read `src/SkyRoute.Application/Interfaces/IFlightProvider.cs` (new `TryResolveFare(flightNumber, cabinClass, out baseFare, out pricePerPassenger)` contract method, doc-commented as SEC-001's authoritative re-resolution), and both `TryResolveFare` implementations in `src/SkyRoute.Infrastructure/Providers/GlobalAirProvider.cs` and `BudgetWingsProvider.cs`. Confirmed by direct reading that each implementation looks up the matching `ScheduledFlight` by `FlightNumber` (ordinal), applies the identical `CabinClassMultipliers.ForCabinClass(cabinClass)` call `SearchAsync` uses, and then calls the exact same private pricing method `SearchAsync` calls (`ApplyGlobalAirPricing`/`ApplyBudgetWingsPricing` respectively) — there is no second, independently-maintained pricing formula anywhere; `TryResolveFare` and `SearchAsync` are two callers of one shared private method per provider. An unknown `flightNumber` returns `false` with zeroed out-values (fails closed). Read `src/SkyRoute.Application/Services/FlightFareResolver.cs` — matches `providerName` against the registered `IEnumerable<IFlightProvider>` (ordinal) and delegates to that provider's `TryResolveFare`; fails closed (returns `false`, zeroed out-values) on an unknown provider name or any null/blank identifying field, with no exception thrown. **Confirmed: genuine reuse, not a divergent copy.**
+2. **Wiring into `BookingService`/`BookingRequestValidator`, and which value is persisted.** Read `BookingService.CreateBookingAsync` in full: step 3b calls `_fareResolver.TryResolveFare(request.Flight.Provider, request.Flight.FlightNumber, request.Flight.CabinClass, out resolvedBaseFare, out resolvedPricePerPassenger)`, then `_validator.ValidateFare(request, fareResolved, resolvedBaseFare, resolvedPricePerPassenger)`, throwing `BookingValidationException` on any mismatch — this runs after document validation (step 3) and strictly before total-price computation (step 4) and before the `Booking`/`BookingFlightSnapshot` object is constructed or persisted (step 6), so a rejected request never reaches the store. Confirmed `BookingRequestValidator.ValidateFare` performs an exact (`!=`) decimal comparison against the client-submitted `PricePerPassenger`/`BaseFare` only when those fields have a value (an absent value is already caught earlier by `ValidateStructure`'s `IsFlightSnapshotComplete` gate in `BookingController`, run before `CreateBookingAsync` is ever called — verified by reading `BookingController.CreateBooking`, which returns 400 on structural errors without invoking the service). Confirmed the *server-resolved* `resolvedPricePerPassenger` — not `request.Flight.PricePerPassenger` — is what feeds both `totalPrice` (step 4) and the persisted `BookingFlightSnapshot.PricePerPassenger` (step 6); by the time either line executes, the two values are guaranteed identical (`ValidateFare` already rejected any mismatch), but the code unambiguously reads from the resolved variable, not the request. **Confirmed: a client-supplied price that doesn't match the server-resolved price is genuinely rejected before persistence, and the server-resolved fare is what is stored/used.**
+3. **Test coverage of the named scenario.** Read `tests/SkyRoute.Application.Tests/Services/FlightFareResolverTests.cs` in full (10 tests: known-flight resolution for both real providers composed with no mocking, unknown provider name fails closed, a flight number belonging to the *other* provider fails closed rather than false-positive matching, every combination of missing identifying fields fails closed without throwing). Read the new fare-mismatch tests in `tests/SkyRoute.Application.Tests/Services/BookingServiceTests.cs`: `CreateBookingAsync_FabricatedPositivePricePerPassenger_ThrowsBookingValidationException` submits `pricePerPassenger: 0.01m` — an internally-consistent, positive, otherwise-fully-valid GA101/Economy/International booking request (the exact scenario this finding's Impact and Residual Risk text names) — and asserts a `BookingValidationException` with a `flight.pricePerPassenger` key **and** `Assert.Empty(store.CreatedBookings)`, i.e., the rejected booking never reached persistence, not merely that an exception was thrown. Sibling tests cover an inflated fabricated price (`9999.99m`), a fabricated `BaseFare` with a correct `PricePerPassenger`, an unknown flight number, and a BudgetWings positive control. Read the integration-level equivalent in `tests/SkyRoute.Api.IntegrationTests/Controllers/BookingControllerTests.cs`: `CreateBooking_FabricatedPricePerPassenger_Returns400WithFlightPriceError` drives a real HTTP `POST /api/bookings` through `SkyRouteApiFactory` with the same GA101/LHR-JFK/Economy inputs as the passing `CreateBooking_InternationalHappyPath_Returns201WithDataMinimizedPassengers` test but `PricePerPassenger = 0.01m`, and asserts `400 Bad Request` with a `flight.pricePerPassenger` `ValidationProblemDetails` error key. **Confirmed: the tests genuinely exercise the scenario named in the original finding** — a fabricated positive price with an otherwise-valid request, expecting rejection — not a weaker or different scenario.
+4. **Independent build/test run (not relying on the developer handoff's reported numbers).** Ran `dotnet build` and `dotnet test` for the full solution independently on the current commit (`8f20aa3`, clean working tree):
+   ```
+   dotnet build
+     Build succeeded.
+         0 Warning(s)
+         0 Error(s)
+
+   dotnet test
+     Passed! - Failed: 0, Passed: 146, Skipped: 0, Total: 146 - SkyRoute.Application.Tests.dll (net10.0)
+     Passed! - Failed: 0, Passed:  13, Skipped: 0, Total:  13 - SkyRoute.Api.IntegrationTests.dll (net10.0)
+   ```
+   **159/159 tests passed, 0 failed, 0 skipped** — matches the developer handoff's reported total exactly, independently confirmed rather than cited on trust.
+
+**Final Verdict — Resolved.** Option (a) (full server-side price re-resolution, mirroring `RouteTypeResolver`'s established pattern) is genuinely implemented: pricing is re-derived from the same deterministic, shared pricing logic `SearchAsync` already uses (not a second copy), a client-supplied price/fare that mismatches the server-resolved fare is rejected with a 400 before any total-price computation or persistence occurs, the server-resolved fare (not the client's) is what is stored and used for `TotalPrice`, and the exact scenario this finding was raised about — an internally-consistent, positive, fabricated price on an otherwise-fully-valid request — is now covered by both unit and integration tests that assert rejection and non-persistence. The residual gap explicitly left open in the 2026-07-07 Re-Verification Note above (arbitrary-but-positive fabricated price being trusted) is closed. No further human Product Owner risk-acceptance decision is required for this finding — the CLAUDE.md §21 approval gate for this High finding is satisfied by the fix itself, not by risk acceptance.
 
 ---
 
@@ -172,12 +194,12 @@ Independently read the two new tests in `BookingRequestValidatorTests.cs` (lines
 
 | ID | Severity | Area | Status |
 |---|---|---|---|
-| SEC-001 | **High** | `BookingRequestValidator`/`BookingService` — client-supplied flight-fare snapshot trusted without validation; price/fare tampering | **Partially Resolved** (re-verified 2026-07-07) |
+| SEC-001 | **High** | `BookingRequestValidator`/`BookingService` — client-supplied flight-fare snapshot trusted without validation; price/fare tampering | **Resolved** (final verification 2026-07-07) |
 | SEC-002 | Medium | `BookingRequestValidator.ValidateStructure` — no upper bound on booking passenger count/array size | **Resolved** (re-verified 2026-07-07) |
 | SEC-003 | Low | `Program.cs` / `index.html` — no HTTP security response headers or CSP configured | **Resolved** (re-verified 2026-07-07) |
 | SEC-004 | Low | `DocumentPatterns.EmailPattern` — no explicit length bound before/within regex evaluation | **Resolved** (re-verified 2026-07-07) |
 
-**Totals: 0 Critical, 1 High, 1 Medium, 2 Low. Post-fix-loop status: 1 Partially Resolved (SEC-001), 3 Resolved (SEC-002/003/004).**
+**Totals: 0 Critical, 1 High, 1 Medium, 2 Low. Final status: 4 Resolved (SEC-001/002/003/004). Zero Open/In Progress/Partially Resolved findings remain.**
 
 ---
 
@@ -199,11 +221,11 @@ Independently read the two new tests in `BookingRequestValidatorTests.cs` (lines
 
 ## Overall Recommendation
 
-**SEC-001 (High) requires human Product Owner review before proceeding further**, per CLAUDE.md §21 ("Always stop for human approval before... accepting unresolved Critical/High findings") and the Definition of Done ("Critical and High findings are resolved or explicitly accepted by the human user"). This is a genuine price/fare-integrity gap in the booking flow's core business rule (BR-006), even though it is bounded in today's practical impact by payment processing being explicitly Out of Scope for this MVP (`docs/requirements.md` Section 7, item 5) and by the MVP being local-only/non-internet-facing (Section 7, item 14).
+**Superseded by the 2026-07-07 Final Verification (see SEC-001's Final Verification Note above).** SEC-001 (High) has now been fully fixed via server-side price re-resolution (option (a)) and independently re-verified against the actual code and an independently re-run test suite — it no longer requires a human Product Owner risk-acceptance decision under CLAUDE.md §21, because the finding is resolved by the fix itself rather than by accepting residual risk.
 
-SEC-002 (Medium), SEC-003 (Low), and SEC-004 (Low) are hardening/defense-in-depth gaps consistent in severity profile with Phase 15's code review findings and do not independently require a human decision gate — they are appropriately deferred to Phase 19 (Findings Fixes) alongside CR-001–CR-005 and QA-001/002/004/005.
+All four findings raised in this review (SEC-001 High, SEC-002 Medium, SEC-003 Low, SEC-004 Low) are now `Resolved`. No Critical/High/Medium/Low finding in this report remains `Open`, `In Progress`, or `Partially Resolved`.
 
-**Recommendation:** Do not proceed to Phase 17 (Accessibility Review) until the human Product Owner has reviewed SEC-001 and either (a) approves a fix be scheduled ahead of/within Phase 19, or (b) explicitly accepts the risk for this MVP given its local-only, no-payment scope. This is a phase-sequencing recommendation for the SDLC Orchestrator to act on, not a decision this review is authorized to make on its own.
+**Recommendation:** Proceed to Phase 17 (Accessibility Review). No further human Product Owner decision is required to close this security review.
 
 ---
 
@@ -233,7 +255,30 @@ dotnet test
 
 134/134 tests passed across the full solution (0 failed, 0 skipped), independently re-run by the security-reviewer on 2026-07-07. This includes all newly added tests for SEC-001 (9 tests), SEC-002 (3 tests), SEC-003 (1 test), and SEC-004 (2 tests).
 
-**Revised recommendation:** SEC-002/003/004 are closed and require no further action. SEC-001 has narrowed from a fully-open exploitable-to-zero/negative-price gap to a documented residual risk (arbitrary-but-positive fabricated price still trusted). Given this MVP's explicit out-of-scope payment processing, local-only deployment, and non-persistent in-memory storage, the residual risk is low in practical, exploitable-today impact — but it is not zero, and it is not this review's place to accept it on the Product Owner's behalf. The CLAUDE.md §21 human-approval gate for this High finding remains open: the human Product Owner should either (a) explicitly accept the residual risk as documented above for the current MVP scope, or (b) schedule the full server-side price re-resolution (option (a) in the original finding) before this phase is considered fully closed. Recommend the SDLC Orchestrator route this decision to the human user before proceeding to Phase 17.
+**Revised recommendation (superseded, see Final Update below):** SEC-002/003/004 are closed and require no further action. SEC-001 has narrowed from a fully-open exploitable-to-zero/negative-price gap to a documented residual risk (arbitrary-but-positive fabricated price still trusted). Given this MVP's explicit out-of-scope payment processing, local-only deployment, and non-persistent in-memory storage, the residual risk is low in practical, exploitable-today impact — but it is not zero, and it is not this review's place to accept it on the Product Owner's behalf. The CLAUDE.md §21 human-approval gate for this High finding remains open: the human Product Owner should either (a) explicitly accept the residual risk as documented above for the current MVP scope, or (b) schedule the full server-side price re-resolution (option (a) in the original finding) before this phase is considered fully closed. Recommend the SDLC Orchestrator route this decision to the human user before proceeding to Phase 17.
+
+---
+
+## Final Update (Security Reviewer, 2026-07-07, commit `8f20aa3`)
+
+The residual gap flagged in the Re-Verification Summary above has since been closed. A developer agent implemented full server-side price re-resolution (option (a)) per `docs/handoffs/16d-lead-full-stack-engineer-to-sdlc-orchestrator-sec001-full-fix.md`, and this was independently re-verified against the current code (not solely the handoff's claims) and an independently re-run test suite — see SEC-001's **Final Verification Note** above for the full evidence trail.
+
+**Independent build/test verification at this final pass:**
+
+```
+dotnet build
+  Build succeeded.
+      0 Warning(s)
+      0 Error(s)
+
+dotnet test
+  Passed! - Failed: 0, Passed: 146, Skipped: 0, Total: 146 - SkyRoute.Application.Tests.dll (net10.0)
+  Passed! - Failed: 0, Passed:  13, Skipped: 0, Total:  13 - SkyRoute.Api.IntegrationTests.dll (net10.0)
+```
+
+159/159 tests passed (0 failed, 0 skipped), independently re-run by the security-reviewer on 2026-07-07 at commit `8f20aa3`.
+
+**Final outcome — SEC-001, SEC-002, SEC-003, and SEC-004 are all `Resolved`.** SEC-002/003/004 were re-confirmed unchanged from the 2026-07-07 Re-Verification Note above (no code affecting those findings changed in this fix loop). Zero `Open`, `In Progress`, or `Partially Resolved` findings remain in this report. **Ready to proceed to Phase 17 (Accessibility Review).** No further human Product Owner decision is required to close this security review.
 
 ---
 
