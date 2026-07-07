@@ -3,8 +3,8 @@
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
     <div class="field">
-      <label for="origin">Origin</label>
-      <select id="origin" formControlName="origin">
+      <label for="origin">Origin <span class="required-indicator">(required)</span></label>
+      <select id="origin" formControlName="origin" required aria-required="true">
         <option value="" disabled>Select origin airport</option>
         @for (airport of airports; track airport.code) {
           <option [value]="airport.code">{{ airport.displayName }} — {{ airport.country }}</option>
@@ -19,8 +19,8 @@
     </div>
 
     <div class="field">
-      <label for="destination">Destination</label>
-      <select id="destination" formControlName="destination">
+      <label for="destination">Destination <span class="required-indicator">(required)</span></label>
+      <select id="destination" formControlName="destination" required aria-required="true">
         <option value="" disabled>Select destination airport</option>
         @for (airport of airports; track airport.code) {
           <option [value]="airport.code">{{ airport.displayName }} — {{ airport.country }}</option>
@@ -38,8 +38,8 @@
     </div>
 
     <div class="field">
-      <label for="departureDate">Departure Date</label>
-      <input id="departureDate" type="date" formControlName="departureDate" [min]="today" />
+      <label for="departureDate">Departure Date <span class="required-indicator">(required)</span></label>
+      <input id="departureDate" type="date" formControlName="departureDate" [min]="today" required aria-required="true" />
       @if (submitted() && form.controls.departureDate.invalid) {
         <p class="error" role="alert">Departure date is required and cannot be in the past.</p>
       }
@@ -49,8 +49,8 @@
     </div>
 
     <div class="field">
-      <label for="passengerCount">Passengers</label>
-      <select id="passengerCount" formControlName="passengerCount">
+      <label for="passengerCount">Passengers <span class="required-indicator">(required)</span></label>
+      <select id="passengerCount" formControlName="passengerCount" required aria-required="true">
         @for (count of passengerCounts; track count) {
           <option [value]="count">{{ count }}</option>
         }
@@ -61,8 +61,8 @@
     </div>
 
     <div class="field">
-      <label for="cabinClass">Cabin Class</label>
-      <select id="cabinClass" formControlName="cabinClass">
+      <label for="cabinClass">Cabin Class <span class="required-indicator">(required)</span></label>
+      <select id="cabinClass" formControlName="cabinClass" required aria-required="true">
         @for (cabin of cabinClasses; track cabin) {
           <option [value]="cabin">{{ cabin }}</option>
         }
@@ -83,5 +83,8 @@
         Search
       }
     </button>
+    @if (loading()) {
+      <p class="visually-hidden" role="status" aria-live="polite">Searching for flights…</p>
+    }
   </form>
 </section>

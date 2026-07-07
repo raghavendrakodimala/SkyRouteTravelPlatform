@@ -46,3 +46,21 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
+
+/* A11Y-004: visible required-field cue, de-emphasised so it reads as a hint, not a warning. */
+.required-indicator {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: #555555;
+}
+
+/* A11Y-005: kept in the accessibility tree (so aria-live/role="status" is announced) but hidden
+   visually, since the submit button's own visible text already shows the loading state. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}

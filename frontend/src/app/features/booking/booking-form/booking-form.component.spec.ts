@@ -88,7 +88,7 @@ describe('BookingFormComponent', () => {
   }
 
   it('renders the flight summary from BookingStateService with no additional HTTP call', () => {
-    const heading = fixture.nativeElement.querySelector('.flight-summary h1');
+    const heading = fixture.nativeElement.querySelector('.flight-summary h2');
     expect(heading.textContent).toContain('LHR');
     expect(heading.textContent).toContain('JFK');
     expect(fakeBookingState.submitBooking).not.toHaveBeenCalled();
