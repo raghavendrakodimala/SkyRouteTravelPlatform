@@ -126,4 +126,47 @@ public class GlobalAirProviderTests
 
         Assert.Equal(expected, actual);
     }
+
+    /// <summary>
+    /// SEC-001 (Phase 16 security review) — TryResolveFare must reproduce exactly the same
+    /// fare SearchAsync would return for the same flight number/cabin class combination
+    /// (same worked examples as SearchAsync_AppliesBR001PricingFormula_PerWorkedExamples),
+    /// since BookingService relies on this method to authoritatively re-derive the fare at
+    /// booking time rather than trusting the client-submitted snapshot.
+    /// </summary>
+    [Theory]
+    [InlineData("GA101", "Economy", 250.00, 287.50)]
+    [InlineData("GA101", "Business", 500.00, 575.00)]
+    [InlineData("GA101", "First Class", 875.00, 1006.25)]
+    [InlineData("GA412", "Economy", 80.00, 92.00)]
+    public void TryResolveFare_KnownFlightAndCabinClass_ReturnsTrueWithMatchingFare(
+        string flightNumber, string cabinClass, decimal expectedBaseFare, decimal expectedPricePerPassenger)
+    {
+        var resolved = _provider.TryResolveFare(flightNumber, cabinClass, out var baseFare, out var pricePerPassenger);
+
+        Assert.True(resolved);
+        Assert.Equal(expectedBaseFare, baseFare);
+        Assert.Equal(expectedPricePerPassenger, pricePerPassenger);
+    }
+
+    [Fact]
+    public void TryResolveFare_UnknownFlightNumber_ReturnsFalseWithZeroedOutValues()
+    {
+        var resolved = _provider.TryResolveFare("GA999", "Economy", out var baseFare, out var pricePerPassenger);
+
+        Assert.False(resolved);
+        Assert.Equal(0m, baseFare);
+        Assert.Equal(0m, pricePerPassenger);
+    }
+
+    [Fact]
+    public void TryResolveFare_FlightNumberIsCaseSensitive_UnlikeAnywhereElseInThisSchedule()
+    {
+        // Ordinal (case-sensitive) match by design — FlightNumber is a server-defined,
+        // fixed-format identifier (not user free text), so there is no legitimate reason
+        // for a lowercase variant to resolve.
+        var resolved = _provider.TryResolveFare("ga101", "Economy", out _, out _);
+
+        Assert.False(resolved);
+    }
 }

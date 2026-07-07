@@ -11,8 +11,9 @@ namespace SkyRoute.Application.Services;
 /// Orchestrates booking creation per architecture-plan.md Section 3.3 / feature-booking-flow.md
 /// Section 5. Structural validation (step 1) runs in BookingController before this service is
 /// called (BL-014 ValidateStructure); this class performs steps 2–7: authoritative route-type
-/// re-resolution, document validation against that resolved route type, server-side total-price
-/// recomputation, collision-checked reference generation, persistence, and response mapping.
+/// re-resolution, authoritative fare re-resolution (SEC-001), document validation against the
+/// resolved route type, server-side total-price recomputation from the resolved fare,
+/// collision-checked reference generation, persistence, and response mapping.
 /// </summary>
 public sealed class BookingService : IBookingService
 {
@@ -22,6 +23,7 @@ public sealed class BookingService : IBookingService
     private readonly ITenantContext _tenantContext;
     private readonly BookingReferenceGenerator _referenceGenerator;
     private readonly RouteTypeResolver _routeTypeResolver;
+    private readonly FlightFareResolver _fareResolver;
     private readonly BookingRequestValidator _validator;
     private readonly ILogger<BookingService> _logger;
 
@@ -30,6 +32,7 @@ public sealed class BookingService : IBookingService
         ITenantContext tenantContext,
         BookingReferenceGenerator referenceGenerator,
         RouteTypeResolver routeTypeResolver,
+        FlightFareResolver fareResolver,
         BookingRequestValidator validator,
         ILogger<BookingService> logger)
     {
@@ -37,6 +40,7 @@ public sealed class BookingService : IBookingService
         _tenantContext = tenantContext;
         _referenceGenerator = referenceGenerator;
         _routeTypeResolver = routeTypeResolver;
+        _fareResolver = fareResolver;
         _validator = validator;
         _logger = logger;
     }
@@ -54,10 +58,34 @@ public sealed class BookingService : IBookingService
             throw new BookingValidationException(documentErrors);
         }
 
-        // Step 4 (BR-006, NFR-DATA-002): server-side total price recomputation — there is no
-        // client-submitted total to trust or distrust in this contract (AD-004/AD-005).
+        // Step 3b (SEC-001, BR-006, NFR-DATA-002): authoritative server-side fare
+        // re-resolution, independent of anything the client submitted (AD-004/AD-005 no
+        // longer means the price snapshot is trusted as-is — only the identifying fields
+        // Provider/FlightNumber/CabinClass are used to look up the fare the same provider
+        // pricing logic used at search time would produce). A client-supplied
+        // PricePerPassenger/BaseFare that does not match the resolved fare — including an
+        // internally-consistent, positive but fabricated value — is rejected here, before
+        // any total-price computation or persistence occurs.
+        var fareResolved = _fareResolver.TryResolveFare(
+            request.Flight.Provider,
+            request.Flight.FlightNumber,
+            request.Flight.CabinClass,
+            out var resolvedBaseFare,
+            out var resolvedPricePerPassenger);
+
+        var fareErrors = _validator.ValidateFare(request, fareResolved, resolvedBaseFare, resolvedPricePerPassenger);
+        if (fareErrors.Count > 0)
+        {
+            throw new BookingValidationException(fareErrors);
+        }
+
+        // Step 4 (BR-006, NFR-DATA-002): server-side total price recomputation from the
+        // server-resolved per-passenger price (resolvedPricePerPassenger), not the
+        // client-submitted value — the validation above already guarantees the two are
+        // identical whenever this line is reached, but computing from the resolved value
+        // keeps the authoritative source unambiguous (mirrors RouteTypeResolver's pattern).
         var totalPrice = Math.Round(
-            request.Flight.PricePerPassenger!.Value * request.PassengerCount,
+            resolvedPricePerPassenger * request.PassengerCount,
             2,
             MidpointRounding.AwayFromZero);
 
@@ -80,7 +108,12 @@ public sealed class BookingService : IBookingService
                 DepartureDateTime = request.Flight.DepartureDateTime!.Value,
                 ArrivalDateTime = request.Flight.ArrivalDateTime!.Value,
                 CabinClass = request.Flight.CabinClass!,
-                PricePerPassenger = request.Flight.PricePerPassenger!.Value,
+                // SEC-001: persist the server-resolved fare, not the client-submitted one —
+                // guaranteed identical to request.Flight.PricePerPassenger whenever this line
+                // is reached (the ValidateFare check above already enforced the match), but
+                // using the resolved value keeps the stored record's authoritative source
+                // unambiguous, mirroring RouteTypeResolver's route-type resolution pattern.
+                PricePerPassenger = resolvedPricePerPassenger,
             },
             Passengers = request.Passengers.Select(p => new PassengerDetail
             {

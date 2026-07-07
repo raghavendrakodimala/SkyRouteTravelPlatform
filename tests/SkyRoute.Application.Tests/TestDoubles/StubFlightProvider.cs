@@ -39,6 +39,18 @@ public sealed class StubFlightProvider : IFlightProvider
         return Task.FromResult(_results);
     }
 
+    /// <summary>
+    /// This stub is only used for FlightAggregatorService/search-flow tests (test-strategy.md
+    /// Section 3), never for booking-flow/SEC-001 fare-resolution tests, so it always reports
+    /// "not found" rather than emulating a real provider's schedule lookup.
+    /// </summary>
+    public bool TryResolveFare(string flightNumber, string cabinClass, out decimal baseFare, out decimal pricePerPassenger)
+    {
+        baseFare = 0m;
+        pricePerPassenger = 0m;
+        return false;
+    }
+
     public static FlightResult MakeResult(string provider, string flightNumber) => new()
     {
         Provider = provider,

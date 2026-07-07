@@ -66,4 +66,27 @@ public sealed class GlobalAirProvider : IFlightProvider
     /// </summary>
     private static decimal ApplyGlobalAirPricing(decimal baseFare) =>
         Math.Round(baseFare * 1.15m, 2, MidpointRounding.AwayFromZero);
+
+    /// <summary>
+    /// SEC-001: re-derives the fare for a known flight number/cabin class from this
+    /// provider's own fixed schedule, applying the exact same cabin multiplier and
+    /// <see cref="ApplyGlobalAirPricing"/> rule <see cref="SearchAsync"/> uses. Departure
+    /// date does not influence price for this provider (only the calendar date of the
+    /// returned timestamps does), so it is intentionally not a parameter here.
+    /// </summary>
+    public bool TryResolveFare(string flightNumber, string cabinClass, out decimal baseFare, out decimal pricePerPassenger)
+    {
+        var flight = Schedule.FirstOrDefault(f => string.Equals(f.FlightNumber, flightNumber, StringComparison.Ordinal));
+        if (flight is null)
+        {
+            baseFare = 0m;
+            pricePerPassenger = 0m;
+            return false;
+        }
+
+        var cabinMultiplier = CabinClassMultipliers.ForCabinClass(cabinClass);
+        baseFare = Math.Round(flight.EconomyBaseFare * cabinMultiplier, 2, MidpointRounding.AwayFromZero);
+        pricePerPassenger = ApplyGlobalAirPricing(baseFare);
+        return true;
+    }
 }

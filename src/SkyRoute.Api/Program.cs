@@ -74,6 +74,9 @@ builder.Services.AddScoped<IFlightProvider, BudgetWingsProvider>();
 // Orchestration services
 // ---------------------------------------------------------------------------
 builder.Services.AddScoped<IFlightAggregatorService, FlightAggregatorService>();
+// FlightFareResolver depends on IEnumerable<IFlightProvider> (scoped), so it must itself be
+// scoped rather than singleton (SEC-001, Phase 16 security review fix).
+builder.Services.AddScoped<FlightFareResolver>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 
 // ---------------------------------------------------------------------------

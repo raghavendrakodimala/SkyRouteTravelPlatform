@@ -94,6 +94,53 @@ public sealed class BookingRequestValidator
         return ToArrayDictionary(errors);
     }
 
+    /// <summary>
+    /// SEC-001 (Phase 16 security review, BR-006, NFR-DATA-002) — step 2b: validates the
+    /// client-submitted flight-fare snapshot against the fare BookingService's
+    /// FlightFareResolver has already authoritatively re-derived server-side from the same
+    /// provider pricing logic used at search time. Mirrors <see cref="ValidateDocuments"/>'s
+    /// shape (resolution happens in the service, this method only validates the resolved
+    /// fact against the request) — invoked by BookingService after RouteTypeResolver and
+    /// FlightFareResolver have both run, before document validation is relied upon to gate
+    /// price computation. Pricing is deterministic given Provider+FlightNumber+CabinClass, so
+    /// an exact match is required — there is no legitimate reason for the two values to
+    /// differ even by a rounding cent, since both sides use the identical rounding rule.
+    /// </summary>
+    public IDictionary<string, string[]> ValidateFare(
+        BookingRequest request, bool fareResolved, decimal expectedBaseFare, decimal expectedPricePerPassenger)
+    {
+        var errors = new Dictionary<string, List<string>>();
+
+        if (request.Flight is null)
+        {
+            // ValidateStructure already reports "flight" as incomplete; nothing further to
+            // check here without a flight snapshot to compare against.
+            return ToArrayDictionary(errors);
+        }
+
+        if (!fareResolved)
+        {
+            AddError(errors, "flight.flightNumber",
+                "Flight could not be verified against the selected provider's published schedule.");
+            return ToArrayDictionary(errors);
+        }
+
+        if (request.Flight.PricePerPassenger.HasValue &&
+            request.Flight.PricePerPassenger.Value != expectedPricePerPassenger)
+        {
+            AddError(errors, "flight.pricePerPassenger",
+                "Price per passenger does not match the provider's published fare for this flight and cabin class.");
+        }
+
+        if (request.Flight.BaseFare.HasValue && request.Flight.BaseFare.Value != expectedBaseFare)
+        {
+            AddError(errors, "flight.baseFare",
+                "Base fare does not match the provider's published fare for this flight and cabin class.");
+        }
+
+        return ToArrayDictionary(errors);
+    }
+
     public IDictionary<string, string[]> ValidateDocuments(BookingRequest request, RouteType routeType)
     {
         var errors = new Dictionary<string, List<string>>();
