@@ -2,13 +2,14 @@
 
 Project: SkyRoute MVP
 Run mode: Phased --auto-commit-merge --no-push
-Current phase: Phase 16 — Security Review (Complete, pending human decision + commit/merge)
-Next phase: Phase 17 — Accessibility Review (BLOCKED — see Blockers)
+Current phase: Phase 16 — Security Review (Complete — Iterative Review-Fix Loop closed, zero Open findings; pending human merge decision)
+Next phase: Phase 17 — Accessibility Review (Ready to start once a merge decision is made on sdlc/15a-.../sdlc/16-...)
 Last agent: security-reviewer
-Next agent: BLOCKED pending Human PO decision on SEC-001
-Branch: sdlc/16-security-review-skyroute-mvp (work complete, uncommitted; branched from main commit 9da8566).
-Blockers: **SEC-001 (High) — human approval gate per CLAUDE.md §21.** Booking endpoint (`POST /api/bookings`) trusts an unvalidated, client-supplied flight-fare snapshot (`PricePerPassenger`/`BaseFare`/`CabinClass`) — only presence-checked, never cross-validated against the server's own provider/pricing logic — enabling price/fare tampering (OWASP A04:2021/CWE-840). Do not proceed to Phase 17 until the Human PO decides: (a) fix ahead of/within Phase 19, or (b) explicitly accept the risk given the MVP's local-only, no-payment scope.
-Status: Phase 16 (Security Review) complete — independent security review of the Phase 12 implementation (unchanged since). 4 findings recorded at `docs/reviews/security-review-phase-16.md`: SEC-001 (**High**, price/fare tampering via untrusted client-supplied booking price), SEC-002 (Medium, no upper bound on booking passenger count/array size), SEC-003 (Low, no HTTP security response headers/CSP), SEC-004 (Low, unbounded `EmailPattern` regex length). No code modified. No-auth scope, CORS, PII/secret logging, error handling, secret handling, injection surface, frontend XSS surface, booking-reference randomness, and IDOR/tenancy all reviewed and found compliant, no finding. CR-001–CR-005 (Phase 15) cross-checked, not re-reported.
+Next agent: accessibility-tester (once Phase 17 is started)
+Branch: sdlc/16-security-review-skyroute-mvp (fix loop committed: 9f3cfed, fcbd7e9, 8f20aa3, 1b20586; branched from main commit 9da8566; not yet merged to main).
+Blockers: None. **SEC-001 (High) is now Resolved (not accepted) — the CLAUDE.md §21 human-approval gate is cleared by fixing the underlying gap, not by accepting it unresolved.** See "Last Completed Phase" below for the full loop history.
+Status: Phase 16 (Security Review) fully complete via the Iterative Review-Fix Loop. Initial review recorded 4 findings at `docs/reviews/security-review-phase-16.md`: SEC-001 (High, price/fare tampering), SEC-002 (Medium, unbounded passenger count), SEC-003 (Low, missing security headers/CSP), SEC-004 (Low, unbounded email regex). All four were routed to developer agents, fixed, and independently re-verified by security-reviewer across two iterations (SEC-001 required a follow-up full fix after its first minimal fix was judged Partially Resolved). **All four findings now show status Resolved; zero Open/In Progress/Partially Resolved remain.** Backend tests: 159/159 passing (up from the Phase 15 baseline of 114/114). CR-001–CR-005 (Phase 15) cross-checked at filing time, not re-reported here — separately closed on branch `sdlc/15a-code-review-fixes-skyroute-mvp` (also unmerged).
+Reconciliation note: `sdlc/15a-...` and `sdlc/16-...` both branched from `main@9da8566` and each independently edited these same three tracking files — merging either or both to `main` will require manual conflict resolution per `.claude/rules/git-workflow.md`.
 
 ---
 
@@ -31,8 +32,8 @@ Status: Phase 16 (Security Review) complete — independent security review of t
 | 13 | Test Writing | Complete — merged to main (commit 22d87db, 2026-07-06) | sdlc/13-test-writing-skyroute-mvp (deleted) | lead-full-stack-engineer, functional-tester | HO-013, HO-013C, HO-013D, HO-013E |
 | 14 | Test Execution Summary | Complete — merged to main (commit 0b633d9, 2026-07-06) | sdlc/14-test-execution-summary-skyroute-mvp (deleted) | functional-tester | HO-014 |
 | 15 | Code Review | Complete — merged to main (commit 9da8566, 2026-07-07) | sdlc/15-code-review-skyroute-mvp (deleted) | code-reviewer | HO-015 |
-| 16 | Security Review | Complete — pending Human PO decision on SEC-001, then commit/merge | sdlc/16-security-review-skyroute-mvp | security-reviewer | HO-016 |
-| 17 | Accessibility Review | Blocked — awaiting SEC-001 decision | Pending | accessibility-tester | Pending |
+| 16 | Security Review | Complete — Iterative Review-Fix Loop closed, zero Open findings; committed, pending human merge decision | sdlc/16-security-review-skyroute-mvp | security-reviewer, lead-full-stack-engineer, junior-developer | HO-016, HO-016A, HO-016B, HO-016C, HO-016D, HO-016E |
+| 17 | Accessibility Review | Ready to start — no blocker (pending merge decision on sdlc/15a-.../sdlc/16-...) | Pending | accessibility-tester | Pending |
 | 18 | Performance Review | Not Started | Pending | performance-tester | Pending |
 | 19 | Findings Fixes | Not Started | Pending | lead-full-stack-engineer | Pending |
 | 20 | Re-test and Re-review | Not Started | Pending | functional-tester | Pending |
@@ -72,23 +73,25 @@ None — Phase 03 approval gate cleared 2026-07-03.
 
 ## Last Completed Phase
 
-Phase 16 — Security Review
-Branch: sdlc/16-security-review-skyroute-mvp (work complete, uncommitted)
-Agent: security-reviewer
-Handoff: HO-016 (`docs/handoffs/16-security-reviewer-to-sdlc-orchestrator-security-review.md`)
+Phase 16 — Security Review (Iterative Review-Fix Loop, full closure)
+Branch: sdlc/16-security-review-skyroute-mvp (committed: 9f3cfed, fcbd7e9, 8f20aa3, 1b20586; not yet merged to main)
+Agents: security-reviewer (findings + two re-verifications), lead-full-stack-engineer (SEC-001 minimal fix, then SEC-001 full fix), junior-developer (SEC-002/003/004 fixes)
+Handoffs: HO-016 (initial findings) → HO-016A (SEC-001 minimal fix) → HO-016B (SEC-002/003/004 fixes) → HO-016C (re-verification: SEC-001 Partially Resolved) → HO-016D (SEC-001 full fix) → HO-016E (final re-verification: SEC-001 Resolved)
 Artefacts:
-- `docs/reviews/security-review-phase-16.md` — 4 findings (SEC-001–SEC-004): 0 Critical, **1 High** (SEC-001, price/fare tampering via untrusted client-supplied booking price), 1 Medium (SEC-002, unbounded booking passenger count), 2 Low (SEC-003 missing security headers, SEC-004 unbounded email regex length).
-- No code modified (findings-only phase, per phased-execution.md restriction).
-- Recommendation: **do not proceed to Phase 17 until Human PO decides on SEC-001.**
+- `docs/reviews/security-review-phase-16.md` — all 4 findings (SEC-001–SEC-004) now **Resolved**; zero Open/In Progress/Partially Resolved.
+- SEC-001's fix: new `FlightFareResolver` service + `IFlightProvider.TryResolveFare(...)`, server-side price re-resolution in `BookingService.CreateBookingAsync`, rejecting any client-submitted fare that doesn't match the server-resolved fare exactly.
+- SEC-002–004 fixes: passenger-count 1–9 bound, security response headers + CSP, bounded email regex.
+- Backend tests: 159/159 passing (up from 114/114 baseline; 45 new/corrected tests across the loop). `npm run build` clean.
+- Recommendation (security-reviewer, HO-016E): proceed to Phase 17. SEC-001's human-approval gate is cleared by resolution, not acceptance.
 
-Prior completed phase: Phase 15 — Code Review, merged to `main` 2026-07-07, commit `9da8566`. See HO-015.
+Prior completed phase: Phase 15 — Code Review, merged to `main` 2026-07-07, commit `9da8566`. Its own findings (CR-001–005) were separately closed via the same loop on unmerged branch `sdlc/15a-code-review-fixes-skyroute-mvp`. See HO-015.
 
 ---
 
 ## Next Action
 
-**BLOCKED — awaiting Human PO decision on SEC-001 (High).** Options: (a) fix ahead of/within Phase 19, or (b) explicitly accept the risk for this MVP given its local-only, no-payment scope. Once decided:
+No blocker. Both `sdlc/15a-code-review-fixes-skyroute-mvp` (CR-001–005, zero Open) and `sdlc/16-security-review-skyroute-mvp` (SEC-001–004, zero Open) are complete and ready for a merge decision:
 
-1. Record the decision here and in `docs/reviews/security-review-phase-16.md` (update SEC-001 status to `In Progress`/`Accepted Risk` as applicable).
-2. Commit and merge `sdlc/16-security-review-skyroute-mvp` to `main` (pending explicit human instruction, same as Phase 15).
-3. Proceed to Phase 17 (Accessibility Review, owned by accessibility-tester).
+1. Ask the human whether/when to merge one or both branches to `main` — required per CLAUDE.md §17 (the orchestrator must not merge without explicit instruction).
+2. When a merge is instructed, expect and manually resolve conflicts on `docs/handoffs/current-handoff.md`, `handoff-index.md`, and this file (`workflow-state.md`), since both branches independently edited them from the same `main@9da8566` base — per `.claude/rules/git-workflow.md` Conflict Handling.
+3. Proceed to Phase 17 (Accessibility Review, owned by accessibility-tester), which will run the same Iterative Review-Fix Loop live for the first time.
