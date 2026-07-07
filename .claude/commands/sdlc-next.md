@@ -14,11 +14,13 @@ Read:
 - `docs/handoffs/current-handoff.md`
 - `docs/handoffs/handoff-index.md`
 
+Trust these as the resume point — do not re-read artifacts that are unchanged since the last completed phase.
+
 Determine:
 
 - last completed phase
 - current phase
-- next phase
+- next phase (canonical numbering per the phase list in `.claude/commands/run-full-sdlc.md`, 01–24; Phase 00 is one-time repo/tooling setup outside the loop)
 - next responsible agent
 - blockers
 - required artifacts
@@ -30,7 +32,7 @@ For the next phase:
 1. Switch to `main`.
 2. Create the correct phase branch.
 3. Run only that phase.
-4. Invoke responsible agents.
+4. Invoke responsible agents (parallelize independent specialists when output files are disjoint).
 5. Verify artifacts.
 6. Verify handoff.
 7. Update workflow state.
@@ -39,6 +41,16 @@ For the next phase:
 10. Delete completed phase branch if merge succeeds.
 11. Stop after one phase.
 
-Do not run multiple phases from `/sdlc-next`.
+Review phases 15–18 run the Iterative Review-Fix Loop internally and merge only at zero `Open` findings (`.claude/rules/phased-execution.md`).
+
+UI checkpoints (`.claude/rules/ui-ux-quality-gates.md`): approved design spec before UI implementation; rendered-UI evidence before implementation handoff; PO visual demo before UI review phases close.
+
+Efficiency:
+
+- Adjacent documentation-only phases MAY be batched onto one branch only when the PO explicitly pre-approved batching for this run; record it in the phase commit message.
+- Safe commands (build, test, lint, type-check, `git status`/`git diff`/`git log`) never require a stop; stop only for `CLAUDE.md` §21 conditions.
+- Numbered handoff files at the phase boundary only; inside a review-fix loop use `docs/handoffs/<phase>-loop-log.md`, with `current-handoff.md` mirroring the latest state.
+
+Do not run multiple phases from `/sdlc-next` (a PO-pre-approved doc-only batch counts as one phase transaction).
 
 Do not push unless explicitly approved.

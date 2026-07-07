@@ -5,13 +5,13 @@ description: Use when planning, checking readiness, or implementing through the 
 
 # Spec-Driven SDLC Skill
 
-Before implementation, confirm:
+Before implementation, confirm (full lists: `.claude/rules/spec-driven-development.md`, `.claude/rules/definition-of-ready.md`):
 
-- Requirement/user story exists.
-- Acceptance criteria exist.
+- Requirement/user story and acceptance criteria exist.
 - Architecture direction exists.
-- API contract exists if needed.
-- UI flow exists if needed.
+- API contract exists if API work is involved.
+- UI flow exists if UI work is involved.
+- Approved visual design spec exists under `docs/design/` for UI work (`.claude/rules/ui-ux-quality-gates.md`).
 - Test plan exists.
 - NFRs are considered.
 - Accessibility/security expectations exist where needed.

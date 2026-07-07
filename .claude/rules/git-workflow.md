@@ -1,5 +1,7 @@
 # Git Workflow Rules
 
+Owner concept: this file owns the general branch/commit/merge flow and conflict handling. Phase-branch naming and phased-autopilot git permissions live in `phased-execution.md`.
+
 This project uses branch-based development with direct merge.
 
 No PR is required.

@@ -1,5 +1,7 @@
 # Orchestration Rules
 
+Owner concept: this file owns the orchestrator's per-phase control loop. Phase numbering is canonical in `CLAUDE.md` §7; phased branching/merge mechanics live in `phased-execution.md`.
+
 The main Claude agent coordinates the SDLC workflow.
 
 For every phase:

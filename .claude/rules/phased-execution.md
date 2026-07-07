@@ -1,5 +1,7 @@
 # Phased SDLC Execution Rules
 
+Owner concept: this file owns the phase transaction model for phased autopilot — branching, commit/merge mechanics, the Iterative Review-Fix Loop mechanics, efficiency rules, and blocker handling. Phase numbering is canonical in `CLAUDE.md` §7 (Phase 00 pre-phase + Phases 01–24).
+
 The SDLC workflow must run phase by phase.
 
 The orchestrator must not complete the whole SDLC in one branch or one uncommitted change set.
@@ -44,13 +46,22 @@ Examples:
 
 ---
 
+## Autopilot Efficiency Rules
+
+- Within a phase, the orchestrator may invoke independent specialist agents in parallel when their file sets are disjoint (no artifact is edited by more than one parallel agent).
+- Adjacent documentation-only phases may be batched onto a single phase branch when the Product Owner has pre-approved batching for the run. Record the batching approval and the covered phase numbers in the commit message (e.g. `docs: complete phases 21-23 delivery tracking, sprint review, retrospective (PO-approved batch)`).
+- Between consecutive phases, do not re-read unchanged artifacts. `docs/handoffs/workflow-state.md` and `docs/handoffs/current-handoff.md` are the authoritative resume point.
+- Safe validation commands (build, test, lint, type-check, `git status`, `git diff`, `git log`) never require a human stop. The only human-approval stop conditions are the gates in `CLAUDE.md` §21; the Blocker Handling list below still halts the run for technical blockers.
+
+---
+
 ## Iterative Review-Fix Loop (Phases 15–18)
 
 Code Review, Security Review, Accessibility Review, and Performance Review each loop internally instead of deferring every fix to Phase 19/20:
 
 1. The reviewer agent files findings (all `Open`) in the phase's review report under `docs/reviews/`.
 2. The orchestrator routes each `Open` finding to a developer agent by severity/complexity, per the routing table in `delegation-rules.md` ("Review Finding → Developer Agent Routing").
-3. The developer agent fixes the finding (source + tests) and records evidence in a handoff note. The developer agent never edits the review report itself.
+3. The developer agent fixes the finding (source + tests) and records evidence by appending an entry to the phase's loop log (`docs/handoffs/<phase>-loop-log.md` — loop iterations do not mint numbered handoff files, see `agent-communication.md`). The developer agent never edits the review report itself.
 4. The orchestrator re-invokes the same reviewer agent, scoped to the changed files/finding IDs, to verify the fix.
 5. The reviewer sets the finding to `Resolved` (verified), leaves it `Open`/`Partially Resolved` (loop continues), or files a new incremented finding ID if the fix revealed something new.
 6. Repeat steps 2–5 until the report shows zero `Open` findings.

@@ -80,3 +80,4 @@ For full delegation context (context files, acceptance criteria, constraints), s
 - `docs/delivery/sdlc-operating-model.md`
 - `docs/handoffs/handoff-index.md`
 - `CLAUDE.md` — Section 4 (Delegation and Task Distribution Model)
+| DEL-025 | 2026-07-07 | sdlc-orchestrator | general-purpose ×3 (parallel) | Autopilot efficiency audit: (A) .claude/agents/ role contracts; (B) .claude/commands/ + .claude/skills/ alignment; (C) .claude/rules/ + CLAUDE.md canonical numbering + efficiency rules | Complete — see docs/delivery/autopilot-efficiency-review-2026-07-07.md (HO-035) |

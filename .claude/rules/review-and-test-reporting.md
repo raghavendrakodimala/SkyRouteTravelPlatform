@@ -1,5 +1,7 @@
 # Review and Test Reporting Rules
 
+Owner concept: this file owns the finding-ID scheme and the required content of review reports and test execution summaries.
+
 Review reports are stored under:
 
 - `docs/reviews/`

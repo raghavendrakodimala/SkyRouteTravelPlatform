@@ -16,6 +16,7 @@ Check:
 - API contract if applicable
 - data expectations if applicable
 - UI flow if applicable
+- approved visual design spec under `docs/design/` for UI work (`.claude/rules/ui-ux-quality-gates.md`) — missing or unapproved spec means not Ready
 - test plan
 - accessibility expectations
 - security considerations

@@ -1,5 +1,7 @@
 # Delegation Rules
 
+Owner concept: this file owns delegation authority boundaries, the Review Finding → Developer Agent routing table, and delegation recording requirements.
+
 Delegation simulates real IT team task distribution while keeping ownership, traceability, and quality gates clear.
 
 Only agents with `Task` permission may actively invoke other agents.

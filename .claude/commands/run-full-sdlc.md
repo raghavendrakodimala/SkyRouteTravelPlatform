@@ -61,8 +61,19 @@ Before starting, read:
 - `.claude/rules/delegation-rules.md`
 - `.claude/rules/tool-safety.md`
 - `.claude/rules/review-and-test-reporting.md`
+- `.claude/rules/ui-ux-quality-gates.md` if the scope has UI impact
 - `docs/handoffs/workflow-state.md` if it exists
 - `docs/handoffs/current-handoff.md` if it exists
+
+---
+
+## Efficiency Rules
+
+- Parallelize independent specialist work inside a phase when the agents' output files are disjoint (send the Task calls in one message).
+- Adjacent documentation-only phases MAY be batched onto one phase branch only when the PO has explicitly pre-approved batching for this run; record the batched phases in the phase commit message.
+- Do not re-read unchanged artifacts between consecutive phases — `docs/handoffs/workflow-state.md` plus `docs/handoffs/current-handoff.md` are the trusted resume point.
+- Safe commands (build, test, lint, type-check, `git status`, `git diff`, `git log`) never require a stop. Stop only for the conditions in `CLAUDE.md` §21.
+- Handoffs: create numbered handoff files at phase boundaries only. Inside an Iterative Review-Fix Loop (Phases 15–18), log every iteration in a single per-phase loop log `docs/handoffs/<phase>-loop-log.md` instead of numbered files; keep `docs/handoffs/current-handoff.md` mirroring the latest state.
 
 ---
 
@@ -87,6 +98,8 @@ git switch main
 ```
 
 5. Do not run `git pull` unless the user explicitly requested remote sync.
+
+6. Repository/tooling setup is Phase 00 — performed once, outside this loop. Do not repeat it here.
 
 ---
 
@@ -132,6 +145,8 @@ docs/handoffs/current-handoff.md
 docs/handoffs/workflow-state.md
 docs/handoffs/handoff-index.md
 ```
+
+Create the numbered phase-boundary handoff file here. Inside review-fix loops, use the per-phase loop log instead (see Efficiency Rules).
 
 7. If tasks were delegated, update:
 
@@ -522,6 +537,7 @@ Create/update as applicable:
 - `docs/features/<feature>/delivery-plan.md`
 - `docs/features/<feature>/api-contract.md`
 - `docs/features/<feature>/ui-flow.md`
+- `docs/design/<feature>-design-spec.md` if UI is involved (ux-ui-designer; must reach Approved before implementation — `.claude/rules/ui-ux-quality-gates.md`)
 - `docs/features/<feature>/test-plan.md`
 - `docs/features/<feature>/accessibility-review.md`
 - `docs/handoffs/`
@@ -568,6 +584,8 @@ Create/update:
 - `docs/handoffs/`
 
 Implementation is allowed to start only if readiness is Approved or explicitly approved by human user as Conditionally Approved.
+
+For UI work, readiness requires an Approved visual design spec under `docs/design/` (`.claude/rules/ui-ux-quality-gates.md`) — missing spec means not Ready.
 
 Commit message:
 
@@ -616,6 +634,7 @@ Before committing implementation:
 - run safe build/type-check/lint/test commands if available and appropriate.
 - if build fails due implementation issue, fix within this phase before merge.
 - if dependency installation is needed, stop for approval.
+- for UI work: the implementing engineer must verify the rendered UI in a running browser at desktop and mobile widths against the design spec, and record rendered-UI verification evidence in the handoff (`.claude/rules/ui-ux-quality-gates.md` §2) — a UI handoff without it is incomplete.
 
 Commit message:
 
@@ -791,7 +810,9 @@ Create/update:
 
 If no UI is involved, create a Not Applicable review note and handoff.
 
-Otherwise, run the Iterative Review-Fix Loop (see `.claude/rules/phased-execution.md` and `CLAUDE.md` §22): route each `Open` finding to a developer agent per `.claude/rules/delegation-rules.md`, re-review with accessibility-tester, repeat until the report shows zero `Open` findings. Do not merge this phase until then.
+Otherwise, run the Iterative Review-Fix Loop (see `.claude/rules/phased-execution.md` and `CLAUDE.md` §22): route each `Open` finding to a developer agent per `.claude/rules/delegation-rules.md`, re-review with accessibility-tester, repeat until the report shows zero `Open` findings.
+
+Evidence must include a rendered-app walkthrough or screenshots at 360px, 768px, and 1280px — code reading alone cannot file or resolve UI findings (`.claude/rules/ui-ux-quality-gates.md` §3). The PO visual demo checkpoint (§4) must be complete before UI review phases close. Do not merge this phase until both hold.
 
 Commit message:
 
@@ -874,13 +895,7 @@ Create/update:
 - `docs/handoffs/`
 - `docs/delivery/delegation-log.md` if delegated
 
-Fix findings by ID:
-
-- `QA-*`
-- `CR-*`
-- `SEC-*`
-- `A11Y-*`
-- `PERF-*`
+Fix findings by ID — primarily `QA-*` consolidation. `CR-*`/`SEC-*`/`A11Y-*`/`PERF-*` items belong here only when a review loop could not close them and the deferral is documented (see Dynamic Routing).
 
 Do not introduce unrelated changes.
 
