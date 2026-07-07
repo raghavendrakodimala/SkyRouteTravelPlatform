@@ -7,13 +7,13 @@
 | Field | Value |
 |---|---|
 | Document ID | REQ-001 |
-| Version | 1.4 |
-| Date | 2026-07-03 |
+| Version | 1.5 |
+| Date | 2026-07-07 |
 | Status | Approved |
 | Authors | solution-architect |
 | Approvers | Product Owner |
 | Source | Internal Product Requirements |
-| Phase | Phase 03 — Requirements Analysis (updated: pre-approval architecture-extensibility review — upgrade flexibility, pluggable policy, zero trust, cloud/deployment agnosticism, database agnosticism confirmation, identity protocol breadth) |
+| Phase | Phase 03 — Requirements Analysis (updated: pre-approval architecture-extensibility review — upgrade flexibility, pluggable policy, zero trust, cloud/deployment agnosticism, database agnosticism confirmation, identity protocol breadth. v1.5: post-Phase-17 Human Product Owner-directed reversal of ASM-006/OQ-003 route-filtering behavior.) |
 
 ---
 
@@ -37,6 +37,7 @@
 | 1.2 | 2026-07-03 | solution-architect | Added DP-AUTH-001–DP-AUTH-004 (auth extensibility), DP-PERSIST-001–DP-PERSIST-005 (persistence portability), DP-DB-001–DP-DB-004 (multi-database support), DP-TENANT-001–DP-TENANT-007 (multi-tenancy seam); updated BR-008 to specify domain-object-only interface; updated BR-012 with Angular auth seam note; added YAGNI-007; added ASM-013, ASM-014; updated Section 7 Out of Scope |
 | 1.3 | 2026-07-03 | solution-architect | Added DP-PROTOCOL-001–DP-PROTOCOL-006 (protocol extensibility and transport agnosticism); strengthened DP-PERSIST-002 to cover serialization annotations on domain models; added YAGNI-008–YAGNI-011 (GraphQL, gRPC, WebSocket/SignalR, HTTP/3 in MVP); added ASM-015; updated Section 7 Out of Scope items 24–27 |
 | 1.4 | 2026-07-03 | solution-architect | Pre-approval PO-requested architecture-extensibility revision (no scope/business-rule change). Added DP-UPGRADE-001–004 (framework/dependency upgrade flexibility); added DP-POLICY-001–003 (general pluggable policy extension point, generalising DP-AUTH-004); added DP-ZEROTRUST-001–005 (zero trust architecture readiness, informed by NIST SP 800-207); added DP-CLOUD-001–005 (cloud deployment and managed cloud service readiness); added DP-DEPLOY-001–006 (12-factor deployment agnosticism); extended DP-AUTH group with DP-AUTH-005–006 (explicit OIDC/OAuth 2.0/SAML/SSO addability) and updated its YAGNI note; extended Multi-Database Support group with DP-DB-005 (configuration-externalised database connectivity) and updated its heading; added YAGNI-012–017; added ASM-016–021; added Section 7 Out of Scope items 28–33. Document resubmitted for Human Product Owner approval. |
+| 1.5 | 2026-07-07 | solution-architect | **Post-Phase-17 Human Product Owner decision reversal.** After live-testing the deployed MVP, the Human Product Owner found it incorrect that an `LHR→JFK` search returned unrelated-route flights (e.g., `MAN→LHR`, `LAX→JFK`) and directed that real route filtering be added ahead of other cleanup. Revised **ASM-006** (mock provider schedule behavior) and **OQ-003** (its resolution) to state that mock providers now filter their fixed per-provider schedule to flights whose Origin/Destination exactly match the requested route (case-insensitive); a route with no matching fixed flight returns an empty result for that provider. Departure date still does **not** filter the mock data — only the calendar-date component of the returned `departureDateTime`/`arrivalDateTime` reflects the requested date; this part of ASM-006/OQ-003 is unchanged. Updated Section 7 Out of Scope item 17 (retitled to "Flight schedule filtering by date" — route filtering is no longer out of scope; date filtering remains out of scope). Implemented in `ProviderScheduleMapper.BuildResults` (`src/SkyRoute.Infrastructure/Providers/ProviderScheduleMapper.cs`); see `docs/handoffs/28-senior-full-stack-engineer-to-sdlc-orchestrator-route-filtering-fix.md`. No other requirement, business rule, or DP-* constraint changed. |
 
 ---
 
@@ -863,7 +864,7 @@ Detailed NFRs with measurable targets will be specified in Phase 04 (NFR Specifi
 | ASM-003 | Static airport list — no live airport search API required; minimum 6 airports across 2 countries hardcoded | Low; airport list extension is additive |
 | ASM-004 | No authentication or authorisation required for MVP endpoints | Any future auth requirement would require API and UI changes |
 | ASM-005 | Booking reference format is `SKY-[INT/DOM]-[XXXXXX]` (OQ-002 resolved) — 14 chars, cryptographic random 6-char suffix | Format confirmed; no impact |
-| ASM-006 | Mock provider data uses a fixed internal schedule — the same flight schedule is returned for any valid search input (date/route does not filter the mock data, though realistic data shapes should be returned) | Acceptable for MVP; real provider would filter by date/route |
+| ASM-006 | Mock provider data uses a fixed internal per-provider schedule (4 flights each). **Revised v1.5 (2026-07-07):** providers now filter their fixed schedule to only the flights whose Origin/Destination exactly match the requested route (case-insensitive) — a searched route with no matching fixed entry returns an empty result for that provider, which is a valid empty state, not an error. Departure date still does not filter the mock data — only the calendar-date component of the returned `departureDateTime`/`arrivalDateTime` reflects the requested date (unchanged from the original assumption). | Acceptable for MVP; a real provider integration would additionally filter by date — route filtering is now implemented, so only the date dimension remains a simplification |
 | ASM-007 | Both mock providers (GlobalAir, BudgetWings) are implemented in the backend — no external HTTP calls are made | Correct for MVP; real integration would replace mock with HTTP client |
 | ASM-008 | Single sprint delivery — all MVP scope is targeted for Sprint 1 | Scope must be managed to fit the sprint |
 | ASM-009 | No seat selection, ancillary products, or loyalty integration for MVP | Scope boundary confirmed |
@@ -904,7 +905,7 @@ The following items are explicitly excluded from the MVP delivery. They are note
 | 14 | Cloud deployment | Local development environment only for MVP |
 | 15 | Database persistence | In-memory only (ASM-001) |
 | 16 | Admin portal | No back-office tooling |
-| 17 | Flight schedule filtering by date/route | Mock providers return fixed schedules regardless of search date |
+| 17 | Flight schedule filtering by date | **Revised v1.5:** route filtering was added (ASM-006) and is no longer out of scope. Mock providers still return their fixed per-route schedule regardless of the requested departure date — only the calendar-date component of the returned timestamps reflects the search date. |
 | 18 | Price alerts or fare tracking | No notifications |
 | 19 | Multi-language / internationalisation | English only |
 | 20 | Mobile app | Web only (Angular responsive is preferred but native mobile is out of scope) |
@@ -930,7 +931,7 @@ The following items are explicitly excluded from the MVP delivery. They are note
 |---|---|---|---|
 | OQ-001 | How should multi-passenger bookings collect passenger data — one shared form or individual per-passenger records? | Resolved | Individual per-passenger records. n passengers = n PassengerDetail records. Lead passenger is Passenger 1. Industry standard practice (British Airways, Ryanair, American Airlines). See BR-005. |
 | OQ-002 | What should the booking reference format be? | Resolved | `SKY-[INT/DOM]-[XXXXXX]` — 14 characters. INT for international, DOM for domestic. 6-character cryptographic random uppercase alphanumeric suffix. Example: `SKY-INT-AB1C2D`. See BR-004. |
-| OQ-003 | Should the mock providers filter results by departure date and route, or return a fixed schedule? | Resolved (ASM-006) | Fixed schedule for mock data — same realistic flight set returned for any valid input. Real integration would filter. |
+| OQ-003 | Should the mock providers filter results by departure date and route, or return a fixed schedule? | Resolved (ASM-006) — **Revised v1.5 (2026-07-07)** | Route filtering added: each mock provider filters its fixed schedule to only the flight(s) whose Origin/Destination exactly match the requested route (case-insensitive); a route with no matching fixed flight returns an empty list. Departure date still does not filter — only the calendar date shown in the returned timestamps reflects the requested date. Reversed by the Human Product Owner after live-testing surfaced unrelated-route results (e.g., an `LHR→JFK` search returning `MAN→LHR` flights); implemented in `ProviderScheduleMapper.BuildResults` (see `docs/handoffs/28-senior-full-stack-engineer-to-sdlc-orchestrator-route-filtering-fix.md`). |
 | OQ-004 | Should a GET airports endpoint exist on the backend, or should airport data be hardcoded in the Angular frontend? | Resolved (FR-054, FR-055) | Either is acceptable for MVP. Backend endpoint is preferred for purity. Hardcoded frontend constant is an acceptable MVP shortcut. Decision deferred to implementation phase. |
 | OQ-005 | What is the minimum airport count and which specific airports should be included? | Resolved (FR-056–FR-059, Section 3.7) | Minimum 6 airports across at least 2 countries. Must include at least 2 airports in the same country. Recommended list documented in FR-059 note. |
 | OQ-006 | What is the target delivery for Sprint 1? | Resolved | Sprint 1 targets full MVP delivery within the current sprint. |

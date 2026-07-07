@@ -96,7 +96,12 @@ describe('ResultsListComponent', () => {
 
     const emptyEl = fixture.nativeElement.querySelector('.empty-state');
     expect(emptyEl).toBeTruthy();
-    expect(emptyEl.textContent.trim()).toBe('No flights found for your search. Please try different criteria.');
+    // UI overhaul (PO 2026-07-07): lead line + guidance + a "Modify search" recovery link.
+    expect(emptyEl.querySelector('.empty-lead')?.textContent?.trim()).toBe('No flights found for your search.');
+    expect(emptyEl.textContent).toContain('Try a different route, date, or cabin class.');
+    const modifyLink = emptyEl.querySelector('a.modify-link');
+    expect(modifyLink?.textContent?.trim()).toBe('Modify search');
+    expect(modifyLink?.getAttribute('href')).toBe('/search');
   });
 
   it('renders one result-card per result in a non-empty result set', () => {

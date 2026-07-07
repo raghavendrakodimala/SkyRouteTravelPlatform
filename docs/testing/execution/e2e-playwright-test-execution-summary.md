@@ -147,3 +147,77 @@ Both dev servers were stopped (`taskkill` on the PIDs bound to ports 4200/5094) 
 ### Status update
 
 QA-003 is updated from **Open** to **Resolved** in `docs/handoffs/13c-functional-tester-to-sdlc-orchestrator-e2e-test-writing.md` (see the note added there). QA-001, QA-002, QA-004, and QA-005 are unaffected and remain **Open**, deferred to Phase 19.
+
+---
+
+## Run 2 — 2026-07-07: suite rewritten for the final UX (no-passenger-field search + single-button in-place booking flow)
+
+| Field | Value |
+|---|---|
+| Branch | `fix/requirements-compliance-gaps-skyroute-mvp` |
+| Commit (working tree base) | `5bae303` (plus uncommitted working-tree changes) |
+| Author | functional-tester |
+| Date | 2026-07-07 |
+
+### Why the suite was rewritten
+
+The app UX changed twice on 2026-07-07 after the original suite was written:
+
+1. **Search form (PO decision 2026-07-07):** fields are only origin, destination, departure date, cabin class. There is **no passenger count field** — every `SearchRequest` is submitted with `passengerCount: 1`, so results totals equal per-person price. Passenger count is determined at booking.
+2. **Booking screen (PO UX correction 2026-07-07):** the save→"Add another passenger?" prompt→review wizard was superseded by a **single in-place passenger form with two persistent buttons** — `#add-another-btn` ("Add another passenger": validate → save card → reset the same form in place) and `#confirm-booking-btn` ("Confirm Booking": a filled form is validated+saved then all saved passengers submit; a blank form with saved passengers submits those). Edit mode uses `#save-changes-btn`/`#cancel-edit-btn`; cards have `card-edit-N`/`card-remove-N`; cap 9.
+3. **Backend route filtering** (already merged): providers return only fixtures matching the requested origin/destination (case-insensitive). LHR→JFK = exactly GA101 + BW210; MAN→LHR = GA412 + BW241 (the domestic route); LHR→MAN = genuinely zero results (the empty state is now reachable with no interception).
+
+All of `frontend/e2e/support/helpers.ts` and the six spec files were rewritten against the current templates/components. Multi-passenger journeys now add passengers at booking; totals assert per-person × 1 on results and per-person × N on booking/confirmation. Both Confirm paths are covered (filled-form confirm in the domestic journey and error-states booking-failure test; blank-form-with-saved confirm in the international journey), plus invalid add/confirm, edit, cancel-edit, remove, and blank-confirm-with-nothing-saved in `booking-validation.spec.ts`.
+
+### Test environment
+
+- Backend: ASP.NET Core (`src/SkyRoute.Api`) already running on `http://localhost:5094` (verified with a real POST `/api/search` → 200 before the run).
+- Frontend: Angular dev server already running on `http://localhost:4200` (verified → 200).
+- Runner: Playwright `@playwright/test@1.61.1`, Chromium project, 1 worker, no retries (`frontend/playwright.config.ts`, unchanged — no `webServer` auto-start by design).
+
+### Commands executed
+
+```
+cd frontend
+npx playwright test --project=chromium
+```
+
+### Result by test area
+
+12 tests across 6 spec files (the obsolete "Passengers select offers 1–9" test was replaced by "search form has NO passenger count field and always submits passengerCount 1").
+
+```
+ok  1 booking-validation.spec.ts — US-005 AC10: invalid add/confirm keep form open; edit/cancel-edit/remove correction    (4.1s)
+ok  2 error-states.spec.ts — US-002 AC6: real fixture-less route (LHR→MAN) shows empty state, real 200 []                 (1.3s)
+ok  3 error-states.spec.ts — US-002 AC7: search API failure, generic message, no detail leaked                            (1.4s)
+ok  4 error-states.spec.ts — US-006 AC6: booking API failure, generic message, banner focused, retry possible             (1.9s)
+ok  5 full-journey-domestic.spec.ts — MAN→LHR single passenger, sort flip, filled-form confirm, SKY-DOM ref               (2.0s)
+ok  6 full-journey-international.spec.ts — LHR→JFK, 3 passengers added at booking, blank-form confirm, SKY-INT ref        (2.2s)
+ok  7 results-persistence.spec.ts — US-002 AC8: results persist across navigation, no new search call                     (1.6s)
+ok  8 search-form.spec.ts — US-008 AC1/AC2: airport dropdown code/city/country                                            (1.2s)
+ok  9 search-form.spec.ts — PO 2026-07-07: no passenger field; POST body passengerCount = 1; totals = per-person          (1.4s)
+ok 10 search-form.spec.ts — US-001 AC8/US-008 AC4: same-airport guard, focus on destination, no API call                  (1.4s)
+ok 11 search-form.spec.ts — US-001 AC5: missing-required errors, focus on first invalid, no API call                      (1.5s)
+ok 12 search-form.spec.ts — US-001 AC6: loading state via delayed (not faked) real response; 2 filtered results           (2.0s)
+
+12 passed (25.3s)
+```
+
+**Result: 12/12 passed, 0 failed, 0 skipped.**
+
+### Failed tests
+
+None.
+
+### Defects
+
+No new application defects observed in this run. No new QA findings raised.
+
+### Risks
+
+- The e2e `tsconfig.json` (`frontend/e2e/tsconfig.json`) fails a standalone `npx tsc --noEmit` under the machine's newer TypeScript (TS2688 missing `node` types at that resolution scope; `moduleResolution: node10` deprecation). Playwright's own transpilation is unaffected and the suite runs clean; low-priority config touch-up.
+- Servers were already running and were left running (not started/stopped by this run).
+
+### Final QA recommendation
+
+**Pass.** The automated E2E suite now matches the final shipped UX (no-passenger-field search, single-button in-place booking flow, route-filtered providers) and passes 12/12 against the real frontend + real backend.

@@ -205,6 +205,7 @@ Before implementation, verify:
 - Architecture direction exists
 - API contract exists if API work is involved
 - UI flow exists if UI work is involved
+- Visual design spec exists and is approved for UI work (`.claude/rules/ui-ux-quality-gates.md`)
 - Test plan exists
 - NFRs are considered
 - Accessibility expectations exist for UI work

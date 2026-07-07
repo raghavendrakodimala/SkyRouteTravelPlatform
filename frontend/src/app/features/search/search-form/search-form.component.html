@@ -1,7 +1,11 @@
 <section class="search-form-page">
-  <h1>Search Flights</h1>
+  <div class="hero" aria-hidden="false">
+    <h1>Search Flights</h1>
+    <p class="tagline">Compare fares across airline partners and book in minutes.</p>
+  </div>
 
-  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+  <form class="search-card" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+    <div class="field-grid">
     <div class="field">
       <label for="origin">Origin <span class="required-indicator">(required)</span></label>
       <select id="origin" formControlName="origin" required aria-required="true">
@@ -49,18 +53,6 @@
     </div>
 
     <div class="field">
-      <label for="passengerCount">Passengers <span class="required-indicator">(required)</span></label>
-      <select id="passengerCount" formControlName="passengerCount" required aria-required="true">
-        @for (count of passengerCounts; track count) {
-          <option [value]="count">{{ count }}</option>
-        }
-      </select>
-      @if (fieldError('passengerCount')) {
-        <p class="error" role="alert">{{ fieldError('passengerCount') }}</p>
-      }
-    </div>
-
-    <div class="field">
       <label for="cabinClass">Cabin Class <span class="required-indicator">(required)</span></label>
       <select id="cabinClass" formControlName="cabinClass" required aria-required="true">
         @for (cabin of cabinClasses; track cabin) {
@@ -71,12 +63,18 @@
         <p class="error" role="alert">{{ fieldError('cabinClass') }}</p>
       }
     </div>
+    </div>
 
     @if (errorMessage()) {
       <p class="banner-error" role="alert">{{ errorMessage() }}</p>
     }
 
-    <button type="submit" [disabled]="loading() || form.invalid || sameAirportSelected()">
+    <!-- A11Y-007/A11Y-008: aria-disabled + onSubmit click guard, never native `disabled` —
+         a focused button that becomes `disabled` drops focus to <body>, and a
+         disabled-until-valid submit makes the inline validation alerts unreachable.
+         An invalid submit now reaches onSubmit(), which surfaces the alerts and focuses
+         the first invalid control instead of calling the API. -->
+    <button type="submit" [attr.aria-disabled]="loading() ? true : null">
       @if (loading()) {
         Searching…
       } @else {

@@ -59,3 +59,5 @@ nunit-*.xml
 # Front-end files
 node_modules/
 dist/
+# Accidental nested duplicate working copy — never commit (pending deletion approval)
+/SkyRouteTravelPlatform/

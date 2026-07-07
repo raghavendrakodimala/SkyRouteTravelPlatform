@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { getAirportByCode } from '../../../shared/constants/airports.constants';
 import { FlightResult } from '../../../shared/models/flight-result.model';
 import { formatDuration, formatTime } from '../../../shared/utils/datetime-format.util';
@@ -18,7 +18,7 @@ import { SortControlComponent } from '../sort-control/sort-control.component';
 @Component({
   selector: 'app-results-list',
   standalone: true,
-  imports: [SortControlComponent],
+  imports: [SortControlComponent, RouterLink],
   templateUrl: './results-list.component.html',
   styleUrl: './results-list.component.css',
 })
@@ -30,6 +30,19 @@ export class ResultsListComponent {
   protected readonly sortOption = signal<SortOption>(DEFAULT_SORT_OPTION);
 
   protected readonly sortedResults = computed(() => sortFlights(this.searchState.results(), this.sortOption()));
+
+  /** Recap line under the heading — route, date, and cabin of the search being shown. */
+  protected readonly searchRecap = computed(() => {
+    const criteria = this.searchState.lastCriteria();
+    if (!criteria) {
+      return null;
+    }
+    const date = new Date(`${criteria.departureDate}T00:00:00`);
+    const dateLabel = Number.isNaN(date.getTime())
+      ? criteria.departureDate
+      : date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    return `${this.cityLabel(criteria.origin)} → ${this.cityLabel(criteria.destination)} · ${dateLabel} · ${criteria.cabinClass}`;
+  });
 
   onSortChange(option: SortOption): void {
     this.sortOption.set(option);
@@ -45,6 +58,24 @@ export class ResultsListComponent {
   cityLabel(code: string): string {
     const airport = getAirportByCode(code);
     return airport ? `${airport.city} (${code})` : code;
+  }
+
+  /** Provider identity badge — initials from the provider name (e.g. "GlobalAir" → "GA"). */
+  providerInitials(provider: string): string {
+    const capitals = provider.match(/[A-Z]/g);
+    return (capitals && capitals.length >= 2 ? capitals.slice(0, 2).join('') : provider.slice(0, 2)).toUpperCase();
+  }
+
+  /** Per-provider badge color class; unknown providers fall back to the brand style. */
+  providerClass(provider: string): string {
+    switch (provider) {
+      case 'GlobalAir':
+        return 'badge-ga';
+      case 'BudgetWings':
+        return 'badge-bw';
+      default:
+        return 'badge-default';
+    }
   }
 
   formatFlightTime(isoDateTime: string): string {

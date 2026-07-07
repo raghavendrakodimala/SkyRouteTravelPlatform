@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { hasBookingResponseGuard, hasSelectedFlightGuard } from './core/guards/booking-flow.guards';
+import { bookingLeaveGuard } from './features/booking/booking-leave.guard';
 import { BookingFormComponent } from './features/booking/booking-form/booking-form.component';
 import { ConfirmationComponent } from './features/confirmation/confirmation/confirmation.component';
 import { ResultsListComponent } from './features/results/results-list/results-list.component';
@@ -25,6 +26,9 @@ export const routes: Routes = [
     path: 'booking',
     component: BookingFormComponent,
     canActivate: [hasSelectedFlightGuard],
+    // CR-001 (DESIGN-FLOW-001 §B.11): router leg of the leave guard — in-app navigation
+    // away from an armed wizard must confirm before passenger data is destroyed.
+    canDeactivate: [bookingLeaveGuard],
     title: 'Booking Details — SkyRoute',
   },
   {

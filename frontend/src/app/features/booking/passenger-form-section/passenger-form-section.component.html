@@ -8,7 +8,16 @@
 
   <div class="field">
     <label [for]="'fullName-' + index()">Full Name <span class="required-indicator">(required)</span></label>
-    <input [id]="'fullName-' + index()" type="text" formControlName="fullName" required aria-required="true" />
+    <!-- WCAG 1.3.5 (DESIGN-FLOW-001 Amendment 8): autofill only for the primary contact —
+         passengers 2+ are other people, so the attribute is deliberately omitted there. -->
+    <input
+      [id]="'fullName-' + index()"
+      type="text"
+      formControlName="fullName"
+      required
+      aria-required="true"
+      [attr.autocomplete]="isLead() ? 'name' : null"
+    />
     @if (group().get('fullName')?.touched && group().get('fullName')?.invalid) {
       <p class="error" role="alert">Full name is required, must be 2–100 characters, and must contain at least one letter.</p>
     }
@@ -19,7 +28,14 @@
 
   <div class="field">
     <label [for]="'email-' + index()">Email Address <span class="required-indicator">(required)</span></label>
-    <input [id]="'email-' + index()" type="email" formControlName="email" required aria-required="true" />
+    <input
+      [id]="'email-' + index()"
+      type="email"
+      formControlName="email"
+      required
+      aria-required="true"
+      [attr.autocomplete]="isLead() ? 'email' : null"
+    />
     @if (group().get('email')?.touched && group().get('email')?.invalid) {
       <p class="error" role="alert">A valid email address is required.</p>
     }

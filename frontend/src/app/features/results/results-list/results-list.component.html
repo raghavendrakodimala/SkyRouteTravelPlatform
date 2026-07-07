@@ -1,37 +1,69 @@
 <section class="results-page">
-  <h1>Flight Results</h1>
+  <div class="page-head">
+    <div>
+      <h1>Flight Results</h1>
+      @if (searchRecap(); as recap) {
+        <p class="search-recap">
+          {{ recap }}
+          @if (!searchState.loading() && sortedResults().length > 0) {
+            <span class="result-count">· {{ sortedResults().length }} flight(s)</span>
+          }
+        </p>
+      }
+    </div>
+    <a class="modify-link" routerLink="/search">Modify search</a>
+  </div>
 
   @if (searchState.loading()) {
     <p class="loading" role="status">Searching…</p>
   } @else if (searchState.errorMessage()) {
     <p class="banner-error" role="alert">{{ searchState.errorMessage() }}</p>
   } @else if (searchState.isEmpty()) {
-    <p class="empty-state" role="status">No flights found for your search. Please try different criteria.</p>
+    <div class="empty-state" role="status">
+      <p class="empty-lead">No flights found for your search.</p>
+      <p>Try a different route, date, or cabin class.</p>
+      <a class="modify-link" routerLink="/search">Modify search</a>
+    </div>
   } @else if (sortedResults().length > 0) {
     <app-sort-control [active]="sortOption()" (optionSelected)="onSortChange($event)" />
 
     <ul class="results-list">
       @for (result of sortedResults(); track result.provider + result.flightNumber + result.departureDateTime) {
         <li class="result-card">
-          <div class="route">
-            <span class="airports">{{ cityLabel(result.origin) }} → {{ cityLabel(result.destination) }}</span>
-            <span class="provider">{{ result.provider }} · {{ result.flightNumber }}</span>
-          </div>
-          <div class="timing">
-            <span>Departs {{ formatFlightTime(result.departureDateTime) }}</span>
-            <span>Arrives {{ formatFlightTime(result.arrivalDateTime) }}</span>
-            <span>{{ formatFlightDuration(result.durationMinutes) }}</span>
-            <span>{{ result.cabinClass }}</span>
+          <div class="card-main">
+            <div class="route">
+              <span class="provider-badge" [class]="'provider-badge ' + providerClass(result.provider)" aria-hidden="true">
+                {{ providerInitials(result.provider) }}
+              </span>
+              <span class="airports">{{ cityLabel(result.origin) }} → {{ cityLabel(result.destination) }}</span>
+              <span class="provider">{{ result.provider }} · {{ result.flightNumber }}</span>
+              <span class="cabin-chip">{{ result.cabinClass }}</span>
+            </div>
+            <div class="timing">
+              <span class="tl-point">
+                <span class="tl-time">{{ formatFlightTime(result.departureDateTime) }}</span>
+                <span class="tl-code">{{ result.origin }}</span>
+              </span>
+              <span class="tl-track" aria-hidden="true">
+                <span class="tl-duration">{{ formatFlightDuration(result.durationMinutes) }}</span>
+                <span class="tl-line"></span>
+              </span>
+              <span class="tl-point tl-point-end">
+                <span class="tl-time">{{ formatFlightTime(result.arrivalDateTime) }}</span>
+                <span class="tl-code">{{ result.destination }}</span>
+              </span>
+              <span class="visually-hidden">Duration {{ formatFlightDuration(result.durationMinutes) }}</span>
+            </div>
           </div>
           <div class="pricing">
             <span class="total-price">{{ totalPriceText(result) }}</span>
             <span class="per-person-price">{{ perPersonPriceText(result) }}</span>
+            <button
+              type="button"
+              (click)="selectFlight(result)"
+              [attr.aria-label]="selectButtonLabel(result)"
+            >Select</button>
           </div>
-          <button
-            type="button"
-            (click)="selectFlight(result)"
-            [attr.aria-label]="selectButtonLabel(result)"
-          >Select</button>
         </li>
       }
     </ul>

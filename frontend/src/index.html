@@ -8,6 +8,12 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!--
+    Requirements compliance fix (post-Phase-17): declares this page as light-scheme-only so
+    browsers don't apply automatic dark-mode inversion (see the matching CSS `color-scheme: light`
+    in frontend/src/styles.css for the full rationale).
+  -->
+  <meta name="color-scheme" content="light">
+  <!--
     SEC-003 (Phase 16 security review): baseline Content-Security-Policy for this Angular SPA.
     connect-src includes the backend API base URL (frontend/src/environments/environment.ts,
     http://localhost:5094) alongside 'self' since the SPA is served from localhost:4200 and

@@ -30,8 +30,16 @@ internal static class ProviderScheduleMapper
     /// Maps a provider's fixed <paramref name="schedule"/> to <see cref="FlightResult"/>s for
     /// the given <paramref name="request"/>, applying <paramref name="providerName"/> and the
     /// caller-supplied <paramref name="applyPricing"/> delegate (the provider's own named
-    /// pricing method, e.g. ApplyGlobalAirPricing/ApplyBudgetWingsPricing). No
-    /// behavior/pricing/schedule change relative to the previous per-provider copies.
+    /// pricing method, e.g. ApplyGlobalAirPricing/ApplyBudgetWingsPricing). Only schedule
+    /// entries whose Origin/Destination exactly match the request's (case-insensitive — the
+    /// airport code casing convention throughout this codebase; see
+    /// SearchRequestValidator's AirportCodeFormat regex) are mapped, reversing the prior
+    /// ASM-006/OQ-003 MVP assumption that every fixed schedule entry was always returned
+    /// regardless of the requested route (docs/requirements.md ASM-006/OQ-003,
+    /// docs/features/feature-provider-aggregation.md Section 2 "Fixed-Schedule
+    /// Behavior"). No schedule/pricing change
+    /// to the fixed per-provider datasets themselves, and no per-provider copy of this
+    /// filtering logic — it lives once here so both providers stay consistent.
     /// </summary>
     public static IReadOnlyList<FlightResult> BuildResults(
         IReadOnlyList<ScheduledFlight> schedule,
@@ -42,25 +50,30 @@ internal static class ProviderScheduleMapper
         var departureDate = request.DepartureDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
         var cabinMultiplier = CabinClassMultipliers.ForCabinClass(request.CabinClass);
 
-        return schedule.Select(flight =>
-        {
-            var baseFare = Math.Round(flight.EconomyBaseFare * cabinMultiplier, 2, MidpointRounding.AwayFromZero);
-            var departureDateTime = DateTime.SpecifyKind(departureDate.ToDateTime(flight.DepartureTimeOfDay), DateTimeKind.Utc);
-            var arrivalDateTime = departureDateTime.AddMinutes(flight.DurationMinutes);
-
-            return new FlightResult
+        return schedule
+            .Where(flight =>
+                string.Equals(flight.Origin, request.Origin, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(flight.Destination, request.Destination, StringComparison.OrdinalIgnoreCase))
+            .Select(flight =>
             {
-                Provider = providerName,
-                FlightNumber = flight.FlightNumber,
-                Origin = flight.Origin,
-                Destination = flight.Destination,
-                DepartureDateTime = departureDateTime,
-                ArrivalDateTime = arrivalDateTime,
-                DurationMinutes = flight.DurationMinutes,
-                CabinClass = request.CabinClass,
-                BaseFare = baseFare,
-                PricePerPassenger = applyPricing(baseFare),
-            };
-        }).ToList();
+                var baseFare = Math.Round(flight.EconomyBaseFare * cabinMultiplier, 2, MidpointRounding.AwayFromZero);
+                var departureDateTime = DateTime.SpecifyKind(departureDate.ToDateTime(flight.DepartureTimeOfDay), DateTimeKind.Utc);
+                var arrivalDateTime = departureDateTime.AddMinutes(flight.DurationMinutes);
+
+                return new FlightResult
+                {
+                    Provider = providerName,
+                    FlightNumber = flight.FlightNumber,
+                    Origin = flight.Origin,
+                    Destination = flight.Destination,
+                    DepartureDateTime = departureDateTime,
+                    ArrivalDateTime = arrivalDateTime,
+                    DurationMinutes = flight.DurationMinutes,
+                    CabinClass = request.CabinClass,
+                    BaseFare = baseFare,
+                    PricePerPassenger = applyPricing(baseFare),
+                };
+            })
+            .ToList();
     }
 }

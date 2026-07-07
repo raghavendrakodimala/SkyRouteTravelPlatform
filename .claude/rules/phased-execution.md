@@ -61,6 +61,8 @@ A developer agent must never itself set a finding to `Accepted Risk`, `Deferred`
 
 Fixing a Critical/High finding and marking it `Resolved` does not itself trigger the human-approval gate in Blocker Handling below — that gate is for *accepting* a Critical/High finding *unresolved*. Send a non-blocking FYI to the human before starting a Critical/High fix as good practice.
 
+Reviewers of UI phases must include rendered-app evidence (live walkthrough or screenshots, not code reading alone) per `.claude/rules/ui-ux-quality-gates.md` — both when filing findings and when verifying fixes.
+
 A review phase branch is not committed/merged until its report shows zero `Open` findings (or the human has explicitly accepted every remaining item).
 
 ---
@@ -162,6 +164,7 @@ A phase is complete only when:
 - relevant validation has been performed or explicitly marked not applicable,
 - no blocking issue remains,
 - for Code/Security/Accessibility/Performance Review phases, the review report shows zero `Open` findings (per the Iterative Review-Fix Loop above),
+- for phases delivering UI, rendered-UI verification evidence exists per `.claude/rules/ui-ux-quality-gates.md`,
 - changes are committed,
 - phase branch is merged to `main`.
 

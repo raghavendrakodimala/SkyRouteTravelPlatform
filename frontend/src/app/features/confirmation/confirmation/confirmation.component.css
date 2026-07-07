@@ -1,45 +1,154 @@
+/* Confirmation screen (UI overhaul, PO directive 2026-07-07): boarding-pass ticket card
+   with a success check and dashed perforation divider. Tokens from styles.css. */
+
 .confirmation-page {
   max-width: 560px;
-  margin: 2rem auto;
-  padding: 1.5rem;
+  margin: var(--space-6) auto;
+  padding: 0 var(--space-5);
   text-align: center;
 }
 
+.success-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  margin-bottom: var(--space-3);
+}
+
+/* Ticket card. */
+.ticket {
+  background: var(--color-white);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-6);
+  margin-bottom: var(--space-5);
+  text-align: left;
+}
+
+.ticket-eyebrow {
+  margin: 0 0 var(--space-1);
+  text-align: center;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-neutral-600);
+}
+
+/* Reference badge — 5.69:1 pair, deliberately untouched. */
 .booking-reference {
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-extrabold);
   letter-spacing: 0.05em;
-  color: #1a5fb4;
-  background: #eef4fc;
-  border: 2px solid #1a5fb4;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin: 0 0 var(--space-5);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* Perforation between the stub and the details. */
+.ticket-divider {
+  border-top: 2px dashed var(--color-neutral-300);
+  margin: 0 calc(-1 * var(--space-6)) var(--space-5);
+  position: relative;
+}
+
+.ticket-divider::before,
+.ticket-divider::after {
+  content: '';
+  position: absolute;
+  top: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-page-bg);
+  border: 1px solid var(--color-neutral-200);
+}
+
+.ticket-divider::before {
+  left: -8px;
+}
+
+.ticket-divider::after {
+  right: -8px;
 }
 
 .flight-summary {
-  text-align: left;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
+}
+
+.flight-summary h2 {
+  margin-bottom: var(--space-1);
+}
+
+.flight-summary p {
+  color: var(--color-neutral-700);
+  margin: 0 0 var(--space-1);
 }
 
 .total-price {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-price); /* 6.4:1 on white */
+  margin: 0 0 var(--space-4);
 }
 
 .passengers {
-  text-align: left;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
 }
 
 .passengers ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
+.passengers li {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-neutral-100);
+}
+
+.passengers li:last-child {
+  border-bottom: none;
+}
+
+/* Primary CTA. */
 button {
-  padding: 0.65rem 1.5rem;
-  font-size: 1rem;
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  min-height: 48px;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  background: var(--color-primary);
+  color: var(--color-white);
+  border: 1px solid var(--color-primary);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+button:active:not(:disabled) {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
 }

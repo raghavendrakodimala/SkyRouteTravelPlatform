@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AIRPORTS } from '../../../shared/constants/airports.constants';
@@ -6,7 +6,6 @@ import { CabinClass, SearchRequest } from '../../../shared/models/search-request
 import { SearchStateService } from '../search-state.service';
 
 const CABIN_CLASSES: readonly CabinClass[] = ['Economy', 'Business', 'First Class'];
-const PASSENGER_COUNTS = Array.from({ length: 9 }, (_, i) => i + 1);
 
 /** Group-level validator for US-001 AC8 / US-008 AC4 — origin and destination must differ. */
 const differentAirportsValidator: ValidatorFn = (group): ValidationErrors | null => {
@@ -35,11 +34,11 @@ const differentAirportsValidator: ValidatorFn = (group): ValidationErrors | null
 export class SearchFormComponent {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly host = inject(ElementRef);
   protected readonly searchState = inject(SearchStateService);
 
   protected readonly airports = AIRPORTS;
   protected readonly cabinClasses = CABIN_CLASSES;
-  protected readonly passengerCounts = PASSENGER_COUNTS;
   protected readonly today = new Date().toISOString().slice(0, 10);
 
   protected readonly submitted = signal(false);
@@ -49,7 +48,6 @@ export class SearchFormComponent {
       origin: this.fb.nonNullable.control('', { validators: [Validators.required] }),
       destination: this.fb.nonNullable.control('', { validators: [Validators.required] }),
       departureDate: this.fb.nonNullable.control('', { validators: [Validators.required] }),
-      passengerCount: this.fb.nonNullable.control<number>(1),
       cabinClass: this.fb.nonNullable.control<CabinClass>('Economy'),
     },
     { validators: [differentAirportsValidator] },
@@ -66,8 +64,16 @@ export class SearchFormComponent {
   });
 
   async onSubmit(): Promise<void> {
+    if (this.searchState.loading()) {
+      return; // A11Y-007: re-entrant submit while in flight — the aria-disabled button stays focusable
+    }
     this.submitted.set(true);
-    if (this.form.invalid || this.sameAirportSelected() || this.searchState.loading()) {
+    if (this.form.invalid || this.sameAirportSelected()) {
+      // A11Y-008: the button is never natively disabled, so an invalid submit lands here —
+      // the submitted() flag surfaces the inline role="alert" messages; markAllAsTouched
+      // triggers the .ng-invalid.ng-touched border cue; focus lands on the first problem.
+      this.form.markAllAsTouched();
+      this.focusFirstInvalidControl();
       return;
     }
 
@@ -76,7 +82,7 @@ export class SearchFormComponent {
       origin: value.origin,
       destination: value.destination,
       departureDate: value.departureDate,
-      passengerCount: value.passengerCount,
+      passengerCount: 1, // Passenger count is determined during booking (PO decision 2026-07-07); the API contract still requires 1–9.
       cabinClass: value.cabinClass,
       tripType: 'OneWay',
     };
@@ -90,5 +96,23 @@ export class SearchFormComponent {
   fieldError(field: string): string | null {
     const errors = this.fieldErrors();
     return errors?.[field]?.[0] ?? null;
+  }
+
+  /** A11Y-008: on a rejected submit, move focus to the first offending control (all controls
+   * are statically rendered, so a direct synchronous focus is safe — mirrors the booking
+   * wizard's focusFirstInvalidControl). The same-airport rule lives on the form group, so
+   * neither select is individually invalid — focus the destination select for that case. */
+  private focusFirstInvalidControl(): void {
+    const order = ['origin', 'destination', 'departureDate'] as const;
+    const root = this.host.nativeElement as HTMLElement;
+    for (const name of order) {
+      if (this.form.controls[name].invalid) {
+        root.querySelector<HTMLElement>(`#${name}`)?.focus();
+        return;
+      }
+    }
+    if (this.sameAirportSelected()) {
+      root.querySelector<HTMLElement>('#destination')?.focus();
+    }
   }
 }
