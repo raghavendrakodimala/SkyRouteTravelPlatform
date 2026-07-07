@@ -126,4 +126,18 @@ describe('PassengerFormSectionComponent', () => {
 
     expect(fixture.nativeElement.querySelectorAll('.error').length).toBe(0);
   });
+
+  it('sets autocomplete="name"/"email" on the lead passenger inputs (WCAG 1.3.5)', () => {
+    render({ isLead: true });
+
+    expect(fixture.nativeElement.querySelector('#fullName-0').getAttribute('autocomplete')).toBe('name');
+    expect(fixture.nativeElement.querySelector('#email-0').getAttribute('autocomplete')).toBe('email');
+  });
+
+  it('omits autocomplete on non-lead passengers (other people — no wrong-person autofill)', () => {
+    render({ isLead: false, index: 1 });
+
+    expect(fixture.nativeElement.querySelector('#fullName-1').getAttribute('autocomplete')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#email-1').getAttribute('autocomplete')).toBeNull();
+  });
 });

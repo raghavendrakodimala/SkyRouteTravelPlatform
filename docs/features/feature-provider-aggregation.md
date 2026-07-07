@@ -7,11 +7,11 @@
 | Field | Value |
 |---|---|
 | Document ID | FEAT-PA-001 |
-| Version | 1.0 |
-| Date | 2026-07-03 |
-| Status | Draft — Ready for Phase 11 Spec Readiness Check |
+| Version | 1.1 |
+| Date | 2026-07-07 |
+| Status | Implemented (v1.1 route-filtering revision applied to Sections 1–3, 5, 6.1, and 8 on 2026-07-07, matching `ProviderScheduleMapper.BuildResults()` — post-Phase-17 ASM-006/OQ-003 route-filtering reversal, see Section 2) |
 | Owner | solution-architect |
-| Source | `docs/requirements.md` v1.4 (US-007, FR-046–053, BR-001, BR-002, BR-007, BR-009, ASM-006, ASM-007), `docs/architecture/architecture-plan.md` v1.0 (Section 3.1–3.2), `docs/testing/test-strategy.md` v1.0 (Section 3, 6) |
+| Source | `docs/requirements.md` v1.5 (US-007, FR-046–053, BR-001, BR-002, BR-007, BR-009, ASM-006, ASM-007), `docs/architecture/architecture-plan.md` v1.0 (Section 3.1–3.2), `docs/testing/test-strategy.md` v1.0 (Section 3, 6) |
 | Phase | Phase 10 — Feature Specifications |
 | User Story | US-007 (Provider Extensibility) |
 | Backlog Items Made Implementation-Ready | BL-001, BL-007, BL-008, BL-009, BL-019 (supporting: BL-002 domain model, BL-004 airport data) |
@@ -35,20 +35,26 @@ public interface IFlightProvider
 ```
 
 - `ProviderName` is a literal, constant string per implementation: exactly `"GlobalAir"` for `GlobalAirProvider` and exactly `"BudgetWings"` for `BudgetWingsProvider` (**Gap-fill PA-04**) — these are the exact strings that must appear in the `provider` field of every `FlightResult` (FR-052) and that test doubles/stubs should use when simulating a named provider (per `docs/testing/test-strategy.md` Section 6).
-- `SearchAsync` receives the full `SearchRequest` (origin, destination, departureDate, passengerCount, cabinClass, tripType) but — per ASM-006 (see Section 2 below) — uses only `cabinClass` (for fare-class selection, BR-009) and `departureDate` (for the *date component* of the returned datetimes, see Section 4) as actual inputs to its output. `origin`, `destination`, and `passengerCount` do not filter or alter which flights are returned; `passengerCount` is not used by the provider at all (per-passenger price is independent of how many passengers are booked — see BR-001/BR-002).
+- `SearchAsync` receives the full `SearchRequest` (origin, destination, departureDate, passengerCount, cabinClass, tripType) and — per the v1.1/ASM-006-v1.5 revision (see Section 2 below) — uses `origin`/`destination` to **filter** the provider's fixed schedule (case-insensitive exact match on both fields), `cabinClass` for fare-class selection (BR-009), and `departureDate` for the *date component* of the returned datetimes (see Section 5). `passengerCount` is not used by the provider at all (per-passenger price is independent of how many passengers are booked — see BR-001/BR-002). The requested departure date does not filter which flights are returned.
 - Adding a third provider requires only a new class implementing this interface plus one new DI registration line (`AddScoped<IFlightProvider, ThirdProvider>()`) — no change to `FlightAggregatorService` or this interface (FR-053, US-007 AC2).
 
 ---
 
-## 2. Fixed-Schedule Behavior — Restating ASM-006 (Important, Not New)
+## 2. Fixed-Schedule Behavior — Route-Filtered per ASM-006 v1.5 (Revised 2026-07-07)
 
-Per `docs/requirements.md` ASM-006 and `docs/architecture/architecture-plan.md` Section 3.1: **the same flight schedule is returned by each provider for any valid search input.** Origin/destination/date do not filter which flights come back — only `cabinClass` affects the returned fare (BR-009). This means, in practice, a search for `LHR → JFK` will receive results whose own `origin`/`destination` fields may show routes such as `MAN → LHR` or `SYD → LAX` — this is the **approved, existing** MVP simplification (ASM-006, Out of Scope item 17), not a defect and not something this document is introducing or correcting. Phase 12 implementers, Phase 13 test authors, and Phase 17 UX/accessibility reviewers should treat this as expected behavior, not a bug to file.
+Per `docs/requirements.md` ASM-006 as revised in v1.5 (the post-Phase-17 Human Product Owner-directed reversal of the original ASM-006/OQ-003 behavior): **each provider filters its fixed schedule to only the entries whose `Origin` and `Destination` both exactly match the requested route (case-insensitive)**. The filtering lives once, in the shared `ProviderScheduleMapper.BuildResults()` (`src/SkyRoute.Infrastructure/Providers/ProviderScheduleMapper.cs`), so both providers behave identically. In practice:
+
+- A search for `LHR → JFK` returns only the fixed entries for that route (GA101 from GlobalAir, BW210 from BudgetWings — 2 results total).
+- A searched route present in **neither** provider's fixed schedule (e.g., `LHR → MAN`, the reverse of the fixed `MAN → LHR` entries) returns an **empty list** — a legitimate `200 OK` empty state (FR-014), not an error.
+- Results never show a route other than the one searched for.
+
+The requested **departure date still does not filter** the schedule — only the calendar-date component of the returned `departureDateTime`/`arrivalDateTime` reflects it (Section 5, unchanged). Only `cabinClass` affects the returned fare (BR-009). This section previously restated the original ASM-006 assumption ("the same flight schedule is returned for any valid search input"); that behavior is **superseded** — implementers, test authors, and reviewers should treat route-filtered results (including genuinely empty results for unserved routes) as the expected behavior.
 
 ---
 
 ## 3. Fixed Mock Flight Dataset (**Gap-fill PA-01**)
 
-Each provider returns exactly **4 flights** per search (regardless of requested route/date), each available in all 3 cabin classes (see Section 4 for per-class fare derivation). This gives 8 total raw flights across both providers per search before any provider fails (BR-007 scenarios reduce this to 4). All routes are drawn from the approved airport list (`docs/requirements.md` Section 3.7 / `airports.constants.ts`), mixing domestic and international pairs so the fixed dataset remains realistic and exercises both route types regardless of what a tester actually searches.
+Each provider owns a fixed schedule of exactly **4 flights**, each available in all 3 cabin classes (see Section 4 for per-class fare derivation). A search returns only the subset of that schedule matching the requested route (Section 2), so the raw result count per search is the number of matching entries, not a constant 8. With the current datasets: `LHR → JFK` and `MAN → LHR` are served by **both** providers (2 results each); `LHR → DXB` and `JFK → LAX` only by GlobalAir, `SYD → LAX` and `LAX → JFK` only by BudgetWings (1 result each); every other airport pair returns 0 results (the empty state). A provider failure (BR-007) removes that provider's contribution from whatever the route match would have been. All routes are drawn from the approved airport list (`docs/requirements.md` Section 3.7 / `airports.constants.ts`), mixing domestic (`MAN → LHR`) and international pairs so the fixed dataset exercises both route types.
 
 ### 3.1 GlobalAir — Fixed Schedule
 
@@ -112,7 +118,7 @@ Each fixed flight's schedule (Section 3) stores only a **local time-of-day** and
 
 to produce `departureDateTime` (e.g., `"2026-08-01T09:00:00Z"`), and adds `durationMinutes` to derive `arrivalDateTime`.
 
-This does **not** contradict ASM-006: the *set of flights returned* and their *time-of-day* are still entirely fixed and independent of the requested date/route (nothing about which flights appear, or at what hour, changes based on input) — only the *calendar date* portion of the two timestamp fields reflects what the user searched for. Rationale: without this, every response would show a fixed, arbitrary, likely-past hardcoded date, which would look broken in the UI (e.g., a "2026-01-01" departure date shown for a search made for "2026-09-15") — an outcome ASM-006 never intended to require and that no FR/BR mandates. Anchoring the date to the request while keeping the schedule itself fixed is the smallest change that keeps both the approved fixed-schedule behavior and a sane-looking UI.
+This is consistent with ASM-006 v1.5: the schedule entries and their *time-of-day* are entirely fixed and independent of the requested **date** (the requested *route* filters which entries are returned, per Section 2, but never alters their content) — only the *calendar date* portion of the two timestamp fields reflects what the user searched for. Rationale: without this, every response would show a fixed, arbitrary, likely-past hardcoded date, which would look broken in the UI (e.g., a "2026-01-01" departure date shown for a search made for "2026-09-15") — an outcome ASM-006 never intended to require and that no FR/BR mandates. Anchoring the date to the request while keeping the schedule itself fixed is the smallest change that keeps both the fixed-schedule design and a sane-looking UI.
 
 `arrivalDateTime` may fall on the following calendar day if `departureTime + durationMinutes` crosses midnight (e.g., BW225: departs `23:00`, duration `780` minutes/13h, arrives at `12:00` the next day) — this must be computed correctly, not truncated.
 
@@ -154,29 +160,20 @@ private async Task<IReadOnlyList<FlightResult>> SafeInvokeAsync(
 1. `SafeInvokeAsync` catches the exception inside its own task, before `Task.WhenAll` completes.
 2. A warning-level log entry is written: `Provider {ProviderName} failed during search` with `ProviderName = "BudgetWings"` and the exception object attached (message + type; no passenger/document PII is ever part of this log call, since none is in scope at search time) — NFR-OBS-001, NFR-AVAIL-003.
 3. `SafeInvokeAsync` returns `Array.Empty<FlightResult>()` for BudgetWings's contribution.
-4. `GlobalAirProvider.SearchAsync` completes normally, returning its 4 fixed flights (Section 3.1), each in Economy fare (Section 4).
-5. `FlightAggregatorService.SearchAsync` merges the two provider results: `[] + GlobalAir's 4 flights = GlobalAir's 4 flights`.
-6. `SearchController` returns **`200 OK`** — not 500 — with the following body (illustrative, prices from Section 4's worked examples):
+4. `GlobalAirProvider.SearchAsync` completes normally, returning its schedule entries matching `LHR → JFK` — exactly one flight, GA101 (Section 3.1) — in Economy fare (Section 4).
+5. `FlightAggregatorService.SearchAsync` merges the two provider results: `[] + GlobalAir's 1 matching flight = 1 flight` (without the failure, BudgetWings would have contributed BW210 for a 2-flight result).
+6. `SearchController` returns **`200 OK`** — not 500 — with the following body (illustrative, price from Section 4's worked examples):
 
 ```json
 [
   { "provider": "GlobalAir", "flightNumber": "GA101", "origin": "LHR", "destination": "JFK",
     "departureDateTime": "2026-08-01T09:00:00Z", "arrivalDateTime": "2026-08-01T17:30:00Z",
-    "durationMinutes": 510, "cabinClass": "Economy", "baseFare": 250.00, "pricePerPassenger": 287.50 },
-  { "provider": "GlobalAir", "flightNumber": "GA204", "origin": "LHR", "destination": "DXB",
-    "departureDateTime": "2026-08-01T22:00:00Z", "arrivalDateTime": "2026-08-02T05:30:00Z",
-    "durationMinutes": 450, "cabinClass": "Economy", "baseFare": 300.00, "pricePerPassenger": 345.00 },
-  { "provider": "GlobalAir", "flightNumber": "GA309", "origin": "JFK", "destination": "LAX",
-    "departureDateTime": "2026-08-01T07:15:00Z", "arrivalDateTime": "2026-08-01T12:45:00Z",
-    "durationMinutes": 330, "cabinClass": "Economy", "baseFare": 180.00, "pricePerPassenger": 207.00 },
-  { "provider": "GlobalAir", "flightNumber": "GA412", "origin": "MAN", "destination": "LHR",
-    "departureDateTime": "2026-08-01T06:45:00Z", "arrivalDateTime": "2026-08-01T07:55:00Z",
-    "durationMinutes": 70, "cabinClass": "Economy", "baseFare": 80.00, "pricePerPassenger": 92.00 }
+    "durationMinutes": 510, "cabinClass": "Economy", "baseFare": 250.00, "pricePerPassenger": 287.50 }
 ]
 ```
 
 7. **Nothing in this response body indicates BudgetWings failed** (FR-070 — provider failures are silently degraded, never surfaced to the client). No `warnings` field, no `partial: true` flag, no error object of any kind. The failure is observable only in the server-side log, never in the API response or the UI.
-8. If a client repeats the identical search a second time (BudgetWings still failing), the result is deterministic and repeatable — the same 4 GlobalAir flights, since the underlying schedule is fixed (Section 2).
+8. If a client repeats the identical search a second time (BudgetWings still failing), the result is deterministic and repeatable — the same GA101 flight, since the underlying schedule and the route filter are both fixed (Section 2).
 
 This scenario, and its integration-level equivalent through the full `POST /api/search` pipeline, is the required automated test coverage for BR-007/NFR-TEST-006/NFR-AVAIL-002 (`docs/testing/test-strategy.md` Section 6) — this document supplies the exact provider names, flight numbers, and prices Phase 13 should use when writing that test, rather than inventing new placeholder data.
 
@@ -184,7 +181,7 @@ This scenario, and its integration-level equivalent through the full `POST /api/
 
 ## 7. Compliance Statement
 
-This document introduces no new interface, endpoint, or business rule beyond `docs/requirements.md` v1.4 (US-007, FR-046–053, BR-001, BR-002, BR-007, BR-009, ASM-006, ASM-007) and `docs/architecture/architecture-plan.md` v1.0 Section 3.1–3.2 (AD-009, AD-010). The concrete mock dataset, cabin multipliers, and datetime-construction rule are explicitly labelled Gap-fill decisions (Section 8) because ASM-006/FR-048 deliberately left them unspecified for implementation-time judgment — they introduce no new user-facing capability and do not change any approved formula, format, or fault-isolation behavior.
+This document introduces no new interface, endpoint, or business rule beyond `docs/requirements.md` (US-007, FR-046–053, BR-001, BR-002, BR-007, BR-009, ASM-006 as revised in v1.5, ASM-007) and `docs/architecture/architecture-plan.md` v1.0 Section 3.1–3.2 (AD-009, AD-010). The route-filtering behavior in Section 2 restates the Human Product Owner-directed ASM-006 v1.5 revision (2026-07-07), not a decision of this document. The concrete mock dataset, cabin multipliers, and datetime-construction rule are explicitly labelled Gap-fill decisions (Section 8) because ASM-006/FR-048 deliberately left them unspecified for implementation-time judgment — they introduce no new user-facing capability and do not change any approved formula, format, or fault-isolation behavior.
 
 ---
 
@@ -192,11 +189,11 @@ This document introduces no new interface, endpoint, or business rule beyond `do
 
 | ID | Decision | Rationale |
 |---|---|---|
-| GAP-PA-01 | Each provider returns a fixed set of exactly 4 hardcoded flights per search (Section 3), with the specific routes/times/durations/base fares given in the tables above. | ASM-006/FR-048 require "a realistic, hardcoded set of flights" but deliberately leave the specific content to implementation; a documented dataset prevents divergent/ad hoc data across Phase 12 and gives Phase 13 test authors a stable fixture, consistent with `docs/testing/test-strategy.md` Section 3's expectation of a "known, fixed set of flights." |
+| GAP-PA-01 | Each provider owns a fixed set of exactly 4 hardcoded schedule entries (Section 3), with the specific routes/times/durations/base fares given in the tables above; a search returns the subset matching the requested route (Section 2, ASM-006 v1.5). | ASM-006/FR-048 require "a realistic, hardcoded set of flights" but deliberately leave the specific content to implementation; a documented dataset prevents divergent/ad hoc data across Phase 12 and gives Phase 13 test authors a stable fixture, consistent with `docs/testing/test-strategy.md` Section 3's expectation of a "known, fixed set of flights." |
 | GAP-PA-02 | Cabin class fare multipliers: Economy ×1.0, Business ×2.0, First Class ×3.5, applied to the Economy base fare before the provider's pricing rule (BR-001/BR-002). | BR-009 requires flights to be available "for the requested cabin class" but neither `docs/requirements.md` nor the architecture plan define how a single mock flight's fare varies by class; fixed multipliers guarantee every flight is available in every class (no artificial cabin-class gaps) with deterministic, testable numbers. |
-| GAP-PA-03 | `departureDateTime`/`arrivalDateTime` combine the flight's fixed local time-of-day with the requester's `SearchRequest.departureDate`; the set of flights and their times-of-day remain fixed and independent of the requested date/route (ASM-006 preserved). | ASM-006 establishes that date/route don't filter which flights are returned but is silent on what date value appears in the response; anchoring only the date component avoids a nonsensical, stale hardcoded date in the UI while keeping the approved fixed-schedule design fully intact. |
+| GAP-PA-03 | `departureDateTime`/`arrivalDateTime` combine the flight's fixed local time-of-day with the requester's `SearchRequest.departureDate`; the schedule entries and their times-of-day remain fixed and independent of the requested date (route now filters which entries are returned, per ASM-006 v1.5, but never changes their content). | ASM-006 establishes that the date doesn't filter which flights are returned but is silent on what date value appears in the response; anchoring only the date component avoids a nonsensical, stale hardcoded date in the UI while keeping the fixed-schedule design fully intact. |
 | GAP-PA-04 | `ProviderName` literal values are exactly `"GlobalAir"` and `"BudgetWings"` (used verbatim in the `provider` field on every result). | FR-052 and the architecture plan's Section 5 example imply this but never state the exact literal spelling/casing as a binding rule; fixing it prevents inconsistent literals across the two provider classes, DI registration, and test doubles. |
 
 ---
 
-*End of Feature Specification — Provider Aggregation and Mock Provider Data v1.0.*
+*End of Feature Specification — Provider Aggregation and Mock Provider Data v1.1 (route-filtering revision, 2026-07-07).*

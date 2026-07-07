@@ -37,35 +37,106 @@ test.describe('Search form (US-001, US-008)', () => {
     expect(countries.size).toBeGreaterThanOrEqual(2);
   });
 
-  test('US-001 AC8 / US-008 AC4: the same airport cannot be selected as both origin and destination', async ({
+  test('PO 2026-07-07: the search form has NO passenger count field and always submits passengerCount 1', async ({
     page,
   }) => {
-    // Selecting distinct airports first (button enabled), then changing destination to match
-    // origin, proves the guard reacts live to the form value change, not just to initial state.
-    await fillSearchForm(page, { origin: 'LHR', destination: 'JFK', passengerCount: 1 });
-    await expect(page.getByRole('button', { name: 'Search' })).toBeEnabled();
+    // Passenger count is determined during booking ("Add another passenger" on /booking),
+    // not at search time — the search form collects exactly origin, destination, departure
+    // date, and cabin class. No passengers select, label, or leftover counter UI exists.
+    await expect(page.locator('#passengerCount')).toHaveCount(0);
+    await expect(page.locator('label', { hasText: 'Passengers' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Yes, add another passenger' })).toHaveCount(0);
 
-    await page.locator('#destination').selectOption('LHR');
-    // The group-level `sameAirport` validator (search-form.component.ts) makes the whole form
-    // invalid immediately, disabling submission before the user can ever trigger a submit
-    // attempt — see QA-003 (docs/handoffs) for why the inline
-    // "Origin and destination airports must be different." paragraph, which is gated on
-    // `submitted()`, is consequently never reachable through normal interaction: the Search
-    // button is always disabled at the exact moment that condition is true, so `onSubmit()`
-    // (which sets `submitted`) can never run while it is true. The button-disabled behavior
-    // itself — which is the actual AC8/AC4 requirement — is fully verified below.
-    await expect(page.getByRole('button', { name: 'Search' })).toBeDisabled();
+    // The four real fields are all present and labelled.
+    for (const id of ['origin', 'destination', 'departureDate', 'cabinClass']) {
+      await expect(page.locator(`#${id}`)).toBeVisible();
+      await expect(page.locator(`label[for="${id}"]`)).toBeVisible();
+    }
+
+    // The submitted SearchRequest hard-codes passengerCount: 1 (API contract still requires 1–9).
+    const requestPromise = page.waitForRequest(
+      (req) => req.method() === 'POST' && req.url().includes('/api/search'),
+    );
+    await fillSearchForm(page, { origin: 'LHR', destination: 'JFK', cabinClass: 'Economy' });
+    await page.getByRole('button', { name: 'Search' }).click();
+    const request = await requestPromise;
+    expect(request.postDataJSON()).toMatchObject({ origin: 'LHR', destination: 'JFK', passengerCount: 1 });
+
+    // Consequence on /results: totals equal the per-person price (× 1). BW210 (LHR -> JFK,
+    // BudgetWings) prices at USD 198.00 per person (base 220.00 × 0.90, BR-002).
+    await page.waitForURL('**/results');
+    const bw210 = page.locator('li.result-card', { hasText: 'BW210' });
+    await expect(bw210.locator('.total-price')).toHaveText('USD 198.00 total');
+    await expect(bw210.locator('.per-person-price')).toHaveText('/ USD 198.00 per person');
   });
 
-  test('US-001 AC5: submit button is disabled while any required field is invalid or empty', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'Search' })).toBeDisabled(); // form starts empty
-    await fillSearchForm(page, { origin: 'LHR', destination: 'JFK' });
-    // departureDate defaults to tomorrow via the helper's fallback, so the form should now be valid.
-    await expect(page.getByRole('button', { name: 'Search' })).toBeEnabled();
+  // A11Y-007/A11Y-008 (2026-07-07): the Search button is never natively disabled — a
+  // disabled-until-valid submit both drops keyboard focus to <body> and makes the inline
+  // validation alerts unreachable. Instead, an invalid submit attempt reaches onSubmit(),
+  // which surfaces the role="alert" message(s), focuses the first offending control, and
+  // never calls the API. The two tests below assert that submit-attempt contract
+  // (feature-flight-search.md Section 1, amended).
 
-    // Clearing departure date re-disables the button.
+  test('US-001 AC8 / US-008 AC4: submitting with the same origin and destination surfaces the inline error and never calls the API', async ({
+    page,
+  }) => {
+    const searchRequests: string[] = [];
+    page.on('request', (request) => {
+      if (request.url().includes('/api/search')) {
+        searchRequests.push(request.url());
+      }
+    });
+
+    // Selecting distinct airports first, then changing destination to match origin, proves the
+    // guard reacts to the live form value at submit time, not just to initial state.
+    await fillSearchForm(page, { origin: 'LHR', destination: 'JFK' });
+    await page.locator('#destination').selectOption('LHR');
+
+    const searchButton = page.getByRole('button', { name: 'Search' });
+    await expect(searchButton).toBeEnabled(); // never natively disabled, even while invalid
+    await searchButton.click();
+
+    await expect(
+      page.locator('p.error[role="alert"]', { hasText: 'Origin and destination airports must be different.' }),
+    ).toBeVisible();
+    // The same-airport rule lives on the form group, so focus lands on the destination select.
+    await expect(page.locator('#destination')).toBeFocused();
+    await expect(page).toHaveURL(/\/search$/);
+    expect(searchRequests).toHaveLength(0); // the invalid submit attempt never reached the API
+  });
+
+  test('US-001 AC5: submitting with missing required fields surfaces inline errors and never calls the API', async ({
+    page,
+  }) => {
+    const searchRequests: string[] = [];
+    page.on('request', (request) => {
+      if (request.url().includes('/api/search')) {
+        searchRequests.push(request.url());
+      }
+    });
+
+    const searchButton = page.getByRole('button', { name: 'Search' });
+    await expect(searchButton).toBeEnabled(); // form starts empty, button still focusable/activatable
+    await searchButton.click();
+
+    await expect(page.locator('p.error[role="alert"]', { hasText: 'Origin airport is required.' })).toBeVisible();
+    await expect(page.locator('p.error[role="alert"]', { hasText: 'Destination airport is required.' })).toBeVisible();
+    await expect(
+      page.locator('p.error[role="alert"]', { hasText: 'Departure date is required and cannot be in the past.' }),
+    ).toBeVisible();
+    await expect(page.locator('#origin')).toBeFocused(); // first invalid control receives focus
+
+    // Filling everything else and clearing the departure date re-triggers the same guard.
+    await fillSearchForm(page, { origin: 'LHR', destination: 'JFK' });
     await page.locator('#departureDate').fill('');
-    await expect(page.getByRole('button', { name: 'Search' })).toBeDisabled();
+    await searchButton.click();
+    await expect(
+      page.locator('p.error[role="alert"]', { hasText: 'Departure date is required and cannot be in the past.' }),
+    ).toBeVisible();
+    await expect(page.locator('#departureDate')).toBeFocused();
+
+    await expect(page).toHaveURL(/\/search$/);
+    expect(searchRequests).toHaveLength(0); // no submit attempt ever produced an API call
   });
 
   test('US-001 AC6: loading indicator is shown during the search call', async ({ page }) => {
@@ -82,10 +153,18 @@ test.describe('Search form (US-001, US-008)', () => {
     const searchButton = page.getByRole('button', { name: 'Search' });
     await searchButton.click();
 
-    await expect(page.getByRole('button', { name: 'Searching…' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Searching…' })).toBeDisabled();
+    const searchingButton = page.getByRole('button', { name: 'Searching…' });
+    await expect(searchingButton).toBeVisible();
+    // A11Y-007: in flight the button is conveyed unavailable via aria-disabled="true"
+    // (Playwright's toBeDisabled honors aria-disabled), never the native `disabled`
+    // attribute, so keyboard/AT focus is not dropped to <body> mid-request.
+    await expect(searchingButton).toBeDisabled();
+    await expect(searchingButton).toHaveAttribute('aria-disabled', 'true');
+    await expect(searchingButton).not.toHaveAttribute('disabled');
 
     await page.waitForURL('**/results');
-    await expect(page.locator('li.result-card')).toHaveCount(8);
+    // Route filtering (ProviderScheduleMapper): LHR -> JFK matches exactly GA101 (GlobalAir)
+    // and BW210 (BudgetWings) — not the full 8-flight fixture set.
+    await expect(page.locator('li.result-card')).toHaveCount(2);
   });
 });

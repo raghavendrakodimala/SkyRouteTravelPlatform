@@ -1,22 +1,36 @@
+/* Visual design spec (DESIGN-VISUAL-001 §5.3): this control already had the most "designed"
+   treatment in the app — retokenized, plus the previously missing inactive-option hover cue. */
+
 .sort-control {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: var(--space-2); /* unchanged */
+  margin-bottom: var(--space-4);
 }
 
 .sort-option {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.9rem;
-  border: 1px solid #999;
-  border-radius: 4px;
-  background: #fff;
+  font-family: inherit;
+  min-height: 44px; /* touch target (UI overhaul) */
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-neutral-400); /* #999999 — unchanged */
+  border-radius: var(--radius-pill); /* segmented pills (UI overhaul) */
+  background: var(--color-white);
+  color: var(--color-neutral-700); /* explicit #444444 (already-verified .timing color) */
   cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.sort-option:not(.active):hover {
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .sort-option.active {
-  background: #1a5fb4;
-  color: #fff;
-  border-color: #1a5fb4;
-  font-weight: 600;
+  background: var(--color-primary); /* unchanged */
+  color: var(--color-white); /* unchanged */
+  border-color: var(--color-primary); /* unchanged */
+  font-weight: var(--font-weight-semibold); /* unchanged */
 }

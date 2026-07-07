@@ -1,25 +1,38 @@
 <section class="confirmation-page">
+  <div class="success-check" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="32" height="32" focusable="false">
+      <path
+        fill="currentColor"
+        d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.6-4.2-4.2 1.7-1.7 2.5 2.5 5.9-5.9 1.7 1.7-7.6 7.6z"
+      />
+    </svg>
+  </div>
   <h1>Booking Confirmed</h1>
 
   @if (booking(); as b) {
-    <p class="booking-reference" role="status">{{ b.bookingReference }}</p>
+    <div class="ticket">
+      <p class="ticket-eyebrow">Booking reference</p>
+      <p class="booking-reference" role="status">{{ b.bookingReference }}</p>
 
-    <section class="flight-summary">
-      <h2>{{ b.flight.origin }} → {{ b.flight.destination }}</h2>
-      <p>{{ b.flight.provider }} · Flight {{ b.flight.flightNumber }} · {{ b.flight.cabinClass }}</p>
-      <p>Departs {{ formatFlightTime(b.flight.departureDateTime) }} · Arrives {{ formatFlightTime(b.flight.arrivalDateTime) }}</p>
-    </section>
+      <div class="ticket-divider" aria-hidden="true"></div>
 
-    <p class="total-price">{{ formatPrice(b.totalPrice) }} total</p>
+      <section class="flight-summary">
+        <h2>{{ b.flight.origin }} → {{ b.flight.destination }}</h2>
+        <p>{{ b.flight.provider }} · Flight {{ b.flight.flightNumber }} · {{ b.flight.cabinClass }}</p>
+        <p>Departs {{ formatFlightTime(b.flight.departureDateTime) }} · Arrives {{ formatFlightTime(b.flight.arrivalDateTime) }}</p>
+      </section>
 
-    <section class="passengers">
-      <h3>Passengers</h3>
-      <ul>
-        @for (passenger of b.passengers; track passenger.fullName) {
-          <li>{{ passenger.fullName }}</li>
-        }
-      </ul>
-    </section>
+      <p class="total-price">{{ formatPrice(b.totalPrice) }} total</p>
+
+      <section class="passengers">
+        <h3>Passengers</h3>
+        <ul>
+          @for (passenger of b.passengers; track passenger.fullName) {
+            <li>{{ passenger.fullName }}</li>
+          }
+        </ul>
+      </section>
+    </div>
 
     <button type="button" (click)="startNewSearch()">Start a New Search</button>
   } @else {

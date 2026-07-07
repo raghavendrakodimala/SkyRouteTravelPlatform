@@ -1,57 +1,38 @@
-# Handoff: Phase 17 — Accessibility Review Complete, Iterative Review-Fix Loop Closed (Current)
+# Current Handoff — HO-034
 
 | Field | Value |
 |---|---|
-| Handoff ID | HO-026 |
+| Handoff ID | HO-034 |
 | Date | 2026-07-07 |
-| Branch | `main` (merged from `sdlc/17-accessibility-review-skyroute-mvp`, commit `3cf1617`; branch deleted) |
-| Phase | Phase 17 — Accessibility Review |
-| From agent | accessibility-tester |
-| To agent | sdlc-orchestrator |
-| Status | Complete — merged to `main`. Zero `Open` findings remain in `docs/reviews/accessibility-review-phase-17.md`. Human explicitly paused here; Phase 18 (Performance Review) not yet started. |
+| Branch | fix/requirements-compliance-gaps-skyroute-mvp (uncommitted by design) |
+| Phase | Project closure (PO-directed final UX/UI + process hardening) |
+| From agent | sdlc-orchestrator |
+| To agent | product-owner (human) |
+| Status | Ready for PO verification and merge approval |
 
-This is a pointer file. The full handoff record is maintained at:
+Supersedes HO-032 (`docs/handoffs/32-sdlc-orchestrator-to-product-owner-booking-ui-redesign.md`): the prompt/review wizard described there was replaced the same day by the single-button in-place flow, and the UI was overhauled again to production layout.
 
-- `docs/handoffs/26-accessibility-tester-to-sdlc-orchestrator-a11y-verification-closure.md` (HO-026)
+## Work completed (2026-07-07)
 
-The prior current handoff (HO-022, Phase 17 initial findings filing) remains available at `docs/handoffs/22-accessibility-tester-to-sdlc-orchestrator-accessibility-review.md`, now superseded.
+1. **Passenger flow finalized (PO corrections):** search form no longer captures passenger count (submits `passengerCount: 1`; count is determined at booking); booking screen uses the single-button in-place flow — active passenger form + `Add another passenger` (validate → save card → fresh form in place) + `Confirm Booking` (dirty form auto-saved, blank form submits saved passengers); Edit/Remove on saved cards; 9-passenger cap enforced in UI, unit tests, and backend validator.
+2. **Production UI overhaul v2:** navy top nav (brand, Flights active tab, Hotels/Packages/My Trips/Support placeholders, Sign-in placeholder — no functionality per PO), journey progress strip under the header, full-bleed gradient hero with elevated search card, flight-result cards with provider badges + departure→arrival timeline + warm price accent, two-column booking layout with sticky order summary + back link, boarding-pass confirmation ticket, multi-column placeholder footer with legal line. WCAG AA contrast maintained; focus-visible everywhere; responsive 360→1280.
+3. **Bug fixed during verification:** premature "Passport Number" error on the fresh form after add (focus/blur ordering in `resetActiveForm`).
+4. **SDLC process gaps fixed (PO directive):** new `.claude/rules/ui-ux-quality-gates.md` (design-before-build, shift-left visual QA, rendered-UI review evidence, PO demo gate, production layout checklist); DoR/DoD/phased-execution/ux-ui-designer/CLAUDE.md updated; retrospective at `docs/delivery/retrospective-ui-quality-gap-2026-07-07.md`.
+5. **E2E + docs alignment complete** (HO-033b): helpers + all six specs rewritten for the final flow; real chromium run against live servers **12/12 passed**; docs verified aligned line-by-line (old CR-002/CR-003 confirmed closed).
 
----
+## Evidence
 
-## Summary
+- Frontend build clean; unit tests 181/181; backend 170/170 (`dotnet test`); e2e 12/12 (real chromium run); zero browser console errors.
+- Live walkthrough verified at desktop (1280) and narrow widths: search → results (LHR→JFK, 2 route-filtered results, total/per-person) → booking (add 2 passengers, live totals ×2) → confirmation (reference issued, both passengers).
 
-Phase 17 (Accessibility Review) ran the Iterative Review-Fix Loop live for the first time. accessibility-tester filed 6 findings (0 Critical, 0 High, 2 Medium, 4 Low) against the four routed screens in `docs/reviews/accessibility-review-phase-17.md` (HO-022). Each was routed to a developer agent per `.claude/rules/delegation-rules.md`:
+## Open questions (PO decision required)
 
-- **A11Y-001** (Medium, no focus management on route transitions) → lead-full-stack-engineer (HO-023): new centralized `RouteFocusService`.
-- **A11Y-002** (Medium, non-unique "Select" button accessible names) → senior-full-stack-engineer (HO-024): per-row composed `aria-label`.
-- **A11Y-003/004/005/006** (Low: page title, required-field indicators, loading-state live region, heading hierarchy) → junior-developer (HO-025): four mechanical fixes across routes/forms.
+- The challenge PDF lists "Number of passengers (1–9)" as a search-form input; the PO-directed removal deviates from that text (count now determined at booking; README documents it as a deliberate product decision). Confirm acceptance.
 
-accessibility-tester independently re-verified all six fixes against current source (HO-026) and confirmed all **Resolved**. The review report's own outstanding caveat — that its re-verification pass had no shell tool to independently confirm the developers' self-reported `npm run build`/`npm test` output — was closed by the sdlc-orchestrator directly executing both commands: **build clean (0 errors), 149/149 tests passing, 0 failed**, matching developer-reported counts exactly.
+## Required next action
 
-**`docs/reviews/accessibility-review-phase-17.md` now shows zero `Open` findings.** No CLAUDE.md §21 gate was ever triggered (no Critical/High). Per `.claude/rules/phased-execution.md`'s Phase Completion Criteria, this phase's review-report merge gate is satisfied.
+PO verifies the app at http://localhost:4200 and approves commit + `--no-ff` merge of `fix/requirements-compliance-gaps-skyroute-mvp` to `main` (orchestrator will not commit/merge without explicit instruction). Note: the accidental nested duplicate folder `SkyRouteTravelPlatform/` at repo root must be excluded or removed (needs explicit deletion approval) before any `git add .`.
 
-## Decisions Made
+## Relevant files
 
-- All six findings closed via the Iterative Review-Fix Loop rather than deferred to Phase 19/20, per CLAUDE.md §22.
-- The orchestrator's independent build/test run was folded into the review report and HO-026 rather than requiring a separate functional-tester invocation, since the result matched developer-reported figures with zero discrepancy.
-
-## Open Questions
-
-None blocking.
-
-## Risks and Impediments
-
-- None new. RISK-010 (review phases may surface Critical/High findings requiring significant fix time) did not materialize in this phase — highest severity was Medium.
-
-## Required Next Agent Action
-
-On human instruction to continue, sdlc-orchestrator starts Phase 18 — Performance Review, owned by performance-tester, from updated `main` (new branch `sdlc/18-performance-review-skyroute-mvp`).
-
-## Completion Criteria for Next Step
-
-- Working tree clean (done), branch merged to `main` (done), branch deleted (done).
-- `docs/handoffs/workflow-state.md` reflects Phase 17 as merged and Phase 18 as next (done).
-
-## Relevant Files
-
-See `docs/handoffs/26-accessibility-tester-to-sdlc-orchestrator-a11y-verification-closure.md` for the full file list. Primary artifact: `docs/reviews/accessibility-review-phase-17.md`.
+frontend/src/app/app.{ts,html,css}; frontend/src/styles.css; frontend/src/app/features/** (search-form, results-list, sort-control, booking-form, passenger-form-section, confirmation); .claude/rules/ui-ux-quality-gates.md; docs/delivery/retrospective-ui-quality-gap-2026-07-07.md; docs/handoffs/workflow-state.md

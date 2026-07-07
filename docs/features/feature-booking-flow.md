@@ -7,9 +7,9 @@
 | Field | Value |
 |---|---|
 | Document ID | FEAT-BF-001 |
-| Version | 1.0 |
-| Date | 2026-07-03 |
-| Status | Draft — Ready for Phase 11 Spec Readiness Check |
+| Version | 1.1 |
+| Date | 2026-07-03 (v1.1 amendments 2026-07-07) |
+| Status | Implemented (2026-07-07) — v1.1 amendments: passenger details are collected one passenger at a time through a single in-place form with saved-passenger summary cards (Product Owner UX direction 2026-07-07, Sections 1.2, 2, 2.4), replacing the original all-at-once one-section-per-passenger layout; wire contracts (Sections 3–7) unchanged |
 | Owner | solution-architect |
 | Source | `docs/requirements.md` v1.4 (US-004, US-005, US-006, FR-025–045, BR-003, BR-004, BR-005, BR-006, DP-015, DP-016), `docs/architecture/architecture-plan.md` v1.0 (Section 3.3, Section 5) |
 | Phase | Phase 10 — Feature Specifications |
@@ -24,7 +24,7 @@ This document concretizes the entire booking journey: flight selection → booki
 
 ## 1. Booking Screen — Data Carried From Search (US-004, FR-025)
 
-No API call is made to populate the booking screen (FR-025, US-004 AC4). The selected `FlightResult` (from `docs/features/feature-search-results-and-sorting.md` Section 1), the `passengerCount` from the original search request, and the `cabinClass` are written into `BookingStateService` (BL-032, a Signal-based Angular service) at the moment the user clicks "Select"/"Book" on a result row (BL-029). The booking screen (`BookingFormComponent`, split across BL-036/037/038) reads exclusively from this state — never re-fetches or re-derives it from the network.
+No API call is made to populate the booking screen (FR-025, US-004 AC4). The selected `FlightResult` (from `docs/features/feature-search-results-and-sorting.md` Section 1), the `passengerCount` from the original search request (always `1` since the 2026-07-07 amendment — see `docs/features/feature-flight-search.md` Section 1), and the `cabinClass` are written into `BookingStateService` (BL-032, a Signal-based Angular service) at the moment the user clicks "Select"/"Book" on a result row (BL-029). The booking screen (`BookingFormComponent`) reads exclusively from this state — never re-fetches or re-derives it from the network. **v1.1 amendment:** the searched `passengerCount` no longer sizes the passenger form — the number of passengers is determined on the booking screen itself by adding passengers one at a time (Section 2).
 
 ### 1.1 Flight Summary Display (US-004 AC2, FR-026)
 
@@ -32,13 +32,20 @@ Displayed fields: route (`origin → destination`), provider name, flight number
 
 ### 1.2 Price Breakdown Display (US-004 AC3, FR-027)
 
-Displayed fields: per-passenger price, number of passengers, total price — computed via the **same** `pricing.util.ts` function (BL-023, DP-011) used on the results screen; total price is again the visually dominant figure (NFR-USE-002).
+Displayed fields: per-passenger price, number of passengers, total price — computed via the **same** `pricing.util.ts` function (BL-023, DP-011) used on the results screen; total price is again the visually dominant figure (NFR-USE-002). **v1.1 amendment:** the breakdown is **live** — the count is `max(saved passengers, 1)` so a blank in-progress form never inflates the total (while entering passenger 1 it shows `× 1`), and it updates as passengers are added, edited, or removed. After a booking is confirmed (e.g., back-navigation to `/booking`), the breakdown shows the actually **booked** figures taken from `BookingResponse.totalPrice`/`passengers.length`, never a recomputation.
 
 ---
 
 ## 2. Passenger Detail Form — Field-by-Field Rules (US-005, FR-028–031)
 
-One `PassengerFormSectionComponent` (BL-034) instance per passenger, numbered "Passenger 1", "Passenger 2", … up to the searched `passengerCount` (FR-028). Passenger 1 is the lead passenger; their email is also the primary booking contact (US-005 AC3, BR-005) — this is a display/labelling distinction only, not a different form field (every passenger, including Passenger 1, submits their own `email`).
+**v1.1 amendment (Product Owner UX direction 2026-07-07 — implemented in `BookingFormComponent`):** passenger details are collected **one passenger at a time**, not through simultaneously rendered per-passenger sections. Exactly one `PassengerFormSectionComponent` (BL-034) instance is ever active — a single reusable form rendered in place below the saved-passenger cards — with two persistent actions under it:
+
+1. **"Add another passenger"** (secondary): validates the active form; if valid, the passenger is appended as a compact summary card (full name, email, document number shown unmasked, with **Edit** and **Remove** actions and positional renumbering) and the same form resets in place for the next passenger, with focus moved to its first field. At the cap of **9 passengers** the blank form and the add action are removed and Confirm Booking is the only remaining action.
+2. **"Confirm Booking"** (primary): a filled active form is validated and saved first, then **all** saved passengers are submitted; a blank form with at least one saved passenger submits as-is; a blank form with nothing saved surfaces the required-field errors for passenger 1.
+
+While a card is being edited, the actions become **"Save changes"** / **"Cancel edit"** in the same slot; editing another card while the edit form is dirty is blocked (`aria-disabled` with an explanatory accessible-name suffix — a dirty form is never silently discarded), and an in-progress new-passenger draft is parked and restored when an edit resolves. All state changes are announced through a single persistent polite live region, every DOM-removing transition names an explicit focus target (focus never drops to `<body>`), and a `canDeactivate` router guard (`bookingLeaveGuard`) plus a `beforeunload` listener confirm before unconfirmed passenger data is destroyed.
+
+Passengers are numbered "Passenger 1", "Passenger 2", … in card order. Passenger 1 is the lead passenger; their email is also the primary booking contact (US-005 AC3, BR-005) — this is a display/labelling distinction only, not a different form field (every passenger, including Passenger 1, submits their own `email`).
 
 ### 2.1 Full Name
 
@@ -76,9 +83,9 @@ Both patterns are named constants (`DocumentPatterns.PassportPattern`, `Document
 - Selected flight: `LHR → JFK` (from `docs/features/feature-provider-aggregation.md` Section 3.1, GA101). `LHR`'s country is `"United Kingdom"`; `JFK`'s country is `"United States"`. Countries differ → **International** → field label `"Passport Number"`, pattern `^[A-Z0-9]{6,9}$`. A submitted document number `"AB1234C"` (7 chars, uppercase alphanumeric) is **valid**; `"ab1234c"` (lowercase) is **invalid**; `"AB12"` (4 chars) is **invalid** (below minimum).
 - Selected flight: `MAN → LHR` (GA412). Both airports' country is `"United Kingdom"`. Countries match → **Domestic** → field label `"National ID"`, pattern `^[A-Za-z0-9-]{5,20}$`. A submitted document number `"AB-1234"` (7 chars, includes hyphen) is **valid**; `"AB12"` (4 chars) is **invalid**.
 
-### 2.4 Submission Gating (US-005 AC10, FR-031)
+### 2.4 Submission Gating (US-005 AC10, FR-031) — v1.1 Amendment
 
-The "Confirm Booking" action is disabled until every rendered passenger section reports valid data for all three fields above. This aggregate-validity signal is produced by BL-037 (Passenger Form Array Orchestration) and consumed by BL-038 (Submit Orchestration) — see `docs/architecture/architecture-plan.md` Section 4.1/4.2 for the component boundary.
+The "Confirm Booking" button is **never natively disabled** (consistent with the A11Y-007/A11Y-008 pattern adopted across the app — a focused button that becomes `disabled` drops keyboard focus to `<body>`). Gating is enforced at submit time instead: activating Confirm Booking validates and saves the active form when it contains input (invalid input keeps the flow on the form, with touched-field errors shown and focus moved to the first invalid control), and a blank form with no saved passengers surfaces the required-field errors for passenger 1 — the API request is only ever sent with a fully valid saved-passenger list. While the POST is in flight, every mutating control (Confirm, Add another, Edit, Remove, Save changes, Cancel edit) is locked via `aria-disabled` plus click guards. Server-side validation errors keyed `passengers[{i}].*` are mapped back to the offending passenger: an error-summary banner (`role="alert"`) is focused, flagged cards show a "Needs correction" badge, and the lowest-indexed flagged passenger reopens in the edit form, chaining through the remaining flagged passengers as each is corrected.
 
 ---
 
@@ -236,4 +243,4 @@ This document introduces no new field, endpoint, or business rule beyond `docs/r
 
 ---
 
-*End of Feature Specification — Booking Flow v1.0.*
+*End of Feature Specification — Booking Flow v1.1 (2026-07-07 amendments: single in-place passenger form with saved-passenger cards, live price breakdown, submit-time gating).*

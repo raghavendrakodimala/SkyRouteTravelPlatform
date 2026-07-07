@@ -1,21 +1,69 @@
+/* Results screen (UI overhaul, PO directive 2026-07-07): airline-style flight cards —
+   provider badge, departure→arrival timeline, dominant price block. Tokens from styles.css. */
+
 .results-page {
-  max-width: 720px;
-  margin: 2rem auto;
-  padding: 1.5rem;
+  max-width: 860px;
+  margin: var(--space-6) auto;
+  padding: 0 var(--space-5);
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.page-head h1 {
+  margin-bottom: var(--space-1);
+}
+
+.search-recap {
+  margin: 0;
+  color: var(--color-neutral-600);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.result-count {
+  font-weight: var(--font-weight-regular);
+}
+
+.modify-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.modify-link:hover {
+  text-decoration: underline;
 }
 
 .loading,
 .empty-state {
-  padding: 1rem;
+  padding: var(--space-6);
   text-align: center;
+  background: var(--color-white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.empty-lead {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--space-2);
 }
 
 .banner-error {
-  color: #b00020;
-  background: #fdecea;
-  border: 1px solid #b00020;
-  padding: 0.75rem;
-  border-radius: 4px;
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
 }
 
 .results-list {
@@ -24,47 +72,241 @@
   margin: 0;
 }
 
+/* Flight card: info left, price/CTA right. */
 .result-card {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  margin-bottom: var(--space-4);
+  background: var(--color-white);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  gap: var(--space-5);
+  align-items: stretch;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.result-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.card-main {
+  flex: 1 1 auto;
+  min-width: 0;
   display: grid;
-  gap: 0.5rem;
+  gap: var(--space-4);
 }
 
 .route {
   display: flex;
-  justify-content: space-between;
-  font-weight: 600;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  font-weight: var(--font-weight-semibold);
 }
 
+/* Provider identity badge — initials avatar (white text; both pairs ≥7.9:1). */
+.provider-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  color: var(--color-white);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.03em;
+  flex: 0 0 auto;
+}
+
+.badge-ga {
+  background: var(--color-provider-ga);
+}
+
+.badge-bw {
+  background: var(--color-provider-bw);
+}
+
+.badge-default {
+  background: var(--color-navy);
+}
+
+.provider {
+  color: var(--color-neutral-600);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--font-size-sm);
+}
+
+.cabin-chip {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  padding: 2px var(--space-3);
+}
+
+/* Departure → arrival timeline. */
 .timing {
   display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  color: #444;
-  font-size: 0.9rem;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-neutral-700);
 }
 
-.pricing {
+.tl-point {
   display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
+  flex-direction: column;
+  min-width: 56px;
+}
+
+.tl-point-end {
+  text-align: right;
+}
+
+.tl-time {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-neutral-900);
+}
+
+.tl-code {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  color: var(--color-neutral-600);
+}
+
+.tl-track {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 90px;
+}
+
+.tl-duration {
+  font-size: var(--font-size-xs);
+  color: var(--color-neutral-600);
+}
+
+.tl-line {
+  width: 100%;
+  height: 2px;
+  background: var(--color-neutral-300);
+  border-radius: 1px;
+  position: relative;
+}
+
+.tl-line::before,
+.tl-line::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: var(--color-primary);
+}
+
+.tl-line::before {
+  left: -1px;
+}
+
+.tl-line::after {
+  right: -1px;
+}
+
+/* Price + CTA column. */
+.pricing {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-1);
+  padding-left: var(--space-5);
+  border-left: 1px dashed var(--color-neutral-300);
+  min-width: 180px;
 }
 
 .total-price {
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-price);
+  white-space: nowrap;
 }
 
 .per-person-price {
-  font-size: 0.9rem;
-  color: #555;
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral-600);
+  white-space: nowrap;
 }
 
+/* Select: strong per-card CTA. */
 button {
-  justify-self: start;
-  padding: 0.5rem 1.25rem;
+  margin-top: var(--space-2);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  background: var(--color-primary);
+  color: var(--color-white);
+  border: 1px solid var(--color-primary);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* Mobile: stack the price block under the flight info. */
+@media (max-width: 640px) {
+  .result-card {
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+
+  .pricing {
+    border-left: none;
+    border-top: 1px dashed var(--color-neutral-300);
+    padding-left: 0;
+    padding-top: var(--space-4);
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  .total-price,
+  .per-person-price {
+    text-align: left;
+  }
+
+  button {
+    width: 100%;
+  }
 }

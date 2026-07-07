@@ -8,15 +8,25 @@ namespace SkyRoute.Application.Tests.Providers;
 /// Unit tests for GlobalAirProvider (test-strategy.md Section 1.1, feature-provider-
 /// aggregation.md Sections 3.1/4/4.1). Asserts against the fixed, documented 4-flight
 /// schedule and the BR-001 pricing rule (finalPrice = round(baseFare * 1.15, 2)).
+///
+/// Route-filtering fix (requirements-compliance follow-up, reversing ASM-006/OQ-003):
+/// SearchAsync now only returns schedule entries whose Origin/Destination match the
+/// request, so every test below passes the origin/destination that actually matches the
+/// flight under test rather than relying on the old "always return the full schedule"
+/// behavior. Default origin/destination (LHR/JFK) matches GA101.
 /// </summary>
 public class GlobalAirProviderTests
 {
     private readonly GlobalAirProvider _provider = new();
 
-    private static SearchRequest MakeRequest(string cabinClass = "Economy", DateOnly? departureDate = null) => new()
+    private static SearchRequest MakeRequest(
+        string cabinClass = "Economy",
+        DateOnly? departureDate = null,
+        string origin = "LHR",
+        string destination = "JFK") => new()
     {
-        Origin = "LHR",
-        Destination = "JFK",
+        Origin = origin,
+        Destination = destination,
         DepartureDate = departureDate ?? new DateOnly(2026, 8, 1),
         PassengerCount = 2,
         CabinClass = cabinClass,
@@ -29,28 +39,68 @@ public class GlobalAirProviderTests
         Assert.Equal("GlobalAir", _provider.ProviderName);
     }
 
-    [Fact]
-    public async Task SearchAsync_ReturnsExactlyFourFixedFlights()
+    /// <summary>
+    /// Route-filtering fix: only the schedule entry whose Origin/Destination exactly
+    /// matches the requested route is returned, one flight per known GlobalAir route
+    /// (feature-provider-aggregation.md Section 3.1's 4 fixed entries, each on a distinct
+    /// route). Case-insensitivity is covered separately below.
+    /// </summary>
+    [Theory]
+    [InlineData("LHR", "JFK", "GA101")]
+    [InlineData("LHR", "DXB", "GA204")]
+    [InlineData("JFK", "LAX", "GA309")]
+    [InlineData("MAN", "LHR", "GA412")]
+    public async Task SearchAsync_FiltersToRequestedRoute_ReturnsOnlyTheMatchingFixedFlight(
+        string origin, string destination, string expectedFlightNumber)
     {
-        var results = await _provider.SearchAsync(MakeRequest(), CancellationToken.None);
+        var results = await _provider.SearchAsync(MakeRequest(origin: origin, destination: destination), CancellationToken.None);
 
-        Assert.Equal(4, results.Count);
-        Assert.All(results, r => Assert.Equal("GlobalAir", r.Provider));
-        Assert.Contains(results, r => r.FlightNumber == "GA101");
-        Assert.Contains(results, r => r.FlightNumber == "GA204");
-        Assert.Contains(results, r => r.FlightNumber == "GA309");
-        Assert.Contains(results, r => r.FlightNumber == "GA412");
+        var flight = Assert.Single(results);
+        Assert.Equal("GlobalAir", flight.Provider);
+        Assert.Equal(expectedFlightNumber, flight.FlightNumber);
+    }
+
+    /// <summary>
+    /// Route-filtering fix: matching is case-insensitive on the airport code (consistent
+    /// with the codebase's existing convention that Origin/Destination are validated
+    /// upstream by SearchRequestValidator's case-sensitive uppercase-only regex before ever
+    /// reaching a provider — this is defense in depth for any caller that bypasses that
+    /// validator, e.g. a direct unit test).
+    /// </summary>
+    [Fact]
+    public async Task SearchAsync_MatchesRoute_CaseInsensitively()
+    {
+        var results = await _provider.SearchAsync(MakeRequest(origin: "lhr", destination: "jfk"), CancellationToken.None);
+
+        var flight = Assert.Single(results);
+        Assert.Equal("GA101", flight.FlightNumber);
+    }
+
+    /// <summary>
+    /// Route-filtering fix: a route with no scheduled flight in this provider's fixed
+    /// dataset must return an empty list, not an error — preserving the existing "empty
+    /// state" UI contract (feature-provider-aggregation.md Section 2).
+    /// </summary>
+    [Fact]
+    public async Task SearchAsync_NoScheduledFlightForRoute_ReturnsEmptyList()
+    {
+        // GlobalAir's only LHR/MAN-adjacent entries are LHR->JFK and MAN->LHR — the reverse
+        // direction, LHR->MAN, has no fixed entry in either provider's schedule.
+        var results = await _provider.SearchAsync(MakeRequest(origin: "LHR", destination: "MAN"), CancellationToken.None);
+
+        Assert.Empty(results);
     }
 
     [Theory]
-    [InlineData("GA101", "Economy", 250.00, 287.50)]
-    [InlineData("GA101", "Business", 500.00, 575.00)]
-    [InlineData("GA101", "First Class", 875.00, 1006.25)]
-    [InlineData("GA412", "Economy", 80.00, 92.00)]
+    [InlineData("GA101", "LHR", "JFK", "Economy", 250.00, 287.50)]
+    [InlineData("GA101", "LHR", "JFK", "Business", 500.00, 575.00)]
+    [InlineData("GA101", "LHR", "JFK", "First Class", 875.00, 1006.25)]
+    [InlineData("GA412", "MAN", "LHR", "Economy", 80.00, 92.00)]
     public async Task SearchAsync_AppliesBR001PricingFormula_PerWorkedExamples(
-        string flightNumber, string cabinClass, decimal expectedBaseFare, decimal expectedPricePerPassenger)
+        string flightNumber, string origin, string destination, string cabinClass,
+        decimal expectedBaseFare, decimal expectedPricePerPassenger)
     {
-        var results = await _provider.SearchAsync(MakeRequest(cabinClass), CancellationToken.None);
+        var results = await _provider.SearchAsync(MakeRequest(cabinClass, origin: origin, destination: destination), CancellationToken.None);
         var flight = Assert.Single(results, r => r.FlightNumber == flightNumber);
 
         Assert.Equal(expectedBaseFare, flight.BaseFare);
@@ -60,9 +110,9 @@ public class GlobalAirProviderTests
     [Fact]
     public async Task SearchAsync_CabinClassMultipliers_ScaleBaseFareRelativeToEconomy()
     {
-        var economy = await _provider.SearchAsync(MakeRequest("Economy"), CancellationToken.None);
-        var business = await _provider.SearchAsync(MakeRequest("Business"), CancellationToken.None);
-        var first = await _provider.SearchAsync(MakeRequest("First Class"), CancellationToken.None);
+        var economy = await _provider.SearchAsync(MakeRequest("Economy", origin: "JFK", destination: "LAX"), CancellationToken.None);
+        var business = await _provider.SearchAsync(MakeRequest("Business", origin: "JFK", destination: "LAX"), CancellationToken.None);
+        var first = await _provider.SearchAsync(MakeRequest("First Class", origin: "JFK", destination: "LAX"), CancellationToken.None);
 
         var economyBase = economy.Single(r => r.FlightNumber == "GA309").BaseFare;
         var businessBase = business.Single(r => r.FlightNumber == "GA309").BaseFare;
@@ -88,7 +138,8 @@ public class GlobalAirProviderTests
     {
         // GA204 departs 22:00, duration 450 minutes (7h30m) -> arrives 05:30 the next day
         // (feature-provider-aggregation.md Section 5).
-        var results = await _provider.SearchAsync(MakeRequest(departureDate: new DateOnly(2026, 8, 1)), CancellationToken.None);
+        var results = await _provider.SearchAsync(
+            MakeRequest(departureDate: new DateOnly(2026, 8, 1), origin: "LHR", destination: "DXB"), CancellationToken.None);
         var ga204 = results.Single(r => r.FlightNumber == "GA204");
 
         Assert.Equal(new DateTime(2026, 8, 1, 22, 0, 0, DateTimeKind.Utc), ga204.DepartureDateTime);

@@ -50,8 +50,15 @@ public class SearchControllerTests : IClassFixture<SkyRouteApiFactory>
         TripType = "OneWay",
     };
 
+    /// <summary>
+    /// Route-filtering fix (requirements-compliance follow-up, reversing ASM-006/OQ-003):
+    /// each provider's fixed schedule is now filtered to the requested route before
+    /// merging, so LHR-&gt;JFK (MakeValidRequest) yields exactly the one matching flight
+    /// from each provider (GA101, BW210) rather than each provider's full 4-flight
+    /// schedule. Still proves both providers were queried and merged (BR-007/FR-049).
+    /// </summary>
     [Fact]
-    public async Task Search_ValidRequest_Returns200WithEightMergedResultsFromBothProviders()
+    public async Task Search_ValidRequest_Returns200WithResultsFilteredToRequestedRouteFromBothProviders()
     {
         var client = _factory.CreateHttpsClient();
 
@@ -63,10 +70,12 @@ public class SearchControllerTests : IClassFixture<SkyRouteApiFactory>
         var results = JsonSerializer.Deserialize<List<FlightResultDto>>(body, CaseInsensitiveOptions);
 
         Assert.NotNull(results);
-        Assert.Equal(8, results!.Count);
+        Assert.Equal(2, results!.Count);
         Assert.All(results, r => Assert.Contains(r.Provider, new[] { "GlobalAir", "BudgetWings" }));
-        Assert.Equal(4, results.Count(r => r.Provider == "GlobalAir"));
-        Assert.Equal(4, results.Count(r => r.Provider == "BudgetWings"));
+        Assert.All(results, r => Assert.Equal("LHR", r.Origin));
+        Assert.All(results, r => Assert.Equal("JFK", r.Destination));
+        Assert.Contains(results, r => r.Provider == "GlobalAir" && r.FlightNumber == "GA101");
+        Assert.Contains(results, r => r.Provider == "BudgetWings" && r.FlightNumber == "BW210");
     }
 
     [Fact]
@@ -112,9 +121,12 @@ public class SearchControllerTests : IClassFixture<SkyRouteApiFactory>
         var body = await response.Content.ReadAsStringAsync();
         var results = JsonSerializer.Deserialize<List<FlightResultDto>>(body, CaseInsensitiveOptions);
 
+        // Route-filtering fix: LHR->JFK matches exactly one GlobalAir flight (GA101) in the
+        // fixed schedule, not the provider's full 4-flight schedule.
         Assert.NotNull(results);
-        Assert.Equal(4, results!.Count);
-        Assert.All(results, r => Assert.Equal("GlobalAir", r.Provider));
+        var flight = Assert.Single(results!);
+        Assert.Equal("GlobalAir", flight.Provider);
+        Assert.Equal("GA101", flight.FlightNumber);
         Assert.DoesNotContain("BudgetWings", body);
     }
 }

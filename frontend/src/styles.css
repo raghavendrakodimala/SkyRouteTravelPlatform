@@ -1,1 +1,184 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global styles — design tokens and base type system per the approved visual design spec
+   (docs/design/visual-design-spec.md, DESIGN-VISUAL-001). Component stylesheets reference
+   these custom properties; do not hard-code the hex/px values a second time anywhere else. */
+
+/* Requirements compliance fix (post-Phase-17, docs/handoffs/27-lead-full-stack-engineer-to-sdlc-orchestrator-colorscheme-fix.md):
+   Explicitly declare a light color scheme. Without this, an OS/browser in dark mode
+   (prefers-color-scheme: dark) triggers Chrome's automatic "darken web pages" heuristic,
+   which inverts the page — near-black body, barely-readable dark maroon/brown headings —
+   while native form controls (input/select/button) stay light, producing a broken-looking,
+   low-contrast UI. Declaring `color-scheme: light` opts the app out of that inversion and
+   keeps native form-control theming consistent with the light theme the component styles
+   already assume (#ffffff / #f7f9fc / #fdecea / #fff8e1 accents in results-list,
+   booking-form, etc.). */
+:root {
+  color-scheme: light;
+
+  /* ---- Color: brand ---- */
+  --color-primary: #1a5fb4;         /* existing brand blue — unchanged, reused everywhere below */
+  --color-primary-hover: #164e93;   /* ~15% darker, for hover states */
+  --color-primary-active: #123f78;  /* ~30% darker, for :active/pressed states */
+  --color-primary-tint: #eef4fc;    /* existing confirmation booking-reference background */
+  --color-link: var(--color-primary);
+
+  /* ---- Color: brand extension (UI overhaul, PO directive 2026-07-07) ---- */
+  --color-navy: #0f2b56;            /* header/footer — white on navy = 13.4:1 */
+  --color-navy-deep: #0a1f3f;       /* footer / pressed navy */
+  --gradient-hero: linear-gradient(135deg, #0f2b56 0%, #1a5fb4 55%, #3b82d4 100%);
+  --color-page-bg: #f4f6fa;         /* tinted page canvas behind white surface cards */
+  --color-price: #9a3412;           /* warm price accent — 6.4:1 on white, 5.9:1 on #f7f9fc */
+  --color-success: #1a7f37;         /* confirmation check — 4.7:1 on white */
+  --color-success-bg: #e6f4ea;
+  --color-provider-ga: #123f78;     /* GlobalAir badge (white text = 10.4:1) */
+  --color-provider-bw: #7a3e00;     /* BudgetWings badge (white text = 7.9:1) */
+
+  /* ---- Color: neutrals ---- */
+  --color-white: #ffffff;
+  --color-neutral-900: #1a1a1a;     /* body/heading text — near-black, softer than pure #000 */
+  --color-neutral-700: #444444;     /* existing .timing text color */
+  --color-neutral-600: #555555;     /* existing .per-person-price / .lead-badge / .required-indicator color */
+  --color-neutral-400: #999999;     /* existing sort-option inactive border */
+  --color-neutral-300: #cccccc;     /* existing passenger-section border */
+  --color-neutral-200: #dddddd;     /* existing result-card / price-breakdown border */
+  --color-neutral-100: #f2f4f7;     /* new — disabled form-control background only */
+  --color-border-control: #767676;  /* new — form input/select border, spec §4 contrast note */
+  --color-surface-subtle: #f7f9fc;  /* existing price-breakdown background */
+
+  /* ---- Color: status (all existing values, reused as-is) ---- */
+  --color-error: #b00020;
+  --color-error-bg: #fdecea;
+  --color-warning-text: #665c00;
+  --color-warning-bg: #fff8e1;
+  --color-warning-border: #e0c200;
+
+  /* ---- Typography ---- */
+  --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-size-xs: 0.75rem;     /* 12px */
+  --font-size-sm: 0.875rem;    /* 14px */
+  --font-size-base: 1rem;      /* 16px */
+  --font-size-lg: 1.125rem;    /* 18px */
+  --font-size-xl: 1.25rem;     /* 20px */
+  --font-size-2xl: 1.5rem;     /* 24px */
+  --font-size-3xl: 1.875rem;   /* 30px */
+  --font-size-4xl: 2rem;       /* 32px — existing booking-reference size */
+  --line-height-base: 1.5;
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800; /* existing booking-reference weight */
+
+  /* ---- Spacing (4px rhythm) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* ---- Radius ---- */
+  --radius-sm: 6px;   /* form controls, buttons, alert banners */
+  --radius-md: 10px;  /* cards / sections */
+  --radius-lg: 12px;  /* hero card, ticket, booking-reference badge */
+  --radius-pill: 999px;
+
+  /* ---- Elevation ---- */
+  --shadow-sm: 0 1px 2px rgba(15, 43, 86, 0.06);
+  --shadow-md: 0 2px 6px rgba(15, 43, 86, 0.08);
+  --shadow-card: 0 1px 3px rgba(15, 43, 86, 0.08), 0 6px 20px rgba(15, 43, 86, 0.07);
+  --shadow-lg: 0 12px 32px rgba(15, 43, 86, 0.16);
+
+  /* ---- Motion ---- */
+  --transition-fast: 150ms ease;
+
+  /* ---- Misc ---- */
+  --opacity-disabled: 0.6; /* existing button:disabled value, unchanged */
+}
+
+/* Spec §1: once form controls gain border + padding, this prevents them from overflowing
+   their flex containers (every `.field` is `display:flex; flex-direction:column`, so its
+   input/select children stretch to the container width; adding border+padding without
+   border-box sizing would push them wider than the container). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  /* Tinted page canvas (UI overhaul): still an explicitly light background, so the
+     color-scheme fix above keeps doing its job. */
+  background-color: var(--color-page-bg);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-neutral-900);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden; /* full-bleed hero uses 100vw; keep scrollbar width from causing a horizontal scroll */
+}
+
+/* App shell: sticky-footer column so the navy footer sits at the viewport bottom on
+   short pages without overlapping content on long ones. */
+app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+app-root > main {
+  flex: 1 0 auto;
+}
+
+/* Spec §2: one family app-wide — removes the accidental serif-heading fallback. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-neutral-900);
+  margin: 0 0 var(--space-4);
+}
+
+h1 { font-size: var(--font-size-3xl); } /* 30px — page-purpose headings */
+h2 { font-size: var(--font-size-xl); }  /* 20px */
+h3 { font-size: var(--font-size-lg); }  /* 18px */
+
+/* Spec §6: no <a> elements exist in templates today; this keeps the accent color consistent
+   for any link added later. */
+a {
+  color: var(--color-link);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Spec §5.2/§6 — global, additive focus treatment for buttons (never `outline: none`
+   anywhere; this supplements, and is never a replacement for, the native focus mechanism
+   the Phase 17 accessibility review confirmed intact). */
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Motion in this design system is limited to the `--transition-fast` hover/focus
+   transitions; honor users who opt out of motion entirely. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

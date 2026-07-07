@@ -7,9 +7,9 @@
 | Field | Value |
 |---|---|
 | Document ID | FEAT-FS-001 |
-| Version | 1.0 |
-| Date | 2026-07-03 |
-| Status | Draft — Ready for Phase 11 Spec Readiness Check |
+| Version | 1.1 |
+| Date | 2026-07-03 (v1.1 amendments 2026-07-07) |
+| Status | Implemented (2026-07-07) — v1.1 amendments: submit button never natively disabled (A11Y-007/A11Y-008, Section 1); passenger-count field removed from the search form per Product Owner UX decision 2026-07-07 (Section 1, supersedes GAP-FS-02); empty state now reachable via ASM-006 v1.5 route filtering (Section 5.2) |
 | Owner | solution-architect |
 | Source | `docs/requirements.md` v1.4, `docs/specs/non-functional-requirements.md` v1.0, `docs/architecture/architecture-plan.md` v1.0, `docs/testing/test-strategy.md` v1.0 |
 | Phase | Phase 10 — Feature Specifications |
@@ -31,11 +31,11 @@ Search **results** display and sorting are specified separately in `docs/feature
 | Origin | Dropdown (`<select>`), populated from `AIRPORTS` constant (BL-022) | One of the static airport codes (min. 6 airports, min. 2 countries — FR-056) | Yes | Must differ from Destination (US-001 AC8) | US-001 AC1, FR-006, FR-056–059 |
 | Destination | Dropdown (`<select>`), same source as Origin | Same as Origin | Yes | Must differ from Origin (US-001 AC8) | US-001 AC1, FR-006 |
 | Departure Date | Native browser date input (`<input type="date">`, ASM-010 — no custom calendar widget) | Today or any future date | Yes | Cannot be in the past (US-001 AC9); browser `min` attribute set to today's date as a convenience affordance | US-001 AC2, AC9, FR-003 |
-| Passenger Count | Dropdown (`<select>`) with exactly 9 options, values `1`–`9` | Integer, 1–9 inclusive | Yes | Range is unrepresentable outside 1–9 by construction (Gap-fill FS-02, Section 8) | US-001 AC3, FR-004 |
+| Passenger Count | **Not a visible form control** (amended 2026-07-07, Product Owner UX decision — passenger capture moved to the booking screen; supersedes Gap-fill FS-02, Section 8) | Fixed literal `1` sent on every request; the API contract still validates 1–9 (FR-004) | Sent on every request, not user-editable | N/A — the number of passengers is decided during booking by adding passengers one at a time (up to 9); see `docs/features/feature-booking-flow.md` Section 2 | US-001 AC3, FR-004 (as amended) |
 | Cabin Class | Dropdown (`<select>`) or radio group, exactly 3 options | `Economy`, `Business`, `First Class` (exact literal strings, including the space in "First Class") | Yes | N/A — fixed option set | US-001 AC4, FR-005 |
 | Trip Type | **Not a visible form control** (Gap-fill FS-01, Section 8) | Fixed literal `OneWay` | Sent on every request, not user-editable | N/A | FR-001, FR-005b, BR-013 |
 
-The "Search" submit button is disabled while any required field is empty or fails its client-side mirror rule (US-001 AC5, DP-014).
+The "Search" submit button is **never natively disabled** (amended per accessibility findings A11Y-007/A11Y-008, 2026-07-07 — a disabled-until-valid submit drops keyboard focus to `<body>` and makes the inline validation alerts unreachable). US-001 AC5 ("the user cannot submit the form while any required field is empty or invalid") is instead satisfied by intercepting the submit attempt client-side (DP-014): activating Search while any required field is empty or fails its client-side mirror rule surfaces the inline `role="alert"` validation message(s) for the offending field(s), moves focus to the first invalid control (for the group-level same-airport rule, the destination select), and never sends the API request. While a search request is in flight, the button conveys its unavailable state via `aria-disabled="true"` plus a re-entrant submit guard — not the native `disabled` attribute — so focus is preserved mid-request.
 
 ### 1.1 Airport Dropdown Data Shape (US-008)
 
@@ -89,7 +89,7 @@ The backend independently maintains its own static `AirportDataService` (BL-004)
 | `origin` | string | 3 uppercase letters | Must be a known airport code (FR-006) |
 | `destination` | string | 3 uppercase letters | Must be a known airport code, must differ from `origin` (FR-002) |
 | `departureDate` | string | `YYYY-MM-DD` (ISO 8601 date, no time component) | Must not be in the past (FR-003) |
-| `passengerCount` | integer | 1–9 inclusive | FR-004 |
+| `passengerCount` | integer | 1–9 inclusive | FR-004. The current frontend always sends `1` (Product Owner UX decision 2026-07-07 — passenger count is captured during booking, not search); the backend contract continues to accept and validate 1–9 for direct API callers |
 | `cabinClass` | string | Exactly one of `"Economy"`, `"Business"`, `"First Class"` | FR-005 |
 | `tripType` | string | Exactly `"OneWay"` | FR-005b, BR-013 — the only currently valid value; any other value or absence is a 400 |
 
@@ -146,11 +146,11 @@ Multiple simultaneous failures (e.g., past date AND passenger count out of range
 
 - Triggered: immediately on valid form submission, before the HTTP call resolves.
 - Duration: from submission until the response (success or error) is received (FR-013).
-- Behavior: submit button is disabled and shows a loading affordance (e.g., spinner + "Searching…" label — exact visual treatment is a UI-styling choice, not a behavioral requirement); the results area shows a loading indicator, not stale prior results, while a request is in flight for a *new* search. (Note: US-002 AC8 — results from a *previous completed* search remain visible until the user *initiates a new search*; once a new search is initiated, the loading state supersedes the prior results view.)
+- Behavior: submit button conveys an unavailable state via `aria-disabled="true"` with a re-entrant submit guard (never the native `disabled` attribute — A11Y-007, Section 1) and shows a loading affordance (e.g., spinner + "Searching…" label — exact visual treatment is a UI-styling choice, not a behavioral requirement); the results area shows a loading indicator, not stale prior results, while a request is in flight for a *new* search. (Note: US-002 AC8 — results from a *previous completed* search remain visible until the user *initiates a new search*; once a new search is initiated, the loading state supersedes the prior results view.)
 
 ### 5.2 Empty State
 
-- Triggered: `200 OK` response with an empty array (`[]`) — a legitimate outcome, not an error, e.g., if every provider result for the requested cabin class happens to be filtered out at a future point, or (in the current fixed-mock-data design) never in practice, but the UI must still handle it per FR-014.
+- Triggered: `200 OK` response with an empty array (`[]`) — a legitimate outcome, not an error. Since the ASM-006 v1.5 route-filtering revision (2026-07-07), this state is reachable in practice: a searched route present in neither provider's fixed schedule (e.g., `LHR → MAN`) returns `[]` (see `docs/features/feature-provider-aggregation.md` Section 2). The UI must handle it per FR-014.
 - Exact message (already specified verbatim in US-002 AC6 — not a new decision): `"No flights found for your search. Please try different criteria."`
 
 ### 5.3 Error State
@@ -181,11 +181,11 @@ This document introduces no new endpoint, field, or business rule beyond `docs/r
 | ID | Decision | Rationale |
 |---|---|---|
 | GAP-FS-01 | `tripType` is not a visible/editable form control; the frontend sends the fixed literal `"OneWay"` on every request. | BR-013 permits only one valid value for MVP; a single-option control adds no user value and costs implementation time against the EOD deadline. |
-| GAP-FS-02 | Passenger count uses a `<select>` dropdown with exactly the 9 options `1`–`9`, not a free numeric input. | Makes FR-004's 1–9 range structurally unrepresentable outside the valid set, removing a class of client-side edge cases (e.g., decimals, negative numbers) at zero extra cost. |
+| GAP-FS-02 | ~~Passenger count uses a `<select>` dropdown with exactly the 9 options `1`–`9`, not a free numeric input.~~ **Superseded 2026-07-07** (Product Owner UX decision): the passenger field was removed from the search form entirely; the frontend sends the fixed literal `1` and the number of passengers is captured on the booking screen (one passenger at a time, up to 9). | Original rationale: makes FR-004's 1–9 range structurally unrepresentable outside the valid set. Superseding rationale: passenger count is decided where it is used — during booking — and the booking screen's live price breakdown reflects the actual count entered. |
 | GAP-FS-03 | Exact validation error message strings (Section 4.1). | FR-063 requires field-level detail but not exact wording; fixing the wording now prevents inconsistent messages between the backend validator and the frontend's mirrored validation (DP-014). |
 | GAP-FS-04 | Exact server-error and network-failure user-facing message strings (Section 5.3). | FR-015/FR-072 require a user-facing message but not exact wording. |
 | GAP-FS-05 | Field-error JSON keys use camelCase matching the request body property names (e.g., `origin`, `departureDate`, `passengerCount`). | FR-063 does not specify a key-naming convention; camelCase matches the request/response body convention already established in the architecture plan. |
 
 ---
 
-*End of Feature Specification — Flight Search v1.0.*
+*End of Feature Specification — Flight Search v1.1 (2026-07-07 amendments: submit-attempt validation pattern, passenger capture moved to booking, reachable empty state).*
