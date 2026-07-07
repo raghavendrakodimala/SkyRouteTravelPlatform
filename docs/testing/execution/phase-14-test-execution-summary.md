@@ -174,13 +174,22 @@ No discrepancy found between the traceability matrix's claims and the actual tes
 
 | ID | Severity | One-line summary | Status |
 |---|---|---|---|
-| QA-001 | Medium | `BookingRequestValidator`/`BookingService` null-handling inconsistency — a crafted `"passengers": null` request causes an unhandled 500 instead of a clean 400 (not reachable via the real frontend) | **Open** — deferred to Phase 19 |
-| QA-002 | Low | `ApiExceptionMiddleware` sets `Content-Type: application/problem+json` but `WriteAsJsonAsync` overwrites it to `application/json` — cosmetic contract-precision mismatch only | **Open** — deferred to Phase 19 |
+| QA-001 | Medium | `BookingRequestValidator`/`BookingService` null-handling inconsistency — a crafted `"passengers": null` request causes an unhandled 500 instead of a clean 400 (not reachable via the real frontend) | **Resolved** — Phase 20 re-verified 2026-07-07 (see note below) |
+| QA-002 | Low | `ApiExceptionMiddleware` sets `Content-Type: application/problem+json` but `WriteAsJsonAsync` overwrites it to `application/json` — cosmetic contract-precision mismatch only | **Resolved** — Phase 20 re-verified 2026-07-07 (see note below) |
 | QA-003 | Critical | `BookingFormComponent`'s `<form>` had no `[formGroup]`, so `(ngSubmit)` never fired — no booking could be completed in a real browser | **Resolved** — confirmed by this session's independent 11/11 E2E re-run (no regression) |
-| QA-004 | Low | `search-form.component.html`'s same-airport inline error paragraph is dead code (button-disabled behavior already satisfies the requirement) | **Open** — deferred to Phase 19 |
-| QA-005 | Low | `passengerCount` submitted as a JSON string (e.g. `"1"`) rather than a number via the native `<select>`; a non-numeric string would 500 rather than 400 (not reachable via the real UI today) | **Open** — deferred to Phase 19 |
+| QA-004 | Low | `search-form.component.html`'s same-airport inline error paragraph is dead code (button-disabled behavior already satisfies the requirement) | **Closed - Moot** — Phase 20 re-verified 2026-07-07 (see note below) |
+| QA-005 | Low | `passengerCount` submitted as a JSON string (e.g. `"1"`) rather than a number via the native `<select>`; a non-numeric string would 500 rather than 400 (not reachable via the real UI today) | **Closed - Moot** — Phase 20 re-verified 2026-07-07 (see note below) |
 
 No new QA finding (QA-006+) was raised during this Phase 14 independent re-verification.
+
+**Phase 20 re-verification note (functional-tester, 2026-07-07, branch `sdlc/20-retest-rereview-skyroute-mvp`, base commit `f4ae3da`):** all four previously-Open findings were independently re-verified against current source and current test runs — not against Phase 19's fix claims:
+
+- **QA-001 → Resolved.** `BookingRequestValidator.ValidateStructure` null-coalesces `Passengers` and null-guards `Flight`; two new raw-JSON integration tests in `tests/SkyRoute.Api.IntegrationTests/Controllers/BookingControllerTests.cs` (`CreateBooking_ExplicitNullPassengers_Returns400ValidationProblem_Not500`, `CreateBooking_ExplicitNullFlightAndNullPassengers_Returns400ValidationProblem_Not500`) post the exact crafted payloads over HTTP and assert 400 `ValidationProblemDetails` with field errors. Both pass in this session's 15/15 integration run.
+- **QA-002 → Resolved.** `src/SkyRoute.Api/Middleware/ApiExceptionMiddleware.cs` now passes the content type through `WriteAsJsonAsync(body, options: null, contentType: "application/problem+json")` (the dead pre-assignment was removed); `InvokeAsync_WhenNextThrows_SetsProblemJsonContentType` asserts exact equality to `application/problem+json` and passes.
+- **QA-004 → Closed - Moot.** The premise (unreachable dead paragraph behind a natively-disabled submit) no longer holds: the A11Y-007/A11Y-008 rework removed native `disabled` (`[attr.aria-disabled]` only), so an invalid submit reaches `onSubmit()`, sets `submitted(true)`, and renders the same-airport alert at `search-form.component.html` lines 36–38. The branch is reachable and load-bearing — verified in source, in the Vitest spec, and live by Playwright e2e test "US-001 AC8 / US-008 AC4" (passing in this session's 12/12 run).
+- **QA-005 → Closed - Moot.** The passenger-count `<select>` no longer exists; `search-form.component.ts` line 85 submits the numeric literal `passengerCount: 1` (PO decision 2026-07-07). Pinned by Vitest specs and Playwright e2e test "PO 2026-07-07: the search form has NO passenger count field and always submits passengerCount 1" (passing in this session's 12/12 run).
+
+**Zero Open QA findings remain.** Full Phase 20 evidence: `docs/testing/execution/phase-20-retest-summary.md`.
 
 ---
 
@@ -206,6 +215,21 @@ All three automated test layers are independently re-verified and green in this 
 No failed test, no flaky result, and no new Critical/High finding was found during this independent re-verification. The 4 remaining Open findings (QA-001 Medium, QA-002/QA-004/QA-005 Low) are correctly scoped to Phase 19 and do not, in this QA owner's judgment, block progression to Phase 15.
 
 **Explicit caveat for the orchestrator/human PO:** this recommendation covers functional test-execution readiness only. Accessibility review (Phase 17), security review (Phase 16), and performance review (Phase 18) have not yet been performed and are separate, later-phase gates per CLAUDE.md's phase sequence — they are not blockers for Phase 14 completion itself, but Definition of Done for the sprint as a whole (CLAUDE.md Section 10) still requires them before final merge to `main`. Coverage-percentage measurement (NFR-TEST-005) also remains unmeasured pending a separate approved run (Section 8) and should not be conflated with the pass/fail results reported here.
+
+---
+
+## 10. Addendum — Suite Counts Superseded (functional-tester, 2026-07-07, Phase 20)
+
+The suite counts in Sections 3, 5, and 9 (backend 114, frontend 145, E2E 11; grand total 270) are **historical** — accurate for commit `22d87db` at Phase 14 execution time and deliberately left unedited above. The suites have since grown through the Phase 15–19 review-fix loops and the PO-directed booking-flow rework. As of the Phase 20 independent re-run on 2026-07-07 (branch `sdlc/20-retest-rereview-skyroute-mvp`, base `f4ae3da`), the current counts are:
+
+| Suite | Passed | Failed | Skipped | Total | Files |
+|---|---|---|---|---|---|
+| Backend (Application.Tests + Api.IntegrationTests) | 172 (157 + 15) | 0 | 0 | 172 | 2 projects |
+| Frontend unit/component (Vitest) | 181 | 0 | 0 | 181 | 17 |
+| E2E (Playwright, chromium) | 12 | 0 | 0 | 12 | 6 |
+| **Grand total** | **365** | **0** | **0** | **365** | — |
+
+For current-state evidence, consult `docs/testing/execution/phase-20-retest-summary.md`, not the Section 3 tables above.
 
 ---
 
