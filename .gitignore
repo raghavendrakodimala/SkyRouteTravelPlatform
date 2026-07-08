@@ -56,6 +56,15 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 
+*.bin
+*.db
+*.v2
+*.suo
+*.user
+/.vs/SkyRoute/CopilotIndices/*
+/.vs/SkyRoute.slnx/v18/*
+*.vsidx
+
 # Front-end files
 node_modules/
 dist/
