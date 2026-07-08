@@ -141,18 +141,34 @@ Note: Bookings→Flights is deliberately **not** a hard FK — AD-004 persists a
 
 ## 4. Current-State Persistence Note
 
-Persistence today is **in-memory only**: `InMemoryBookingStore` (`src/Service/SkyRoute.Infrastructure/Persistence/InMemoryBookingStore.cs`), a singleton `ConcurrentDictionary<string, Booking>` keyed by booking reference, behind `IBookingStore` (the sole persistence contract; no persistence-technology type leaks through it — DP-PERSIST-001). Data does not survive restart. Airports, provider schedules, and cabin multipliers are hardcoded constants, not stored data.
+As of 2026-07-08 (DEC-025), booking persistence is **EF Core over SQLite** — the Bookings aggregate of this model is now a **real, constraint-enforcing schema**, not just a design doc. Two `IBookingStore` implementations coexist behind the sole persistence contract (no persistence-technology type leaks through it — DP-PERSIST-001, all EF Core code confined to `SkyRoute.Infrastructure`):
 
-| Integrity rule | Enforced today by | Moves to schema? |
+- **`EfCoreBookingStore`** (`src/Service/SkyRoute.Infrastructure/Persistence/EfCoreBookingStore.cs`) — **the registered default.** Maps `Booking` (+ owned `BookingFlightSnapshot`, owned `PassengerDetail` collection) via `AppDbContext`/`BookingConfiguration` (Fluent API only; domain POCOs stay annotation-free, DP-PERSIST-002). `EnsureCreated()` builds the tables + PK/NOT NULL/CHECK constraints at startup. Uniqueness is enforced by the Bookings PK: a duplicate reference makes SaveChanges raise a SQLite UNIQUE/PRIMARY KEY violation, which the store translates back into the same `DuplicateBookingReferenceException` the in-memory store throws — so `BookingService`'s CR-003 bounded-retry loop is unchanged.
+- **`InMemoryBookingStore`** — retained as the alternative implementation (its unit tests still pass), demonstrating the swappable `IBookingStore` seam.
+
+**Swap-ready by configuration (NFR-MAINT-001, DP-PERSIST-003).** With no `ConnectionStrings:Bookings` key configured, persistence defaults to a single SQLite `:memory:` connection opened once and kept open for the app lifetime (registered as a singleton) so a scoped `AppDbContext` reuses it — bookings persist across requests within a run but not across restarts. Supplying that connection string switches to a durable database (a file-based SQLite path today; a one-line `UseSqlServer(cs)`/`UseNpgsql(cs)` change plus its NuGet package for SQL Server/PostgreSQL) with **no change to the DbContext, mappings, store, or domain**. Each `WebApplicationFactory` integration-test host gets its own isolated, schema-created in-memory database.
+
+Airports, provider schedules, and cabin multipliers remain hardcoded constants, not stored data (reference-data tables are still §5.3 Phase C, not yet adopted).
+
+**Mapping fidelity notes (EF Core current-state schema vs. §5.1 target DDL):**
+- The current schema covers the **Bookings aggregate only** (Bookings + BookingPassengers); the reference-data tables (Airports/Providers/CabinClasses/Flights) and the Bookings→reference FKs remain a §5.3 Phase C item.
+- `PassengerOrdinal` is realized as a **1-based** (1..9) EF-managed order-preserving ordinal that, with the FK, forms the BookingPassengers PK — natively realizing §1.7's `UNIQUE(BookingReference, PassengerOrdinal)`; the surrogate `BookingPassengerId` identity in §1.7 is therefore unnecessary and not created.
+- `PassengerCount` is **materialized** as a shadow column (set from `Passengers.Count`) to carry the 1–9 CHECK (§5.4 item 3), even though the domain object derives it from the list.
+- `RouteType` is **not** materialized in the current schema — the domain `Booking` does not carry it (it is implicit in the reference prefix); §5.4 item 2's materialized `RouteType` column stays a future item.
+- `CabinClass` is stored in **two** columns (`Bookings.CabinClass` + `Bookings.FlightCabinClass`, always identical) because the immutable domain carries both fields; §5.4 item 1's "one column" ideal is a future normalization, not applied so the domain is untouched.
+- SQLite has no `DECIMAL`/`DATETIME2`: money is stored as exact-scale TEXT (positivity CHECKs `CAST(... AS REAL) > 0`) and `DateTime` as lexically-sortable ISO-8601 TEXT (the `Arrival > Departure` CHECK relies on that ordering). A real provider swap emits the native `DECIMAL(10,2) > 0` / `DATETIME2` comparisons unchanged.
+
+| Integrity rule | Enforced now by | In the live EF schema? |
 |---|---|---|
-| Booking reference unique (NFR-DATA-001) | `TryAdd` + `DuplicateBookingReferenceException` + service retry | Yes — PK/unique index |
-| Reference format SKY-INT/DOM-XXXXXX | `BookingReferenceGenerator` only (store never checks format) | Yes — CHECK constraint (defense in depth) |
-| PassengerCount 1–9; count == rows | `BookingRequestValidator` | CHECK 1–9 yes; count==rows stays app-enforced (cross-table) |
-| Document type ↔ route type; document/email/name patterns | `BookingRequestValidator` + `DocumentPatterns` | Type allow-list + lengths yes; regex + route-match stay app-enforced |
-| Age 0–120 per passenger (sanity bounds only; no business rule bound to age — PO 2026-07-08, DEC-022) | `BookingRequestValidator.ValidateStructure` | Yes — CHECK 0–120 |
-| Fare authenticity, total = price × count (NFR-DATA-002) | `FlightFareResolver` + `BookingService` recomputation | Stays app-enforced (CHECK > 0 only in schema) |
-| Route type server-resolved (NFR-DATA-004) | `RouteTypeResolver` | Stays app-enforced; result materialized as column |
-| Tenant scoping | `ListByTenantAsync` filter only (single-tenant MVP) | Yes — NOT NULL + index; row-level isolation when multi-tenant |
+| Booking reference unique (NFR-DATA-001) | Bookings PK; SaveChanges UNIQUE/PK violation → `DuplicateBookingReferenceException` → service retry | **Yes — PK enforced at the DB** |
+| Reference format SKY-INT/DOM-XXXXXX | `BookingReferenceGenerator` + DB CHECK (defense in depth) | **Yes — `CK_Bookings_RefFormat`** |
+| PassengerCount 1–9; count == rows | `BookingRequestValidator` + DB CHECK on materialized column | **CHECK 1–9 yes (`CK_Bookings_PaxCount`)**; count==rows stays app-enforced (cross-table) |
+| Document type allow-list; document/email/name lengths | `BookingRequestValidator` + `DocumentPatterns` + DB CHECKs | **Type allow-list + lengths yes (`CK_BookingPassengers_DocType`/`_NameLen`/`_DocLen`)**; regex + route-match stay app-enforced |
+| Age 0–120 per passenger (sanity bounds only; no business rule bound to age — PO 2026-07-08, DEC-022) | `BookingRequestValidator.ValidateStructure` + DB CHECK | **Yes — `CK_BookingPassengers_Age`** |
+| Fare authenticity, total = price × count (NFR-DATA-002) | `FlightFareResolver` + `BookingService` recomputation; DB CHECK `> 0` | Positivity yes (`CK_Bookings_Total`/`_Price`); authenticity stays app-enforced |
+| Arrival strictly after departure | `ProviderScheduleMapper` construction + DB CHECK | **Yes — `CK_Bookings_Times`** |
+| Route type server-resolved (NFR-DATA-004) | `RouteTypeResolver` | App-enforced; not yet materialized as a column |
+| Tenant scoping | `EfCoreBookingStore` queries filter by `tenantId` (NOT NULL column, default `'default'`) | NOT NULL yes; row-level isolation when multi-tenant |
 
 ## 5. Migration Blueprint
 
@@ -222,10 +238,10 @@ CREATE TABLE BookingPassengers (
 
 ### 5.3 Phased Adoption (EF Core)
 
-1. **Phase A — mapping only.** Add `SkyRouteDbContext` in `SkyRoute.Infrastructure/Persistence/`. Keep domain POCOs annotation-free (DP-PERSIST-002): all mapping via Fluent API — `HasPrecision(10,2)` for money, `BookingFlightSnapshot` as an owned type flattened onto the Bookings columns above, `Passengers` as `OwnsMany`/`HasMany` to `BookingPassengers` with an ordinal shadow/order column, `TimeOnly`/`DateOnly` mapped natively (EF Core 8+).
-2. **Phase B — store swap.** Implement `SqlBookingStore : IBookingStore`; translate unique-key violation (SQL Server error 2627/2601) into `DuplicateBookingReferenceException` so `BookingService`'s existing retry loop works unchanged. Swap the DI registration in `Program.cs` — no controller/service edits (DP-PERSIST-003, NFR-MAINT-001).
-3. **Phase C — reference data.** Seed Airports/Providers/CabinClasses/Flights from the constants in §1 via `HasData`; providers may keep code-based pricing initially (table columns become the audit source, code remains the executor).
-4. **Requires human approval before starting** (new dependency: EF Core packages + a database) per CLAUDE.md §21.
+1. **Phase A — mapping only. ✅ Implemented (DEC-025, 2026-07-08).** `AppDbContext` + `BookingConfiguration` in `SkyRoute.Infrastructure/Persistence/`. Domain POCOs stay annotation-free (DP-PERSIST-002): all mapping via Fluent API — `BookingFlightSnapshot` owned/flattened onto the Bookings columns, `Passengers` as `OwnsMany` to `BookingPassengers` with a 1-based order-preserving ordinal, PK/NOT NULL/CHECK constraints emitted. (Money/dates mapped to SQLite TEXT — see §4 fidelity notes — instead of `HasPrecision`/native temporal types, which return on a real provider swap.)
+2. **Phase B — store swap. ✅ Implemented (DEC-025, 2026-07-08).** `EfCoreBookingStore : IBookingStore` translates the SQLite UNIQUE/PRIMARY KEY violation (`SqliteException` extended code 1555/2067) into `DuplicateBookingReferenceException` so `BookingService`'s retry loop works unchanged. It is the registered default in `Program.cs` — no controller/service edits (DP-PERSIST-003, NFR-MAINT-001). Provider swap to SQL Server/PostgreSQL is a connection-string + one-line `UseSqlServer`/`UseNpgsql` change (§4); the unique-violation translation would extend to the SQL Server 2627/2601 codes at that point.
+3. **Phase C — reference data.** *(Not yet adopted.)* Seed Airports/Providers/CabinClasses/Flights from the constants in §1 via `HasData`; providers may keep code-based pricing initially (table columns become the audit source, code remains the executor).
+4. Phases A/B were done under explicit PO approval (DEC-025), which authorized the EF Core + SQLite in-memory dependency per CLAUDE.md §21.
 
 ### 5.4 Ad-Hoc Modeling Issues Corrected on Paper
 

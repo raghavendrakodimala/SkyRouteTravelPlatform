@@ -123,10 +123,16 @@ builder.Services.AddScoped<FlightFareResolver>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 
 // ---------------------------------------------------------------------------
-// Infrastructure — singleton in-memory store (BR-008 thread-safety, NFR-SCALE-002) and the
-// default (single-tenant) tenant context (DP-TENANT-002).
+// Infrastructure — booking persistence is EF Core over SQLite (real PK/NOT NULL/CHECK
+// constraint enforcement, DATA-MODEL-001), registered entirely inside SkyRoute.Infrastructure so
+// no EF Core/DbContext type leaks into this composition root (DP-PERSIST-001). With no
+// ConnectionStrings:Bookings configured it defaults to a single kept-open SQLite :memory:
+// connection (bookings persist across requests within a run); supplying that key swaps in a real
+// durable database with no other change (NFR-MAINT-001). InMemoryBookingStore still exists behind
+// the same IBookingStore contract as the alternative implementation. The default (single-tenant)
+// tenant context (DP-TENANT-002) is unchanged.
 // ---------------------------------------------------------------------------
-builder.Services.AddSingleton<IBookingStore, InMemoryBookingStore>();
+builder.Services.AddBookingPersistence(builder.Configuration.GetConnectionString("Bookings"));
 builder.Services.AddSingleton<ITenantContext, DefaultTenantContext>();
 
 // ---------------------------------------------------------------------------
@@ -160,6 +166,12 @@ builder.Services.AddOpenApi(options =>
 });
 
 var app = builder.Build();
+
+// Create the booking schema (tables + PK/NOT NULL/CHECK constraints) before the first request.
+// For the in-memory SQLite path this also pins the schema onto the shared, kept-open connection
+// that every request will reuse. Runs for the real app AND for each WebApplicationFactory test
+// host, so every host starts with an isolated, schema-created database.
+app.Services.InitializeBookingPersistence();
 
 // ---------------------------------------------------------------------------
 // Pipeline — ApiExceptionMiddleware registered first so it wraps every downstream request
