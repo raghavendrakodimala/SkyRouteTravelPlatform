@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using SkyRoute.Application.Contracts;
+using SkyRoute.Application.Dtos;
 using SkyRoute.Application.Services;
 using SkyRoute.Application.Tests.TestDoubles;
 

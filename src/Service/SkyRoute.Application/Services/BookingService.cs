@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using SkyRoute.Application.Contracts;
+using SkyRoute.Application.Dtos;
 using SkyRoute.Application.Domain;
 using SkyRoute.Application.Exceptions;
 using SkyRoute.Application.Interfaces;

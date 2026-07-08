@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using SkyRoute.Application.Contracts;
+using SkyRoute.Application.Dtos;
 
 namespace SkyRoute.Api.IntegrationTests.Controllers;
 

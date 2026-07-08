@@ -61,7 +61,7 @@ SkyRoute.sln
 │   │   │   ├── PassengerDetail.cs
 │   │   │   ├── FlightResult.cs
 │   │   │   └── Airport.cs
-│   │   ├── Contracts/
+│   │   ├── Dtos/
 │   │   │   ├── SearchRequest.cs
 │   │   │   ├── BookingRequest.cs
 │   │   │   └── BookingResponse.cs
@@ -248,7 +248,7 @@ public interface ITenantContext
 
 `ApiExceptionMiddleware` (`SkyRoute.Api/Middleware/ApiExceptionMiddleware.cs`) — standard `InvokeAsync(HttpContext, RequestDelegate next)` middleware wrapping the rest of the pipeline in try/catch, registered first in `Program.cs`'s pipeline (`app.UseMiddleware<ApiExceptionMiddleware>()`, before routing). On an unhandled exception: logs it, and writes a generic `ProblemDetails`-shaped JSON body with status 500, no stack trace / exception type / internal message (FR-069, NFR-SEC-002). Controllers never construct 500 bodies themselves (BR-011).
 
-400 responses are **not** routed through this middleware — they are produced directly by controllers via `ValidationProblem(...)` (built-in ASP.NET Core `ValidationProblemDetails`, zero new dependency), fed by either automatic `[ApiController]` model-state validation (DataAnnotations on `Contracts` classes) or the explicit `SearchRequestValidator`/`BookingRequestValidator` classes (AD-003) for cross-field rules.
+400 responses are **not** routed through this middleware — they are produced directly by controllers via `ValidationProblem(...)` (built-in ASP.NET Core `ValidationProblemDetails`, zero new dependency), fed by either automatic `[ApiController]` model-state validation (DataAnnotations on `Dtos` classes) or the explicit `SearchRequestValidator`/`BookingRequestValidator` classes (AD-003) for cross-field rules.
 
 ### 3.7 Controllers
 
@@ -458,7 +458,7 @@ Note: no `totalPrice` field — computed on the frontend (FR-012, DP-011).
 
 | Concern | Concrete Realization |
 |---|---|
-| Validation (FR-060–065) | AD-003: DataAnnotations on `Contracts` classes for field-level rules (`[Required]`, `[Range(1,9)]`, `[RegularExpression]` for email); `SearchRequestValidator`/`BookingRequestValidator` concrete classes (no interface — YAGNI, single implementation) for cross-field/context-dependent rules. Both produce a common `IDictionary<string, string[]>` field-error shape mapped to `ValidationProblemDetails`. Document number patterns (DP-015) live as named constants (`DocumentPatterns.PassportPattern`, `DocumentPatterns.NationalIdPattern`) referenced from both the validator and, mirrored, from the Angular `document-number.validators.ts`. |
+| Validation (FR-060–065) | AD-003: DataAnnotations on `Dtos` classes for field-level rules (`[Required]`, `[Range(1,9)]`, `[RegularExpression]` for email); `SearchRequestValidator`/`BookingRequestValidator` concrete classes (no interface — YAGNI, single implementation) for cross-field/context-dependent rules. Both produce a common `IDictionary<string, string[]>` field-error shape mapped to `ValidationProblemDetails`. Document number patterns (DP-015) live as named constants (`DocumentPatterns.PassportPattern`, `DocumentPatterns.NationalIdPattern`) referenced from both the validator and, mirrored, from the Angular `document-number.validators.ts`. |
 | Error responses (FR-066–072) | 400 → `ValidationProblem(...)` from controllers/validators; 404 → controller returns `NotFound()` when a lookup (e.g., future booking-retrieval) finds nothing; 500 → `ApiExceptionMiddleware` only, single location (BR-011, DP-007). Frontend: each Angular service catches HTTP errors and maps to a user-facing string; components never render raw HTTP status codes (FR-071); a generic "network error, please try again" message covers timeouts/connection failures (FR-072). |
 | Logging (NFR-OBS-*) | `Microsoft.Extensions.Logging.ILogger<T>` with structured message templates (`logger.LogWarning("Provider {ProviderName} failed: {Message}", ...)`), console sink only for MVP (DP-DEPLOY-006 — no hardcoded file path). No PII (document numbers, full emails) is ever passed as a log argument — logs reference "passenger record created for booking {Reference}" style messages only (NFR-SEC-003/NFR-PRIV-002). |
 | DP-ZEROTRUST-001–005 | No code path branches on caller IP/network origin (validation applies uniformly — enforced structurally since there is no such branch to write). No component reaches past an interface boundary (Section 2's project references make this the only physically possible path: `Api → Application interfaces`, `Infrastructure → Application interfaces`, never `Api → Infrastructure` types directly outside `Program.cs`). No hardcoded trust header/bypass token exists anywhere (there is no auth to bypass in MVP — nothing to check at review beyond "confirm absence"). |

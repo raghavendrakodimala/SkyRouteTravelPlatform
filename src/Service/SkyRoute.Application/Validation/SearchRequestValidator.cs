@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using SkyRoute.Application.Contracts;
+using SkyRoute.Application.Dtos;
 using SkyRoute.Application.Data;
 
 namespace SkyRoute.Application.Validation;

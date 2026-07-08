@@ -1,4 +1,4 @@
-namespace SkyRoute.Application.Contracts;
+namespace SkyRoute.Application.Dtos;
 
 /// <summary>
 /// POST /api/bookings request body (architecture-plan.md Section 5, feature-booking-flow.md Section 3).

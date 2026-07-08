@@ -1,4 +1,4 @@
-using SkyRoute.Application.Contracts;
+using SkyRoute.Application.Dtos;
 
 namespace SkyRoute.Application.Interfaces;
 

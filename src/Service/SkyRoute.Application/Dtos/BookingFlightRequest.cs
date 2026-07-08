@@ -1,4 +1,4 @@
-namespace SkyRoute.Application.Contracts;
+namespace SkyRoute.Application.Dtos;
 
 /// <summary>
 /// The "flight" object nested in a POST /api/bookings request — a full flight-detail

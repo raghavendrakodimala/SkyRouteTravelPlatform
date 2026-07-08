@@ -1,4 +1,4 @@
-using SkyRoute.Application.Contracts;
+using SkyRoute.Application.Dtos;
 using SkyRoute.Application.Data;
 using SkyRoute.Application.Validation;
 

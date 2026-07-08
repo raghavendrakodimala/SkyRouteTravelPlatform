@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using SkyRoute.Api.IntegrationTests.TestDoubles;
-using SkyRoute.Application.Contracts;
+using SkyRoute.Application.Dtos;
 using SkyRoute.Application.Interfaces;
 using SkyRoute.Infrastructure.Providers;
 

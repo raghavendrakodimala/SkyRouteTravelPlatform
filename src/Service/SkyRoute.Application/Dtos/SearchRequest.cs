@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace SkyRoute.Application.Contracts;
+namespace SkyRoute.Application.Dtos;
 
 /// <summary>
 /// POST /api/search request body (architecture-plan.md Section 5, feature-flight-search.md Section 2).

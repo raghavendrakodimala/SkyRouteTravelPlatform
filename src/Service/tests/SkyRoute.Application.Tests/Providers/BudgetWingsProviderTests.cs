@@ -1,5 +1,5 @@
 using System.Reflection;
-using SkyRoute.Application.Contracts;
+using SkyRoute.Application.Dtos;
 using SkyRoute.Infrastructure.Providers;
 
 namespace SkyRoute.Application.Tests.Providers;

@@ -1,4 +1,4 @@
-namespace SkyRoute.Application.Contracts;
+namespace SkyRoute.Application.Dtos;
 
 /// <summary>
 /// POST /api/bookings 201 response body (FR-044, feature-booking-flow.md Section 4).

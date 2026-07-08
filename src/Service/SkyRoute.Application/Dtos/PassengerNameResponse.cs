@@ -1,4 +1,4 @@
-namespace SkyRoute.Application.Contracts;
+namespace SkyRoute.Application.Dtos;
 
 /// <summary>
 /// Data-minimized passenger entry in a booking response — full name and age only

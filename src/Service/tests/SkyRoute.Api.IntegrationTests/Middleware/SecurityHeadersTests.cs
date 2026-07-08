@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Net;
 using System.Net.Http.Json;
-using SkyRoute.Application.Contracts;
+using SkyRoute.Application.Dtos;
 
 namespace SkyRoute.Api.IntegrationTests.Middleware;
 

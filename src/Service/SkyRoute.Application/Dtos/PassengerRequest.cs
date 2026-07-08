@@ -1,4 +1,4 @@
-namespace SkyRoute.Application.Contracts;
+namespace SkyRoute.Application.Dtos;
 
 /// <summary>
 /// One passenger record in a POST /api/bookings request (FR-040, feature-booking-flow.md Section 2).
