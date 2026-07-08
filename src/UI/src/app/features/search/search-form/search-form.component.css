@@ -14,24 +14,22 @@
   /* Slim hero (PO 2026-07-08): compact top padding and just enough bottom padding for the
      card to overlap into; the negative bottom margin pulls the card up over the band. */
   margin: 0 0 calc(-1 * var(--space-5));
-  padding: var(--space-4) var(--space-5) var(--space-6);
+  padding: var(--space-3) var(--space-5) var(--space-5);
   text-align: center;
 }
 
 .hero h1 {
   color: var(--color-white);
-  font-size: var(--font-size-3xl);
-  margin-bottom: var(--space-2);
+  font-size: var(--font-size-2xl);
+  margin-bottom: var(--space-1);
 }
 
 .tagline {
   margin: 0;
-  /* AUD-014: solid white (was rgba 0.88), and the gradient's light stop was darkened to
-     #2f6fc0 in styles.css. 18px regular is not WCAG "large text", so it needs 4.5:1; solid
-     white over the lightest gradient point (#2f6fc0) is now 5.05:1, clearing AA everywhere
-     the tagline wraps — the old 0.88 white over the old #3b82d4 light stop was below 4.5:1. */
+  /* AUD-014: solid white on the gradient's lightest stop (#2f6fc0) = 5.05:1, clearing AA
+     (16px regular needs 4.5:1) everywhere the tagline wraps. */
   color: var(--color-white);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
 }
 
 /* Elevated search card overlapping the hero. */

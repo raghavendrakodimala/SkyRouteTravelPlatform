@@ -8,14 +8,14 @@
   flex: 0 0 auto; /* app-shell chrome: keep natural height, never shrink (main scrolls) */
 }
 
+/* Full-width app bar (PO 2026-07-08): logo hugs the top-left, Sign in the top-right —
+   not centered in a max-width container. */
 .header-inner {
-  max-width: var(--layout-max); /* AUD-013: shared chrome/content width */
-  margin: 0 auto;
   padding: 0 var(--space-5);
-  min-height: 60px;
+  min-height: 56px;
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--space-5);
 }
 
 .brand {
@@ -235,10 +235,6 @@ a.nav-link:focus-visible {
 @media (max-width: 760px) {
   .main-nav {
     display: none; /* placeholders only — hidden on small screens like real compact headers */
-  }
-
-  .header-actions .nav-link {
-    display: none;
   }
 
   .step-label {
