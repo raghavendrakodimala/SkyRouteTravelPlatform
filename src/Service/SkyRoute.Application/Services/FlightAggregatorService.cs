@@ -22,24 +22,33 @@ public sealed class FlightAggregatorService : IFlightAggregatorService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<FlightResult>> SearchAsync(SearchRequest request, CancellationToken cancellationToken)
+    public async Task<FlightSearchResult> SearchAsync(SearchRequest request, CancellationToken cancellationToken)
     {
-        var tasks = _providers.Select(provider => SafeInvokeAsync(provider, request, cancellationToken));
-        var results = await Task.WhenAll(tasks);
-        return results.SelectMany(r => r).ToList();
+        var providers = _providers.ToList();
+        var outcomes = await Task.WhenAll(providers.Select(provider => SafeInvokeAsync(provider, request, cancellationToken)));
+
+        var flights = outcomes.SelectMany(outcome => outcome.Results).ToList();
+
+        // AUD-038: total outage = at least one provider was registered AND every one of them
+        // failed. Zero providers registered is a configuration concern surfaced by the health
+        // check, not a runtime outage, so it is NOT treated as a total failure (returns 200 []).
+        // Any single success keeps fault isolation intact and yields a normal 200 response.
+        var allProvidersFailed = providers.Count > 0 && outcomes.All(outcome => outcome.Failed);
+
+        return new FlightSearchResult(flights, allProvidersFailed);
     }
 
-    private async Task<IReadOnlyList<FlightResult>> SafeInvokeAsync(
+    private async Task<(IReadOnlyList<FlightResult> Results, bool Failed)> SafeInvokeAsync(
         IFlightProvider provider, SearchRequest request, CancellationToken cancellationToken)
     {
         try
         {
-            return await provider.SearchAsync(request, cancellationToken);
+            return (await provider.SearchAsync(request, cancellationToken), Failed: false);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Provider {ProviderName} failed during search", provider.ProviderName);
-            return Array.Empty<FlightResult>();
+            return ([], Failed: true);
         }
     }
 }

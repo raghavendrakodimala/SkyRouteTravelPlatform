@@ -20,7 +20,7 @@ public sealed class BookingReferenceGenerator
     /// </summary>
     public string GenerateBookingReference(RouteType routeType)
     {
-        var type = routeType == RouteType.International ? "INT" : "DOM";
+        var type = routeType.IsInternational ? "INT" : "DOM";
         var suffix = GenerateRandomSuffix(SuffixLength);
         return $"SKY-{type}-{suffix}";
     }

@@ -1,4 +1,5 @@
 using SkyRoute.Application.Contracts;
+using SkyRoute.Application.Data;
 using SkyRoute.Application.Domain;
 using SkyRoute.Application.Validation;
 
@@ -12,7 +13,7 @@ namespace SkyRoute.Application.Tests.Validation;
 /// </summary>
 public class BookingRequestValidatorTests
 {
-    private readonly BookingRequestValidator _validator = new();
+    private readonly BookingRequestValidator _validator = new(new AirportDataService());
 
     private static BookingFlightRequest MakeValidFlight() => new()
     {
@@ -466,6 +467,108 @@ public class BookingRequestValidatorTests
         var errors = _validator.ValidateStructure(request);
 
         Assert.False(errors.ContainsKey("passengers[0].email"));
+    }
+
+    // ---------------------------------------------------------------------
+    // ValidateStructure — flight-snapshot sanity: airport codes, chronology, past
+    // departure (AUD-029/026), and the timezone-generous date boundary (AUD-031)
+    // ---------------------------------------------------------------------
+
+    [Fact]
+    public void ValidateStructure_UnknownOriginAirportCode_ReturnsOriginNotRecognizedMessage()
+    {
+        var request = MakeValidRequest(1);
+        request.Flight.Origin = "ZZZ";
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(new[] { "Origin airport code is not recognized." }, errors["flight.origin"]);
+    }
+
+    [Fact]
+    public void ValidateStructure_UnknownDestinationAirportCode_ReturnsDestinationNotRecognizedMessage()
+    {
+        var request = MakeValidRequest(1);
+        request.Flight.Destination = "QQQ";
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(new[] { "Destination airport code is not recognized." }, errors["flight.destination"]);
+    }
+
+    [Fact]
+    public void ValidateStructure_ArrivalBeforeDeparture_ReturnsArrivalMessage()
+    {
+        var request = MakeValidRequest(1);
+        request.Flight.DepartureDateTime = new DateTime(2026, 8, 1, 9, 0, 0, DateTimeKind.Utc);
+        request.Flight.ArrivalDateTime = new DateTime(2026, 8, 1, 8, 0, 0, DateTimeKind.Utc);
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(new[] { "Arrival must be after departure." }, errors["flight.arrivalDateTime"]);
+    }
+
+    [Fact]
+    public void ValidateStructure_ArrivalEqualsDeparture_ReturnsArrivalMessage()
+    {
+        var request = MakeValidRequest(1);
+        var instant = new DateTime(2026, 8, 1, 9, 0, 0, DateTimeKind.Utc);
+        request.Flight.DepartureDateTime = instant;
+        request.Flight.ArrivalDateTime = instant;
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(new[] { "Arrival must be after departure." }, errors["flight.arrivalDateTime"]);
+    }
+
+    [Fact]
+    public void ValidateStructure_PastDeparture_ReturnsDepartureInPastMessage()
+    {
+        // Two days before UTC today is unambiguously past for every timezone (AUD-026/029).
+        var request = MakeValidRequest(1);
+        var past = DateTime.UtcNow.AddDays(-2);
+        request.Flight.DepartureDateTime = past;
+        request.Flight.ArrivalDateTime = past.AddHours(2);
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.Equal(new[] { "Departure cannot be in the past." }, errors["flight.departureDateTime"]);
+    }
+
+    [Fact]
+    public void ValidateStructure_DepartureYesterdayUtc_IsAcceptedWithinTimezoneGrace()
+    {
+        // AUD-031: a departure dated UTC-yesterday is a legitimate "today" for a negative-offset
+        // client, so it must NOT be flagged as past (timezone grace band, DepartureDateRules).
+        var request = MakeValidRequest(1);
+        var yesterday = DateTime.UtcNow.AddDays(-1);
+        request.Flight.DepartureDateTime = yesterday;
+        request.Flight.ArrivalDateTime = yesterday.AddHours(2);
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.False(errors.ContainsKey("flight.departureDateTime"));
+    }
+
+    // ---------------------------------------------------------------------
+    // ValidateStructure — passengers-array bound (AUD-034): the oversized array is
+    // rejected BEFORE the per-element loop runs (no per-passenger errors are produced).
+    // ---------------------------------------------------------------------
+
+    [Fact]
+    public void ValidateStructure_OversizedPassengersArray_RejectsWithoutWalkingTheArray()
+    {
+        var request = MakeValidRequest();
+        request.PassengerCount = 5;
+        // 50 empty passenger objects: if the per-element loop ran it would add
+        // passengers[0..49].fullName/age/email errors. It must be short-circuited instead.
+        request.Passengers = Enumerable.Range(0, 50).Select(_ => new PassengerRequest()).ToList();
+
+        var errors = _validator.ValidateStructure(request);
+
+        Assert.True(errors.ContainsKey("passengers"));
+        Assert.Equal(new[] { "A booking may include at most 9 passengers." }, errors["passengers"]);
+        Assert.DoesNotContain(errors.Keys, k => k.StartsWith("passengers[", StringComparison.Ordinal));
     }
 
     // ---------------------------------------------------------------------

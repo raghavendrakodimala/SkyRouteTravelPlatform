@@ -2,7 +2,7 @@
    provider badge, departure→arrival timeline, dominant price block. Tokens from styles.css. */
 
 .results-page {
-  max-width: 860px;
+  max-width: var(--layout-max); /* AUD-013: shared with the header/footer chrome + other funnel steps */
   margin: var(--space-6) auto;
   padding: 0 var(--space-5);
 }
@@ -235,14 +235,15 @@
   min-width: 180px;
 }
 
-.total-price {
+/* AUD-009: per-person fare block (renamed from the misleading .total-price/.per-person-price). */
+.fare-price {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-price);
   white-space: nowrap;
 }
 
-.per-person-price {
+.fare-caption {
   font-size: var(--font-size-sm);
   color: var(--color-neutral-600);
   white-space: nowrap;
@@ -301,12 +302,25 @@ button:disabled {
     min-width: 0;
   }
 
-  .total-price,
-  .per-person-price {
+  .fare-price,
+  .fare-caption {
     text-align: left;
   }
 
   button {
     width: 100%;
+  }
+
+  /* AUD-015 (WCAG 1.4.4 / 1.4.10): let the departure→arrival timeline reflow instead of
+     overflowing the card. At 320px, or under 200% text resize, the fixed 56/90px min-widths
+     pushed the row past the card edge (silently clipped by the old body overflow-x:hidden,
+     now removed). Allowing wrap + content-based shrink keeps it inside the card. */
+  .timing {
+    flex-wrap: wrap;
+  }
+
+  .tl-point,
+  .tl-track {
+    min-width: 0;
   }
 }

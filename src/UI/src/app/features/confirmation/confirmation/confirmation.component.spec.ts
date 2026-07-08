@@ -103,6 +103,49 @@ describe('ConfirmationComponent', () => {
     expect(names).toEqual(['Jane Doe', 'John Doe']);
   });
 
+  it('AUD-001/AUD-040: renders BOTH passengers when two share a full name (track $index, no key collision)', () => {
+    bookingResponseSignal.set(
+      buildBookingResponse({
+        passengers: [
+          { fullName: 'John Smith', age: 40 },
+          { fullName: 'John Smith', age: 38 },
+        ],
+      }),
+    );
+    fixture.detectChanges();
+
+    const names: string[] = Array.from<Element>(fixture.nativeElement.querySelectorAll('.passengers li')).map(
+      (el: Element) => el.textContent?.trim() ?? '',
+    );
+    // With the old `track passenger.fullName`, the duplicate key collapsed this to one row.
+    expect(names).toEqual(['John Smith', 'John Smith']);
+  });
+
+  it('AUD-023: the h1 is described by the booking reference (announced on arrival), and the reference is not role=status', () => {
+    bookingResponseSignal.set(buildBookingResponse());
+    fixture.detectChanges();
+
+    const h1: HTMLElement = fixture.nativeElement.querySelector('h1');
+    expect(h1.getAttribute('aria-describedby')).toBe('booking-ref-eyebrow booking-reference');
+    const ref: HTMLElement = fixture.nativeElement.querySelector('#booking-reference');
+    expect(ref).toBeTruthy();
+    expect(ref.getAttribute('role')).toBeNull(); // the ineffective role=status was removed
+  });
+
+  it('AUD-017: the no-booking state is a styled card with a "Start a New Search" action, not bare text', () => {
+    fixture.detectChanges(); // booking() is null
+
+    const emptyState = fixture.nativeElement.querySelector('.empty-state');
+    expect(emptyState).toBeTruthy();
+    const button: HTMLButtonElement | null = emptyState.querySelector('button');
+    expect(button?.textContent).toContain('Start a New Search');
+  });
+
+  it('AUD-023: the h1 has no aria-describedby when there is no booking', () => {
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('h1').getAttribute('aria-describedby')).toBeNull();
+  });
+
   it('has no control that resubmits the prior booking request (US-006 AC7) — only a "Start a New Search" navigation action', () => {
     bookingResponseSignal.set(buildBookingResponse());
     fixture.detectChanges();

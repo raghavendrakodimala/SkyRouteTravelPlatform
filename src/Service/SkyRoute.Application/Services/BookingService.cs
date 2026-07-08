@@ -10,10 +10,13 @@ namespace SkyRoute.Application.Services;
 /// <summary>
 /// Orchestrates booking creation per architecture-plan.md Section 3.3 / feature-booking-flow.md
 /// Section 5. Structural validation (step 1) runs in BookingController before this service is
-/// called (BL-014 ValidateStructure); this class performs steps 2–7: authoritative route-type
-/// re-resolution, authoritative fare re-resolution (SEC-001), document validation against the
-/// resolved route type, server-side total-price recomputation from the resolved fare,
-/// collision-checked reference generation, persistence, and response mapping.
+/// called (BL-014 ValidateStructure); this class performs the remaining steps: authoritative
+/// server-side re-resolution of the whole identifying flight snapshot — route AND fare — from
+/// Provider/FlightNumber/CabinClass (SEC-001, AUD-025/028/033), validation of the client
+/// snapshot against those resolved values, route-type derivation from the RESOLVED route,
+/// document validation against that route type, server-side total-price recomputation from the
+/// resolved fare, collision-checked reference generation, persistence of the canonical resolved
+/// snapshot, and response mapping.
 /// </summary>
 public sealed class BookingService : IBookingService
 {
@@ -47,39 +50,46 @@ public sealed class BookingService : IBookingService
 
     public async Task<BookingResponse> CreateBookingAsync(BookingRequest request, CancellationToken cancellationToken)
     {
-        // Step 2 (BR-003, DP-016, NFR-DATA-004): authoritative server-side route-type
-        // resolution, independent of anything the client submitted.
-        var routeType = _routeTypeResolver.Resolve(request.Flight.Origin, request.Flight.Destination);
+        // Step 2 (SEC-001, AUD-025/028/033, BR-006, NFR-DATA-002/004): authoritatively
+        // re-resolve the WHOLE identifying flight snapshot server-side from the identifying
+        // fields Provider/FlightNumber/CabinClass — the client-submitted Origin/Destination and
+        // fare are NEVER trusted. A single provider-schedule lookup surfaces both the real route
+        // (Origin/Destination) and the re-derived fare (BaseFare/PricePerPassenger) the same
+        // provider pricing logic produced at search time.
+        var flightResolved = _fareResolver.TryResolveFare(
+            request.Flight.Provider,
+            request.Flight.FlightNumber,
+            request.Flight.CabinClass,
+            out var resolvedBaseFare,
+            out var resolvedPricePerPassenger,
+            out var resolvedOrigin,
+            out var resolvedDestination);
 
-        // Step 3: document type/number validation against the resolved route type.
+        // Step 2b: validate the client snapshot (route identity + fare) against the resolved
+        // flight. A forged Origin/Destination (an international flight declared as a domestic
+        // pair to bypass BR-003's passport gate — AUD-025/028/033) or a fabricated fare
+        // (SEC-001) is rejected here, BEFORE route type is derived or anything is persisted.
+        var snapshotErrors = _validator.ValidateResolvedFlight(
+            request, flightResolved, resolvedBaseFare, resolvedPricePerPassenger, resolvedOrigin, resolvedDestination);
+        if (snapshotErrors.Count > 0)
+        {
+            throw new BookingValidationException(snapshotErrors);
+        }
+
+        // Step 3 (BR-003, DP-016, NFR-DATA-004): route type is derived from the SERVER-resolved
+        // origin/destination (both guaranteed non-null here — flightResolved was true and the
+        // submitted route matched), never from client fields. This closes the passport-gate
+        // bypass: an international flight can no longer be booked/recorded as domestic.
+        var routeType = _routeTypeResolver.Resolve(resolvedOrigin, resolvedDestination);
+
+        // Step 4: document type/number validation against the resolved route type.
         var documentErrors = _validator.ValidateDocuments(request, routeType);
         if (documentErrors.Count > 0)
         {
             throw new BookingValidationException(documentErrors);
         }
 
-        // Step 3b (SEC-001, BR-006, NFR-DATA-002): authoritative server-side fare
-        // re-resolution, independent of anything the client submitted (AD-004/AD-005 no
-        // longer means the price snapshot is trusted as-is — only the identifying fields
-        // Provider/FlightNumber/CabinClass are used to look up the fare the same provider
-        // pricing logic used at search time would produce). A client-supplied
-        // PricePerPassenger/BaseFare that does not match the resolved fare — including an
-        // internally-consistent, positive but fabricated value — is rejected here, before
-        // any total-price computation or persistence occurs.
-        var fareResolved = _fareResolver.TryResolveFare(
-            request.Flight.Provider,
-            request.Flight.FlightNumber,
-            request.Flight.CabinClass,
-            out var resolvedBaseFare,
-            out var resolvedPricePerPassenger);
-
-        var fareErrors = _validator.ValidateFare(request, fareResolved, resolvedBaseFare, resolvedPricePerPassenger);
-        if (fareErrors.Count > 0)
-        {
-            throw new BookingValidationException(fareErrors);
-        }
-
-        // Step 4 (BR-006, NFR-DATA-002): server-side total price recomputation from the
+        // Step 5 (BR-006, NFR-DATA-002): server-side total price recomputation from the
         // server-resolved per-passenger price (resolvedPricePerPassenger), not the
         // client-submitted value — the validation above already guarantees the two are
         // identical whenever this line is reached, but computing from the resolved value
@@ -91,14 +101,15 @@ public sealed class BookingService : IBookingService
 
         var tenantId = _tenantContext.TenantId;
 
-        // Step 5/6 (BR-004, NFR-DATA-001, Gap-fill BF-03, code review finding CR-003): generate
+        // Step 6/7 (BR-004, NFR-DATA-001, Gap-fill BF-03, code review finding CR-003): generate
         // a candidate reference and attempt to persist it, bounded retry. CreateAsync's atomic
         // TryAdd (not the preceding ExistsAsync pre-check alone) is the actual source of truth
         // for uniqueness — a DuplicateBookingReferenceException triggers a retry with a freshly
         // generated candidate, closing the check-then-act TOCTOU race that existed when
         // uniqueness was enforced only by a separate ExistsAsync call ahead of CreateAsync.
         var created = await CreateBookingWithUniqueReferenceAsync(
-            routeType, tenantId, request, totalPrice, resolvedPricePerPassenger, cancellationToken);
+            routeType, tenantId, request, totalPrice, resolvedPricePerPassenger,
+            resolvedOrigin!, resolvedDestination!, cancellationToken);
 
         _logger.LogInformation("Booking record created for reference {BookingReference}", created.BookingReference);
 
@@ -112,6 +123,8 @@ public sealed class BookingService : IBookingService
         BookingRequest request,
         decimal totalPrice,
         decimal resolvedPricePerPassenger,
+        string resolvedOrigin,
+        string resolvedDestination,
         CancellationToken cancellationToken)
     {
         for (var attempt = 0; attempt < MaxReferenceGenerationAttempts; attempt++)
@@ -133,8 +146,13 @@ public sealed class BookingService : IBookingService
                 {
                     Provider = request.Flight.Provider!,
                     FlightNumber = request.Flight.FlightNumber!,
-                    Origin = request.Flight.Origin!,
-                    Destination = request.Flight.Destination!,
+                    // AUD-025/028/033: persist the server-RESOLVED route, not the client-submitted
+                    // Origin/Destination. ValidateResolvedFlight already guaranteed the two match
+                    // (case-insensitively) whenever this line is reached; storing the canonical
+                    // resolved values keeps the persisted record's authoritative source
+                    // unambiguous, mirroring how PricePerPassenger is handled below.
+                    Origin = resolvedOrigin,
+                    Destination = resolvedDestination,
                     DepartureDateTime = request.Flight.DepartureDateTime!.Value,
                     ArrivalDateTime = request.Flight.ArrivalDateTime!.Value,
                     CabinClass = request.Flight.CabinClass!,

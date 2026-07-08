@@ -75,7 +75,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 // (ASM-012, NFR-SEC-006, DP-DEPLOY-001: externalised via configuration, not hardcoded).
 // ---------------------------------------------------------------------------
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-    ?? Array.Empty<string>();
+    ?? [];
 
 builder.Services.AddCors(options =>
 {
@@ -179,16 +179,26 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseHttpsRedirection();
-
+// AUD-037/045: UseHttpsRedirection is intentionally NOT registered. This MVP runs local-only
+// over plain HTTP (`dotnet run`, no TLS termination in front of Kestrel — the same posture that
+// makes SEC-003 omit HSTS above). With no configured HTTPS port the redirect is dead noise, and
+// running it ahead of UseCors (as it previously did) broke cross-origin API calls under the
+// https launch profile by issuing a redirect before the CORS headers were applied. Removing it
+// is the clean fix for the documented HTTP-only dev flow; a real TLS-terminated deployment would
+// reintroduce redirection AFTER CORS, behind the reverse proxy that owns TLS.
 app.UseCors(AngularDevClientCorsPolicy);
 
 app.UseAuthorization();
 
 app.MapControllers();
 
-// /api/health — always mapped (health is an operational surface, not a docs surface):
-// JSON body with the overall status plus each check's name/status/description.
+// /api/health — always mapped (health is an operational surface, not a docs surface).
+// AUD-035 (OWASP A05:2021 / CWE-200): the PUBLIC, unauthenticated body is trimmed to a coarse
+// liveness shape — overall status plus each check's name and status only. The per-check
+// free-text descriptions (which previously leaked internal CLR provider class names and a
+// booking-existence oracle) are deliberately omitted from the response; that detail remains
+// server-side, carried on each HealthCheckResult for logging and any future
+// authenticated/Development-only detailed endpoint.
 app.MapHealthChecks($"/{ApiInfraPrefix}/health", new HealthCheckOptions
 {
     ResponseWriter = async (context, report) =>
@@ -202,7 +212,6 @@ app.MapHealthChecks($"/{ApiInfraPrefix}/health", new HealthCheckOptions
             {
                 name = entry.Key,
                 status = entry.Value.Status.ToString(),
-                description = entry.Value.Description,
             }),
         });
         await context.Response.WriteAsync(payload);

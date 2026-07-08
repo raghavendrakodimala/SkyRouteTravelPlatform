@@ -15,13 +15,23 @@ public interface IFlightProvider
     Task<IReadOnlyList<FlightResult>> SearchAsync(SearchRequest request, CancellationToken cancellationToken);
 
     /// <summary>
-    /// SEC-001 (Phase 16 security review, BR-006, NFR-DATA-002): authoritative server-side
-    /// fare re-resolution, independent of anything a client submits on POST /api/bookings.
-    /// Re-invokes this provider's own pricing rule (BR-001/BR-002) for a known flight number
-    /// and cabin class, the same combination <see cref="SearchAsync"/> already prices by.
-    /// Returns <c>false</c> (and zeroes both out-values) if <paramref name="flightNumber"/> is
-    /// not part of this provider's fixed schedule — a caller cannot use an unknown flight
-    /// number to bypass fare verification.
+    /// SEC-001 (Phase 16 security review, BR-006, NFR-DATA-002) and AUD-025/028/033:
+    /// authoritative server-side re-resolution of a flight's identifying snapshot, independent
+    /// of anything a client submits on POST /api/bookings. From a single schedule lookup keyed
+    /// on <paramref name="flightNumber"/>/<paramref name="cabinClass"/> it surfaces BOTH the
+    /// re-derived fare (this provider's own BR-001/BR-002 pricing rule, the same combination
+    /// <see cref="SearchAsync"/> prices by) AND the authoritative <paramref name="origin"/>/
+    /// <paramref name="destination"/> for that flight number — so the booking service can reject
+    /// a forged route and derive the BR-003 document rule from the real route, not client fields
+    /// (one lookup, no duplicated schedule scan). Returns <c>false</c> (and zeroes/nulls all
+    /// out-values) if <paramref name="flightNumber"/> is not part of this provider's fixed
+    /// schedule — a caller cannot use an unknown flight number to bypass verification.
     /// </summary>
-    bool TryResolveFare(string flightNumber, string cabinClass, out decimal baseFare, out decimal pricePerPassenger);
+    bool TryResolveFare(
+        string flightNumber,
+        string cabinClass,
+        out decimal baseFare,
+        out decimal pricePerPassenger,
+        out string? origin,
+        out string? destination);
 }

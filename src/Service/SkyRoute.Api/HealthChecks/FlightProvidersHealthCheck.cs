@@ -22,14 +22,17 @@ public sealed class FlightProvidersHealthCheck : IHealthCheck
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
-        var names = _providers.Select(p => p.GetType().Name).ToArray();
-        var description = $"{names.Length} provider(s) registered: {string.Join(", ", names)}";
+        // AUD-035: build the description from the stable, public ProviderName rather than the CLR
+        // GetType().Name, and count only — do not enumerate the internal composition into an
+        // always-on unauthenticated surface. The public /api/health writer omits descriptions
+        // entirely (Program.cs); this text is retained for server-side logging only.
+        var count = _providers.Count();
 
-        var result = names.Length switch
+        var result = count switch
         {
             0 => HealthCheckResult.Unhealthy("No flight providers registered."),
-            1 => HealthCheckResult.Degraded(description),
-            _ => HealthCheckResult.Healthy(description),
+            1 => HealthCheckResult.Degraded("1 flight provider registered."),
+            _ => HealthCheckResult.Healthy($"{count} flight providers registered."),
         };
 
         return Task.FromResult(result);

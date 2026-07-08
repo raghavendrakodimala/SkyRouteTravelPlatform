@@ -9,5 +9,10 @@ namespace SkyRoute.Application.Interfaces;
 /// </summary>
 public interface IFlightAggregatorService
 {
-    Task<IReadOnlyList<FlightResult>> SearchAsync(SearchRequest request, CancellationToken cancellationToken);
+    /// <summary>
+    /// Runs every registered provider with per-provider fault isolation and returns the merged
+    /// results plus a total-outage signal (AUD-038). See <see cref="FlightSearchResult"/> for
+    /// how the controller maps a total outage (503) apart from a genuine no-match (200 []).
+    /// </summary>
+    Task<FlightSearchResult> SearchAsync(SearchRequest request, CancellationToken cancellationToken);
 }

@@ -21,23 +21,30 @@ public class FlightFareResolverTests
     private readonly FlightFareResolver _resolver = new(RealProviders);
 
     [Fact]
-    public void TryResolveFare_KnownGlobalAirFlight_ReturnsTrueWithMatchingFare()
+    public void TryResolveFare_KnownGlobalAirFlight_ReturnsTrueWithMatchingFareAndRoute()
     {
-        var resolved = _resolver.TryResolveFare("GlobalAir", "GA101", "Economy", out var baseFare, out var pricePerPassenger);
+        var resolved = _resolver.TryResolveFare(
+            "GlobalAir", "GA101", "Economy", out var baseFare, out var pricePerPassenger, out var origin, out var destination);
 
         Assert.True(resolved);
         Assert.Equal(250.00m, baseFare);
         Assert.Equal(287.50m, pricePerPassenger);
+        // AUD-025/028/033: the resolver surfaces the flight's authoritative route.
+        Assert.Equal("LHR", origin);
+        Assert.Equal("JFK", destination);
     }
 
     [Fact]
-    public void TryResolveFare_KnownBudgetWingsFlight_ReturnsTrueWithMatchingFare()
+    public void TryResolveFare_KnownBudgetWingsFlight_ReturnsTrueWithMatchingFareAndRoute()
     {
-        var resolved = _resolver.TryResolveFare("BudgetWings", "BW210", "Economy", out var baseFare, out var pricePerPassenger);
+        var resolved = _resolver.TryResolveFare(
+            "BudgetWings", "BW210", "Economy", out var baseFare, out var pricePerPassenger, out var origin, out var destination);
 
         Assert.True(resolved);
         Assert.Equal(220.00m, baseFare);
         Assert.Equal(198.00m, pricePerPassenger);
+        Assert.Equal("LHR", origin);
+        Assert.Equal("JFK", destination);
     }
 
     [Fact]
@@ -46,11 +53,14 @@ public class FlightFareResolverTests
         // A provider name that does not match any registered IFlightProvider at all — e.g. a
         // client submitting a fabricated provider string — must not silently resolve to some
         // default; there is no authoritative fare to compare against.
-        var resolved = _resolver.TryResolveFare("NotARealAirline", "GA101", "Economy", out var baseFare, out var pricePerPassenger);
+        var resolved = _resolver.TryResolveFare(
+            "NotARealAirline", "GA101", "Economy", out var baseFare, out var pricePerPassenger, out var origin, out var destination);
 
         Assert.False(resolved);
         Assert.Equal(0m, baseFare);
         Assert.Equal(0m, pricePerPassenger);
+        Assert.Null(origin);
+        Assert.Null(destination);
     }
 
     [Fact]
@@ -58,7 +68,7 @@ public class FlightFareResolverTests
     {
         // GA101 is a GlobalAir flight number; asking BudgetWings to resolve it must fail
         // rather than accidentally matching a coincidental cross-provider collision.
-        var resolved = _resolver.TryResolveFare("BudgetWings", "GA101", "Economy", out _, out _);
+        var resolved = _resolver.TryResolveFare("BudgetWings", "GA101", "Economy", out _, out _, out _, out _);
 
         Assert.False(resolved);
     }
@@ -73,10 +83,13 @@ public class FlightFareResolverTests
     public void TryResolveFare_MissingIdentifyingField_ReturnsFalseWithoutThrowing(
         string? providerName, string? flightNumber, string? cabinClass)
     {
-        var resolved = _resolver.TryResolveFare(providerName, flightNumber, cabinClass, out var baseFare, out var pricePerPassenger);
+        var resolved = _resolver.TryResolveFare(
+            providerName, flightNumber, cabinClass, out var baseFare, out var pricePerPassenger, out var origin, out var destination);
 
         Assert.False(resolved);
         Assert.Equal(0m, baseFare);
         Assert.Equal(0m, pricePerPassenger);
+        Assert.Null(origin);
+        Assert.Null(destination);
     }
 }

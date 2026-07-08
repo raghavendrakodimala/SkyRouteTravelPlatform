@@ -24,6 +24,14 @@ public sealed class BookingFlightRequest
 
     public string? CabinClass { get; set; }
 
+    /// <summary>
+    /// Optional advisory field carried from a search result. AUD-032: BaseFare is validated
+    /// when present (must be &gt; 0 and, once the flight is resolved, must equal the provider's
+    /// re-derived base fare — see BookingRequestValidator), but it is NOT part of the persisted
+    /// booking snapshot or the 201 response contract: PricePerPassenger is the single
+    /// authoritative per-passenger price that is re-resolved, stored, and echoed back. Kept
+    /// nullable/optional so a client that omits it is not forced to send a redundant value.
+    /// </summary>
     public decimal? BaseFare { get; set; }
 
     public decimal? PricePerPassenger { get; set; }

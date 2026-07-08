@@ -41,6 +41,20 @@ export class App {
     return index === -1 ? 0 : index;
   });
 
+  /** AUD-021 (WCAG 1.3.1): screen-reader-only progress state for each step — conveys
+   * completed / current / upcoming plus the "step N of M" position that color alone cannot. */
+  protected stepState(index: number): string {
+    const current = this.currentStepIndex();
+    const total = JOURNEY_STEPS.length;
+    if (index < current) {
+      return 'completed';
+    }
+    if (index === current) {
+      return `current step, step ${index + 1} of ${total}`;
+    }
+    return `step ${index + 1} of ${total}, not completed`;
+  }
+
   constructor() {
     this.routeFocusService.start();
   }

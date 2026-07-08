@@ -30,17 +30,22 @@ public class BookingControllerTests : IClassFixture<SkyRouteApiFactory>
         List<Dictionary<string, object>> Passengers,
         DateTime CreatedAtUtc);
 
-    private static BookingFlightRequest MakeFlight(string origin, string destination, decimal pricePerPassenger) => new()
+    private static BookingFlightRequest MakeFlight(
+        string origin,
+        string destination,
+        decimal pricePerPassenger,
+        string flightNumber = "GA101",
+        decimal baseFare = 250.00m) => new()
     {
         Provider = "GlobalAir",
-        FlightNumber = "GA101",
+        FlightNumber = flightNumber,
         Origin = origin,
         Destination = destination,
         DepartureDateTime = new DateTime(2026, 8, 1, 9, 0, 0, DateTimeKind.Utc),
         ArrivalDateTime = new DateTime(2026, 8, 1, 17, 30, 0, DateTimeKind.Utc),
         DurationMinutes = 510,
         CabinClass = "Economy",
-        BaseFare = 250.00m,
+        BaseFare = baseFare,
         PricePerPassenger = pricePerPassenger,
     };
 
@@ -130,11 +135,15 @@ public class BookingControllerTests : IClassFixture<SkyRouteApiFactory>
     [Fact]
     public async Task CreateBooking_DocumentRouteMismatch_Returns400ViaValidationProblem_Not500()
     {
-        // MAN -> LHR resolves to Domestic server-side, but the passenger submits a Passport.
+        // GA412 (MAN -> LHR) resolves to Domestic server-side, but the passenger submits a
+        // Passport. AUD-025/028/033: this now uses a GENUINELY domestic flight (GA412, base 80.00,
+        // per-passenger 92.00) so the route/fare snapshot validates and the request reaches the
+        // BR-003 document-type check — the previous version declared GA101 (a real international
+        // flight) on MAN->LHR, which the route re-resolution now rejects before documents.
         var client = _factory.CreateHttpsClient();
         var request = new BookingRequest
         {
-            Flight = MakeFlight("MAN", "LHR", 60.00m),
+            Flight = MakeFlight("MAN", "LHR", 92.00m, flightNumber: "GA412", baseFare: 80.00m),
             PassengerCount = 1,
             Passengers = new List<PassengerRequest>
             {
@@ -149,6 +158,107 @@ public class BookingControllerTests : IClassFixture<SkyRouteApiFactory>
         var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
         Assert.NotNull(problem);
         Assert.Contains(problem!.Errors.Keys, k => k.StartsWith("passengers[0].documentType"));
+    }
+
+    [Fact]
+    public async Task CreateBooking_InternationalFlightDeclaredDomestic_Returns400OnRoute_NotConfirmedOnNationalId()
+    {
+        // AUD-025/028/033 end-to-end: GA204 is genuinely LHR->DXB (international). Declaring it as
+        // LHR->MAN (a same-country UK domestic pair) with only a National ID was the passport-gate
+        // bypass. The server re-resolves the real route and rejects it (flight.destination) — the
+        // booking is NOT confirmed as a domestic National-ID itinerary.
+        var client = _factory.CreateHttpsClient();
+        var request = new BookingRequest
+        {
+            Flight = MakeFlight("LHR", "MAN", 345.00m, flightNumber: "GA204", baseFare: 300.00m),
+            PassengerCount = 1,
+            Passengers = new List<PassengerRequest>
+            {
+                MakePassenger("Jane Doe", "jane@example.com", "National ID", "AB-12345"),
+            },
+        };
+
+        var response = await client.PostAsJsonAsync("/api/v1/bookings", request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.True(problem!.Errors.ContainsKey("flight.destination"));
+    }
+
+    [Fact]
+    public async Task CreateBooking_InternationalFlightCorrectlyDeclared_Returns201WithIntReference()
+    {
+        // AUD-025/028/033 positive counterpart: GA204 correctly declared as LHR->DXB with a
+        // Passport books normally as SKY-INT — a correct international itinerary is unaffected.
+        var client = _factory.CreateHttpsClient();
+        var request = new BookingRequest
+        {
+            Flight = MakeFlight("LHR", "DXB", 345.00m, flightNumber: "GA204", baseFare: 300.00m),
+            PassengerCount = 1,
+            Passengers = new List<PassengerRequest>
+            {
+                MakePassenger("Jane Doe", "jane@example.com", "Passport", "AB1234C"),
+            },
+        };
+
+        var response = await client.PostAsJsonAsync("/api/v1/bookings", request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var parsed = JsonSerializer.Deserialize<BookingResponseDto>(body, CaseInsensitiveOptions);
+        Assert.NotNull(parsed);
+        Assert.Matches("^SKY-INT-[A-Z0-9]{6}$", parsed!.BookingReference);
+    }
+
+    [Fact]
+    public async Task CreateBooking_EmptyBody_Returns400_Not500()
+    {
+        // AUD-027: an empty body binds the model to null under SuppressModelStateInvalidFilter —
+        // must be a 400 problem, not a 500.
+        var client = _factory.CreateHttpsClient();
+        using var content = new StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync("/api/v1/bookings", content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateBooking_MalformedJsonBody_Returns400_Not500()
+    {
+        // AUD-027: truncated/malformed JSON.
+        var client = _factory.CreateHttpsClient();
+        using var content = new StringContent("{ \"flight\": {", System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync("/api/v1/bookings", content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateBooking_OversizedPassengersArray_Returns400WithPassengersError()
+    {
+        // AUD-034: a small passengerCount alongside an oversized passengers[] must be rejected on
+        // the array bound (400) — proving the per-passenger loop is not walked for the whole
+        // oversized collection.
+        var client = _factory.CreateHttpsClient();
+        var request = new BookingRequest
+        {
+            Flight = MakeFlight("LHR", "JFK", 287.50m),
+            PassengerCount = 2,
+            Passengers = Enumerable.Range(0, 100).Select(_ => new PassengerRequest()).ToList(),
+        };
+
+        var response = await client.PostAsJsonAsync("/api/v1/bookings", request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.True(problem!.Errors.ContainsKey("passengers"));
+        Assert.DoesNotContain(problem.Errors.Keys, k => k.StartsWith("passengers[", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -46,6 +46,12 @@ Every handoff — numbered file or loop-log entry — must include:
 - Completion criteria for next step
 - Relevant files
 
+## Pre-Handoff Self-Check
+
+Before any handoff, every agent asks: what would a demanding senior human engineer point out here? If the answer is known, fix it before handing off — the human PO must never be the one to find it.
+
+Requirements are floors, not ceilings — see `production-readiness-baseline.md` for the standing baseline every delivery must satisfy or explicitly waive.
+
 ## Reporting
 
 After work, summarize:

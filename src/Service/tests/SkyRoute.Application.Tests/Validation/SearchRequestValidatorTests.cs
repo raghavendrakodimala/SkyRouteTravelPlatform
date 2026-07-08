@@ -122,14 +122,32 @@ public class SearchRequestValidatorTests
     }
 
     [Fact]
-    public void Validate_DepartureDateYesterday_ReturnsCannotBeInPastMessage()
+    public void Validate_DepartureDateTwoDaysPast_ReturnsCannotBeInPastMessage()
     {
+        // AUD-026/031: the past-date boundary is now the timezone-generous UTC-1 (see
+        // DepartureDateRules), so a date must be at least two days behind UTC to be unambiguously
+        // in the past for every timezone and rejected. (Was AddDays(-1) — that value is now
+        // accepted, see Validate_DepartureDateYesterdayUtc_IsAcceptedWithinTimezoneGrace.)
+        var request = MakeValidRequest();
+        request.DepartureDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-2);
+
+        var errors = _validator.Validate(request);
+
+        Assert.Equal(new[] { "Departure date cannot be in the past." }, errors["departureDate"]);
+    }
+
+    [Fact]
+    public void Validate_DepartureDateYesterdayUtc_IsAcceptedWithinTimezoneGrace()
+    {
+        // AUD-031 regression: a negative-offset user's legitimate LOCAL "today" can read as
+        // yesterday in UTC once UTC has rolled over. Anchoring the boundary at UTC-1 means such a
+        // same-day search is accepted rather than wrongly rejected as past.
         var request = MakeValidRequest();
         request.DepartureDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1);
 
         var errors = _validator.Validate(request);
 
-        Assert.Equal(new[] { "Departure date cannot be in the past." }, errors["departureDate"]);
+        Assert.False(errors.ContainsKey("departureDate"));
     }
 
     [Fact]
@@ -239,7 +257,8 @@ public class SearchRequestValidatorTests
     public void Validate_MultipleSimultaneousFailures_DoesNotShortCircuit()
     {
         var request = MakeValidRequest();
-        request.DepartureDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1);
+        // AUD-026/031: two days past is unambiguously in the past (UTC-1 grace boundary).
+        request.DepartureDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-2);
         request.PassengerCount = 10;
 
         var errors = _validator.Validate(request);

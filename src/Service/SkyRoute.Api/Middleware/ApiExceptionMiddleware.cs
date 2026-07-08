@@ -28,6 +28,33 @@ public sealed class ApiExceptionMiddleware
         {
             await _next(context);
         }
+        catch (BadHttpRequestException ex)
+        {
+            // AUD-027: a request body the server could not even read/parse (e.g. malformed JSON
+            // or a body-read failure that surfaces as an exception rather than a null-bound
+            // model) is a CLIENT error — map it to a 400 problem+json in the same contract, not a
+            // 500. The controllers' own null-body guard handles the common formatter-failure path;
+            // this branch is the defensive net for any bad-request exception that propagates here.
+            _logger.LogWarning(ex, "Malformed request for {Method} {Path}", context.Request.Method, context.Request.Path);
+
+            if (context.Response.HasStarted)
+            {
+                throw;
+            }
+
+            context.Response.Clear();
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+            var badRequestBody = new
+            {
+                type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+                title = "The request body could not be read. Please send a valid JSON request body.",
+                status = StatusCodes.Status400BadRequest,
+                traceId = context.TraceIdentifier,
+            };
+
+            await context.Response.WriteAsJsonAsync(badRequestBody, options: null, contentType: "application/problem+json");
+        }
         catch (Exception ex)
         {
             // Server-side log only may include exception detail; the response body never does.

@@ -3,7 +3,7 @@
    values. Card/button hover/active treatment applied per spec §4.2/§5.2. */
 
 .booking-page {
-  max-width: 980px;
+  max-width: var(--layout-max); /* AUD-013: shared with the header/footer chrome + other funnel steps */
   margin: var(--space-6, 32px) auto;
   padding: 0 var(--space-5, 24px);
 }
@@ -179,6 +179,10 @@
   font-weight: var(--font-weight-bold, 700);
   color: var(--color-neutral-900, #1a1a1a);
   margin: 0 0 var(--space-1, 4px);
+  /* AUD-012: a long single-token name (valid: the full-name rule requires no space) must
+     break inside the card, matching the sibling .card-line. Without this the token overran
+     the card edge and was silently clipped by the old body overflow-x:hidden. */
+  overflow-wrap: anywhere;
 }
 
 .card-line {

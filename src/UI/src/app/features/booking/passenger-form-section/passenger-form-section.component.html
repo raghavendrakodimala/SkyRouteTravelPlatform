@@ -16,13 +16,15 @@
       formControlName="fullName"
       required
       aria-required="true"
+      [attr.aria-invalid]="ariaInvalid('fullName')"
+      [attr.aria-describedby]="describedBy('fullName')"
       [attr.autocomplete]="isLead() ? 'name' : null"
     />
     @if (group().get('fullName')?.touched && group().get('fullName')?.invalid) {
-      <p class="error" role="alert">Full name is required, must be 2–100 characters, and must contain at least one letter.</p>
+      <p class="error" role="alert" [id]="'fullName-error-' + index()">Full name is required, must be 2–100 characters, and must contain at least one letter.</p>
     }
     @if (serverErrors()?.fullName) {
-      <p class="error" role="alert">{{ serverErrors()?.fullName }}</p>
+      <p class="error" role="alert" [id]="'fullName-server-error-' + index()">{{ serverErrors()?.fullName }}</p>
     }
   </div>
 
@@ -40,12 +42,14 @@
       formControlName="age"
       required
       aria-required="true"
+      [attr.aria-invalid]="ariaInvalid('age')"
+      [attr.aria-describedby]="describedBy('age')"
     />
     @if (group().get('age')?.touched && group().get('age')?.invalid) {
-      <p class="error" role="alert">Age is required and must be a whole number between 0 and 120.</p>
+      <p class="error" role="alert" [id]="'age-error-' + index()">Age is required and must be a whole number between 0 and 120.</p>
     }
     @if (serverErrors()?.age) {
-      <p class="error" role="alert">{{ serverErrors()?.age }}</p>
+      <p class="error" role="alert" [id]="'age-server-error-' + index()">{{ serverErrors()?.age }}</p>
     }
   </div>
 
@@ -57,13 +61,15 @@
       formControlName="email"
       required
       aria-required="true"
+      [attr.aria-invalid]="ariaInvalid('email')"
+      [attr.aria-describedby]="describedBy('email')"
       [attr.autocomplete]="isLead() ? 'email' : null"
     />
     @if (group().get('email')?.touched && group().get('email')?.invalid) {
-      <p class="error" role="alert">A valid email address is required.</p>
+      <p class="error" role="alert" [id]="'email-error-' + index()">A valid email address is required.</p>
     }
     @if (serverErrors()?.email) {
-      <p class="error" role="alert">{{ serverErrors()?.email }}</p>
+      <p class="error" role="alert" [id]="'email-server-error-' + index()">{{ serverErrors()?.email }}</p>
     }
   </div>
 
@@ -75,18 +81,19 @@
       formControlName="documentNumber"
       required
       aria-required="true"
-      [attr.aria-describedby]="'documentHint-' + index()"
+      [attr.aria-invalid]="ariaInvalid('documentNumber')"
+      [attr.aria-describedby]="describedBy('documentNumber')"
     />
     <!-- Persistent format hint (WCAG 3.3.2, PO 2026-07-08) — visible before any error occurs. -->
     <p class="hint" [id]="'documentHint-' + index()">{{ documentHint() }}</p>
     @if (group().get('documentNumber')?.touched && group().get('documentNumber')?.invalid) {
-      <p class="error" role="alert">{{ documentLabel() }} must be {{ documentHint() }}</p>
+      <p class="error" role="alert" [id]="'documentNumber-error-' + index()">{{ documentLabel() }} must be {{ documentHint() }}</p>
     }
     @if (serverErrors()?.documentNumber) {
-      <p class="error" role="alert">{{ serverErrors()?.documentNumber }}</p>
+      <p class="error" role="alert" [id]="'documentNumber-server-error-' + index()">{{ serverErrors()?.documentNumber }}</p>
     }
     @if (serverErrors()?.documentType) {
-      <p class="error" role="alert">{{ serverErrors()?.documentType }}</p>
+      <p class="error" role="alert" [id]="'documentType-server-error-' + index()">{{ serverErrors()?.documentType }}</p>
     }
   </div>
 </fieldset>

@@ -32,10 +32,18 @@ public sealed class ThrowingFlightProvider : IFlightProvider
     /// never for booking-flow/SEC-001 fare-resolution tests, so it always reports "not found"
     /// rather than emulating a real provider's schedule lookup.
     /// </summary>
-    public bool TryResolveFare(string flightNumber, string cabinClass, out decimal baseFare, out decimal pricePerPassenger)
+    public bool TryResolveFare(
+        string flightNumber,
+        string cabinClass,
+        out decimal baseFare,
+        out decimal pricePerPassenger,
+        out string? origin,
+        out string? destination)
     {
         baseFare = 0m;
         pricePerPassenger = 0m;
+        origin = null;
+        destination = null;
         return false;
     }
 }

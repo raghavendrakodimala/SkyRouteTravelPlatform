@@ -24,7 +24,11 @@
   /* ---- Color: brand extension (UI overhaul, PO directive 2026-07-07) ---- */
   --color-navy: #0f2b56;            /* header/footer — white on navy = 13.4:1 */
   --color-navy-deep: #0a1f3f;       /* footer / pressed navy */
-  --gradient-hero: linear-gradient(135deg, #0f2b56 0%, #1a5fb4 55%, #3b82d4 100%);
+  /* AUD-014: light stop darkened #3b82d4 → #2f6fc0 so solid white over the gradient's
+     lightest point clears WCAG 1.4.3 AA (white on #2f6fc0 = 5.05:1; the old #3b82d4 was
+     only 3.94:1, failing even for solid white). Navy start stays 13.4:1, mid #1a5fb4 6.29:1,
+     so the whole band is ≥ 5.05:1 for the solid-white hero copy. */
+  --gradient-hero: linear-gradient(135deg, #0f2b56 0%, #1a5fb4 55%, #2f6fc0 100%);
   --color-page-bg: #f4f6fa;         /* tinted page canvas behind white surface cards */
   --color-price: #9a3412;           /* warm price accent — 6.4:1 on white, 5.9:1 on #f7f9fc */
   --color-success: #1a7f37;         /* confirmation check — 4.7:1 on white */
@@ -94,6 +98,14 @@
 
   /* ---- Misc ---- */
   --opacity-disabled: 0.6; /* existing button:disabled value, unchanged */
+
+  /* ---- Layout (AUD-013) ---- */
+  /* One shared max-width for the header/footer chrome AND every page content container, so
+     the content column and its H1 align with the header logo across all funnel steps and no
+     longer jump horizontally between Results (was 860) → Booking (was 980) → Confirmation
+     (was 560). Narrow content (e.g. the confirmation ticket) is constrained inside this
+     column, not by a per-screen page width. */
+  --layout-max: 1120px;
 }
 
 /* Spec §1: once form controls gain border + padding, this prevents them from overflowing
@@ -120,7 +132,11 @@ body {
 body {
   margin: 0;
   min-height: 100vh;
-  overflow-x: hidden; /* full-bleed hero uses 100vw; keep scrollbar width from causing a horizontal scroll */
+  /* AUD-016: the app-wide `overflow-x: hidden` hack was removed. It masked real horizontal
+     overflow (long passenger names, the fixed-width flight timeline) rather than fixing it.
+     The hero is full-bleed via its own full-width host section (no 100vw is used anywhere),
+     and the overflow sources are fixed at the source (overflow-wrap on name text, a wrapping
+     flight timeline), so no horizontal scrollbar appears at 320px or 1280px without the hack. */
 }
 
 /* App shell: sticky-footer column so the navy footer sits at the viewport bottom on
@@ -168,6 +184,42 @@ a:focus-visible {
 button:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* Global visually-hidden utility (AUD-021/AUD-024): kept in the accessibility tree, hidden
+   visually. Used by the app-shell stepper's per-step state text and the skip link. Component
+   stylesheets keep their own scoped copies for their local SR-only text. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  padding: 0;
+  margin: -1px;
+}
+
+/* Skip-to-content link (AUD-024, WCAG 2.4.1): the first focusable element in the DOM, hidden
+   off-screen until it receives keyboard focus, then revealed at the top-left. */
+.skip-link {
+  position: absolute;
+  left: var(--space-3);
+  top: -60px;
+  z-index: 1000;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  text-decoration: none;
+  transition: top var(--transition-fast);
+}
+
+.skip-link:focus {
+  top: var(--space-3);
 }
 
 /* Motion in this design system is limited to the `--transition-fast` hover/focus

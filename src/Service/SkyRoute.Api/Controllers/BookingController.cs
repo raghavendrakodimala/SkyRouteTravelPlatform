@@ -29,8 +29,21 @@ public sealed class BookingController : ControllerBase
     }
 
     [HttpPost]
+    [Produces("application/json")]
+    [ProducesResponseType<BookingResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateBooking([FromBody] BookingRequest request, CancellationToken cancellationToken)
     {
+        // AUD-027: with SuppressModelStateInvalidFilter (Program.cs) the framework does not
+        // auto-400 a body it could not bind (empty/null/malformed/wrong-typed JSON) — the model
+        // arrives null. Return the same field-keyed 400 contract instead of letting a downstream
+        // null dereference surface as a 500.
+        if (request is null)
+        {
+            return ValidationProblem(InvalidBodyErrors().ToModelState());
+        }
+
         var structuralErrors = _validator.ValidateStructure(request);
         if (structuralErrors.Count > 0)
         {
@@ -53,4 +66,9 @@ public sealed class BookingController : ControllerBase
             return ValidationProblem(ex.Errors.ToModelState());
         }
     }
+
+    private static Dictionary<string, string[]> InvalidBodyErrors() => new()
+    {
+        ["request"] = ["A valid JSON request body is required."],
+    };
 }

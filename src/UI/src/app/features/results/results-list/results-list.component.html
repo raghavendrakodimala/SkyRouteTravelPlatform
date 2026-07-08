@@ -14,12 +14,16 @@
     <a class="modify-link" routerLink="/search">Modify search</a>
   </div>
 
+  <!-- AUD-019/AUD-022: single always-present polite live region (see liveStatus). Announces
+       "Searching…", the result count, and re-sorts. Errors use the assertive banner below. -->
+  <p class="visually-hidden" role="status" aria-live="polite">{{ liveStatus() }}</p>
+
   @if (searchState.loading()) {
-    <p class="loading" role="status">Searching…</p>
+    <p class="loading">Searching…</p>
   } @else if (searchState.errorMessage()) {
     <p class="banner-error" role="alert">{{ searchState.errorMessage() }}</p>
   } @else if (searchState.isEmpty()) {
-    <div class="empty-state" role="status">
+    <div class="empty-state">
       <p class="empty-lead">No flights found for your search.</p>
       <p>Try a different route, date, or cabin class.</p>
       <a class="modify-link" routerLink="/search">Modify search</a>
@@ -56,8 +60,10 @@
             </div>
           </div>
           <div class="pricing">
-            <span class="total-price">{{ totalPriceText(result) }}</span>
-            <span class="per-person-price">{{ perPersonPriceText(result) }}</span>
+            <!-- AUD-009: single per-person fare (passenger count is chosen at booking), not a
+                 misleading "$X total" that duplicated the per-person figure. -->
+            <span class="fare-price">{{ farePriceText(result) }}</span>
+            <span class="fare-caption">per person</span>
             <button
               type="button"
               (click)="selectFlight(result)"

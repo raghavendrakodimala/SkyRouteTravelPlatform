@@ -32,19 +32,21 @@ public class BookingServiceTests
         decimal pricePerPassenger = 287.50m,
         int passengerCount = 2,
         string documentType = "Passport",
-        string documentNumber = "AB1234C") => new()
+        string documentNumber = "AB1234C",
+        string flightNumber = "GA101",
+        decimal baseFare = 250.00m) => new()
     {
         Flight = new BookingFlightRequest
         {
             Provider = "GlobalAir",
-            FlightNumber = "GA101",
+            FlightNumber = flightNumber,
             Origin = origin,
             Destination = destination,
             DepartureDateTime = new DateTime(2026, 8, 1, 9, 0, 0, DateTimeKind.Utc),
             ArrivalDateTime = new DateTime(2026, 8, 1, 17, 30, 0, DateTimeKind.Utc),
             DurationMinutes = 510,
             CabinClass = "Economy",
-            BaseFare = 250.00m,
+            BaseFare = baseFare,
             PricePerPassenger = pricePerPassenger,
         },
         PassengerCount = passengerCount,
@@ -70,7 +72,7 @@ public class BookingServiceTests
         new BookingReferenceGenerator(),
         new RouteTypeResolver(new AirportDataService()),
         new FlightFareResolver(RealProviders),
-        new BookingRequestValidator(),
+        new BookingRequestValidator(new AirportDataService()),
         new CapturingLogger<BookingService>());
 
     [Fact]
@@ -97,16 +99,81 @@ public class BookingServiceTests
     {
         var store = new FakeBookingStore();
         var sut = MakeSut(store);
-        // pricePerPassenger left at the default (287.50 — GA101/Economy's real fare) since
-        // SEC-001's fix now verifies it server-side; this test's purpose is the DOM reference
-        // prefix, not price.
+        // AUD-025/028/033: this must be a GENUINELY domestic flight now. GA412 (MAN->LHR, both
+        // UK) is a real domestic fixture — base 80.00, Economy per-passenger 92.00 (BR-001). The
+        // previous version of this test declared GA101 (a real LHR->JFK international flight) on a
+        // MAN->LHR route; that self-contradictory snapshot is exactly the passport-gate bypass the
+        // fix now rejects, so it can no longer be used to reach a domestic booking.
         var request = MakeValidBookingRequest(
-            origin: "MAN", destination: "LHR", passengerCount: 1,
-            documentType: "National ID", documentNumber: "AB-1234");
+            origin: "MAN", destination: "LHR", pricePerPassenger: 92.00m, passengerCount: 1,
+            documentType: "National ID", documentNumber: "AB-1234",
+            flightNumber: "GA412", baseFare: 80.00m);
 
         var response = await sut.CreateBookingAsync(request, CancellationToken.None);
 
         Assert.Matches("^SKY-DOM-[A-Z0-9]{6}$", response.BookingReference);
+    }
+
+    // ------------------------------------------------------------------------------------
+    // AUD-025/028/033 — the client no longer controls the route/document security gate.
+    // The flight's authoritative Origin/Destination is re-resolved server-side from
+    // Provider+FlightNumber; a submitted route that contradicts it is rejected, and the
+    // BR-003 document rule is derived from the RESOLVED route, closing the passport bypass.
+    // ------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task CreateBookingAsync_InternationalFlightDeclaredAsDomesticRoute_ThrowsAndDoesNotBook()
+    {
+        // GA204 is genuinely LHR->DXB (international). Declaring it as LHR->MAN (a same-country UK
+        // domestic pair) with only a National ID was the passport-gate bypass — the fare still
+        // resolved for GA204 so the forgery was invisible. It must now be rejected on the route.
+        var store = new FakeBookingStore();
+        var sut = MakeSut(store);
+        var request = MakeValidBookingRequest(
+            origin: "LHR", destination: "MAN", pricePerPassenger: 345.00m,
+            passengerCount: 1, documentType: "National ID", documentNumber: "AB-1234",
+            flightNumber: "GA204", baseFare: 300.00m);
+
+        var exception = await Assert.ThrowsAsync<BookingValidationException>(
+            () => sut.CreateBookingAsync(request, CancellationToken.None));
+
+        Assert.True(exception.Errors.ContainsKey("flight.destination"));
+        Assert.Empty(store.CreatedBookings);
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_InternationalFlightCorrectlyDeclared_BooksWithIntPrefixAndPassport()
+    {
+        // The positive counterpart: GA204 correctly declared as LHR->DXB with a Passport books
+        // normally and derives International (SKY-INT) from the resolved route.
+        var store = new FakeBookingStore();
+        var sut = MakeSut(store);
+        var request = MakeValidBookingRequest(
+            origin: "LHR", destination: "DXB", pricePerPassenger: 345.00m,
+            passengerCount: 1, documentType: "Passport", documentNumber: "AB1234C",
+            flightNumber: "GA204", baseFare: 300.00m);
+
+        var response = await sut.CreateBookingAsync(request, CancellationToken.None);
+
+        Assert.Matches("^SKY-INT-[A-Z0-9]{6}$", response.BookingReference);
+        Assert.Equal("LHR", response.Flight.Origin);
+        Assert.Equal("DXB", response.Flight.Destination);
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_ForgedOrigin_PersistsNothingAndReportsOriginError()
+    {
+        // A real GA101 (LHR->JFK) booking but with the origin forged to MAN — the resolved route
+        // is authoritative, so flight.origin is rejected and no booking is persisted.
+        var store = new FakeBookingStore();
+        var sut = MakeSut(store);
+        var request = MakeValidBookingRequest(origin: "MAN", destination: "JFK");
+
+        var exception = await Assert.ThrowsAsync<BookingValidationException>(
+            () => sut.CreateBookingAsync(request, CancellationToken.None));
+
+        Assert.True(exception.Errors.ContainsKey("flight.origin"));
+        Assert.Empty(store.CreatedBookings);
     }
 
     [Fact]

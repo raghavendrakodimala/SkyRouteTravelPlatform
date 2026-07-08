@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIRPORTS } from '../../../shared/constants/airports.constants';
+import { SearchRequest } from '../../../shared/models/search-request.model';
 import { SearchStateService } from '../search-state.service';
 import { SearchFormComponent } from './search-form.component';
 
@@ -20,6 +21,7 @@ describe('SearchFormComponent', () => {
     loading: ReturnType<typeof signal<boolean>>;
     fieldErrors: ReturnType<typeof signal<Record<string, string[]> | null>>;
     errorMessage: ReturnType<typeof signal<string | null>>;
+    lastCriteria: ReturnType<typeof signal<SearchRequest | null>>;
     search: ReturnType<typeof vi.fn>;
   };
 
@@ -28,6 +30,7 @@ describe('SearchFormComponent', () => {
       loading: signal(false),
       fieldErrors: signal(null),
       errorMessage: signal(null),
+      lastCriteria: signal<SearchRequest | null>(null),
       search: vi.fn(),
     };
 
@@ -247,5 +250,61 @@ describe('SearchFormComponent', () => {
       cabinClass: 'Business',
       tripType: 'OneWay',
     });
+  });
+
+  // ── AUD-008: "Modify search" pre-fills from the last criteria ────────────────
+  it('AUD-008: pre-fills the form from lastCriteria on init (Modify search edits the prior query)', () => {
+    fakeSearchState.lastCriteria.set({
+      origin: 'LHR',
+      destination: 'JFK',
+      departureDate: '2026-08-01',
+      passengerCount: 1,
+      cabinClass: 'Business',
+      tripType: 'OneWay',
+    });
+    const fresh = TestBed.createComponent(SearchFormComponent);
+    fresh.detectChanges();
+    const root: HTMLElement = fresh.nativeElement;
+
+    expect(root.querySelector<HTMLSelectElement>('#origin')!.value).toBe('LHR');
+    expect(root.querySelector<HTMLSelectElement>('#destination')!.value).toBe('JFK');
+    expect(root.querySelector<HTMLInputElement>('#departureDate')!.value).toBe('2026-08-01');
+    expect(root.querySelector<HTMLSelectElement>('#cabinClass')!.value).toBe('Business');
+  });
+
+  it('AUD-008: leaves the form blank when there is no prior search', () => {
+    // Default fake has lastCriteria = null (set in beforeEach); the beforeEach fixture is blank.
+    expect(fixture.nativeElement.querySelector('#origin').value).toBe('');
+    expect(fixture.nativeElement.querySelector('#departureDate').value).toBe('');
+  });
+
+  // ── AUD-002: local-date min ─────────────────────────────────────────────────
+  it('AUD-002: the departure-date min is the LOCAL today, not a UTC toISOString() date', () => {
+    const now = new Date();
+    const expected = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    expect(fixture.nativeElement.querySelector('#departureDate').getAttribute('min')).toBe(expected);
+  });
+
+  // ── AUD-010: reactive past-date validator ───────────────────────────────────
+  it('AUD-010: a typed past departure date fails client validation and does not call search', () => {
+    form(component).controls.origin.setValue('LHR');
+    form(component).controls.destination.setValue('JFK');
+    form(component).controls.departureDate.setValue('2000-01-01'); // clearly in the past
+    fixture.detectChanges();
+
+    submitForm();
+
+    expect(alertTexts()).toContain('Departure date is required and cannot be in the past.');
+    expect(fakeSearchState.search).not.toHaveBeenCalled();
+  });
+
+  // ── AUD-018: errors are programmatically associated with their controls ─────
+  it('AUD-018: an invalid submitted control exposes aria-invalid and aria-describedby to its error', () => {
+    submitForm();
+
+    const origin: HTMLSelectElement = fixture.nativeElement.querySelector('#origin');
+    expect(origin.getAttribute('aria-invalid')).toBe('true');
+    expect(origin.getAttribute('aria-describedby')).toBe('origin-error');
+    expect(fixture.nativeElement.querySelector('#origin-error')).toBeTruthy();
   });
 });

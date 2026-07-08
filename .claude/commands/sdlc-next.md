@@ -45,6 +45,8 @@ Review phases 15–18 run the Iterative Review-Fix Loop internally and merge onl
 
 UI checkpoints (`.claude/rules/ui-ux-quality-gates.md`): approved design spec before UI implementation; rendered-UI evidence before implementation handoff; PO visual demo before UI review phases close.
 
+Production-readiness checkpoints (`.claude/rules/production-readiness-baseline.md`): every baseline item implemented or explicitly waived as a dated decision-log entry before the phase completes; a Red-Team Product Review (code-reviewer or ux-ui-designer by subject, against the running product with hostile inputs) precedes any PO demo checkpoint or phase closure of user-facing work.
+
 Efficiency:
 
 - Adjacent documentation-only phases MAY be batched onto one branch only when the PO explicitly pre-approved batching for this run; record it in the phase commit message.

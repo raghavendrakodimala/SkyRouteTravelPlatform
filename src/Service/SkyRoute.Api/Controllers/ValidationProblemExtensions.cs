@@ -11,17 +11,20 @@ namespace SkyRoute.Api.Controllers;
 /// </summary>
 public static class ValidationProblemExtensions
 {
-    public static ModelStateDictionary ToModelState(this IDictionary<string, string[]> errors)
+    extension(IDictionary<string, string[]> errors)
     {
-        var modelState = new ModelStateDictionary();
-        foreach (var (field, messages) in errors)
+        public ModelStateDictionary ToModelState()
         {
-            foreach (var message in messages)
+            var modelState = new ModelStateDictionary();
+            foreach (var (field, messages) in errors)
             {
-                modelState.AddModelError(field, message);
+                foreach (var message in messages)
+                {
+                    modelState.AddModelError(field, message);
+                }
             }
-        }
 
-        return modelState;
+            return modelState;
+        }
     }
 }

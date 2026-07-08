@@ -49,6 +49,7 @@ Accessibility Review and any UX/UI review of UI work must include a live rendere
 
 Before a UI feature's review phases close, the Product Owner gets a visual demo checkpoint — screenshots or a live walkthrough of the rendered feature — mirroring a real sprint review/demo.
 
+- A Red-Team Product Review (`production-readiness-baseline.md`) precedes this checkpoint — a demo without a preceding red-team pass is incomplete.
 - The demo checkpoint is recorded in the handoff notes (what was shown, PO feedback, resulting actions).
 - PO visual feedback is triaged like review findings: fixed in the current loop, or explicitly accepted/deferred by the PO.
 - Review phases for a UI feature are not closed and merged until this checkpoint has happened.

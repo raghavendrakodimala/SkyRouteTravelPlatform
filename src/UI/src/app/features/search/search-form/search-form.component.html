@@ -8,59 +8,89 @@
     <div class="field-grid">
     <div class="field">
       <label for="origin">Origin <span class="required-indicator">(required)</span></label>
-      <select id="origin" formControlName="origin" required aria-required="true">
+      <select
+        id="origin"
+        formControlName="origin"
+        required
+        aria-required="true"
+        [attr.aria-invalid]="ariaInvalid('origin')"
+        [attr.aria-describedby]="describedBy('origin')"
+      >
         <option value="" disabled>Select origin airport</option>
         @for (airport of airports; track airport.code) {
           <option [value]="airport.code">{{ airport.displayName }} — {{ airport.country }}</option>
         }
       </select>
       @if (submitted() && form.controls.origin.invalid) {
-        <p class="error" role="alert">Origin airport is required.</p>
+        <p class="error" role="alert" id="origin-error">Origin airport is required.</p>
       }
       @if (fieldError('origin')) {
-        <p class="error" role="alert">{{ fieldError('origin') }}</p>
+        <p class="error" role="alert" id="origin-server-error">{{ fieldError('origin') }}</p>
       }
     </div>
 
     <div class="field">
       <label for="destination">Destination <span class="required-indicator">(required)</span></label>
-      <select id="destination" formControlName="destination" required aria-required="true">
+      <select
+        id="destination"
+        formControlName="destination"
+        required
+        aria-required="true"
+        [attr.aria-invalid]="ariaInvalid('destination')"
+        [attr.aria-describedby]="describedBy('destination')"
+      >
         <option value="" disabled>Select destination airport</option>
         @for (airport of airports; track airport.code) {
           <option [value]="airport.code">{{ airport.displayName }} — {{ airport.country }}</option>
         }
       </select>
       @if (submitted() && form.controls.destination.invalid) {
-        <p class="error" role="alert">Destination airport is required.</p>
+        <p class="error" role="alert" id="destination-error">Destination airport is required.</p>
       }
       @if (submitted() && sameAirportSelected()) {
-        <p class="error" role="alert">Origin and destination airports must be different.</p>
+        <p class="error" role="alert" id="destination-sameairport-error">Origin and destination airports must be different.</p>
       }
       @if (fieldError('destination')) {
-        <p class="error" role="alert">{{ fieldError('destination') }}</p>
+        <p class="error" role="alert" id="destination-server-error">{{ fieldError('destination') }}</p>
       }
     </div>
 
     <div class="field">
       <label for="departureDate">Departure Date <span class="required-indicator">(required)</span></label>
-      <input id="departureDate" type="date" formControlName="departureDate" [min]="today" required aria-required="true" />
+      <input
+        id="departureDate"
+        type="date"
+        formControlName="departureDate"
+        [min]="today"
+        required
+        aria-required="true"
+        [attr.aria-invalid]="ariaInvalid('departureDate')"
+        [attr.aria-describedby]="describedBy('departureDate')"
+      />
       @if (submitted() && form.controls.departureDate.invalid) {
-        <p class="error" role="alert">Departure date is required and cannot be in the past.</p>
+        <p class="error" role="alert" id="departureDate-error">Departure date is required and cannot be in the past.</p>
       }
       @if (fieldError('departureDate')) {
-        <p class="error" role="alert">{{ fieldError('departureDate') }}</p>
+        <p class="error" role="alert" id="departureDate-server-error">{{ fieldError('departureDate') }}</p>
       }
     </div>
 
     <div class="field">
       <label for="cabinClass">Cabin Class <span class="required-indicator">(required)</span></label>
-      <select id="cabinClass" formControlName="cabinClass" required aria-required="true">
+      <select
+        id="cabinClass"
+        formControlName="cabinClass"
+        required
+        aria-required="true"
+        [attr.aria-invalid]="ariaInvalid('cabinClass')"
+        [attr.aria-describedby]="describedBy('cabinClass')"
+      >
         @for (cabin of cabinClasses; track cabin) {
           <option [value]="cabin">{{ cabin }}</option>
         }
       </select>
       @if (fieldError('cabinClass')) {
-        <p class="error" role="alert">{{ fieldError('cabinClass') }}</p>
+        <p class="error" role="alert" id="cabinClass-server-error">{{ fieldError('cabinClass') }}</p>
       }
     </div>
     </div>
@@ -81,8 +111,9 @@
         Search
       }
     </button>
-    @if (loading()) {
-      <p class="visually-hidden" role="status" aria-live="polite">Searching for flights…</p>
-    }
+    <!-- AUD-019 (WCAG 4.1.3): the status region is rendered unconditionally and driven by a
+         signal, so screen readers announce "Searching…" on the FIRST search. A region inserted
+         together with its text (the previous @if) typically drops that first announcement. -->
+    <p class="visually-hidden" role="status" aria-live="polite">{{ loading() ? 'Searching for flights…' : '' }}</p>
   </form>
 </section>

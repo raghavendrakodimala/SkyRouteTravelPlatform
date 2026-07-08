@@ -26,9 +26,11 @@ public sealed class BookingStoreHealthCheck : IHealthCheck
     {
         try
         {
-            var bookings = await _store.ListByTenantAsync(_tenantContext.TenantId, page: 1, pageSize: 1, cancellationToken);
-            return HealthCheckResult.Healthy(
-                $"Booking store is reachable ({(bookings.Count > 0 ? "has bookings" : "empty")}).");
+            // AUD-035: still perform the real read roundtrip to prove reachability, but do NOT
+            // disclose whether the store currently holds bookings — the has-bookings/empty text
+            // was a coarse activity oracle for anonymous callers. Reachability alone is reported.
+            _ = await _store.ListByTenantAsync(_tenantContext.TenantId, page: 1, pageSize: 1, cancellationToken);
+            return HealthCheckResult.Healthy("Booking store is reachable.");
         }
         catch (Exception ex)
         {

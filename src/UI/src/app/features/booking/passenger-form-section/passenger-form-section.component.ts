@@ -33,4 +33,40 @@ export class PassengerFormSectionComponent {
    * under the document field and referenced by the input's aria-describedby. */
   readonly documentHint = input.required<string>();
   readonly serverErrors = input<PassengerServerErrors | null>(null);
+
+  /** AUD-018 (WCAG 4.1.2): a control's client-side error is shown once it is touched + invalid;
+   * this drives both the inline message and the input's aria-invalid state. */
+  protected isInvalid(field: string): boolean {
+    const control = this.group().get(field);
+    return !!control && control.touched && control.invalid;
+  }
+
+  protected hasServerError(field: keyof PassengerServerErrors): boolean {
+    return !!this.serverErrors()?.[field];
+  }
+
+  protected ariaInvalid(field: keyof PassengerServerErrors): 'true' | null {
+    return this.isInvalid(field) || this.hasServerError(field) ? 'true' : null;
+  }
+
+  /** AUD-018 (WCAG 3.3.1): associate the control with its persistent hint (document field only)
+   * and any currently-shown error message(s) via id, so a screen reader announces the error
+   * text whenever the field regains focus — not just its label. */
+  protected describedBy(field: keyof PassengerServerErrors): string | null {
+    const ids: string[] = [];
+    if (field === 'documentNumber') {
+      ids.push(`documentHint-${this.index()}`);
+    }
+    if (this.isInvalid(field)) {
+      ids.push(`${field}-error-${this.index()}`);
+    }
+    if (this.hasServerError(field)) {
+      ids.push(`${field}-server-error-${this.index()}`);
+    }
+    // The document field also renders a server documentType error under it — associate it too.
+    if (field === 'documentNumber' && this.hasServerError('documentType')) {
+      ids.push(`documentType-server-error-${this.index()}`);
+    }
+    return ids.length > 0 ? ids.join(' ') : null;
+  }
 }

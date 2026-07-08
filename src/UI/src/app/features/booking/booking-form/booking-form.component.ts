@@ -4,11 +4,12 @@ import {
   HostListener,
   afterRenderEffect,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { getCountryForCode } from '../../../shared/constants/airports.constants';
 import { FieldErrors } from '../../../shared/models/api-error.model';
@@ -156,7 +157,13 @@ export class BookingFormComponent {
     fullName: this.fb.nonNullable.control('', { validators: [fullNameValidator()] }),
     age: this.fb.control<number | null>(null, { validators: [ageValidator()] }),
     email: this.fb.nonNullable.control('', { validators: [emailFormatValidator()] }),
-    documentNumber: this.fb.nonNullable.control('', { validators: [documentNumberValidator(this.routeType())] }),
+    // AUD-004: the documentNumber validator reads routeType() at validation time (not frozen at
+    // construction), so the enforced pattern always matches the reactive label/hint. A constructor
+    // effect re-runs validation when routeType changes, keeping label + validation in lockstep for
+    // any future in-place "change flight"/route-reuse flow (BR-003 "switch together").
+    documentNumber: this.fb.nonNullable.control('', {
+      validators: [(control: AbstractControl): ValidationErrors | null => documentNumberValidator(this.routeType())(control)],
+    }),
   });
 
   protected readonly activeFormIndex = computed(() => {
@@ -260,14 +267,35 @@ export class BookingFormComponent {
     return result;
   });
 
-  /** Non-passenger submit errors (flight/passengerCount keys, network/5xx) → generic banner. */
+  /** AUD-036: fallback shown when a 400 carried no renderable key at all (empty/malformed
+   * errors object) — guarantees FR-071 feedback for every rejected booking. */
+  private readonly submitFallbackError = signal<string | null>(null);
+
+  /** Non-passenger submit errors → generic banner. AUD-036: this previously matched only the
+   * exact keys `flight` and `passengerCount`, so every DOTTED `flight.*` key (e.g.
+   * `flight.flightNumber`, exactly what the SEC-001 fare/price-tamper responses return) was
+   * dropped silently — the 400 left a dead, feedback-less form. It now surfaces EVERY
+   * validation key that is not a per-passenger field error (those are rendered in the error
+   * summary + reopened passenger), so no 400 key can ever be swallowed. */
   protected readonly genericServerError = computed(() => {
     const message = this.bookingState.errorMessage();
     if (message) {
       return message;
     }
     const errors = this.bookingState.fieldErrors();
-    return errors?.['flight']?.[0] ?? errors?.['passengerCount']?.[0] ?? null;
+    const unmapped: string[] = [];
+    if (errors) {
+      for (const [key, messages] of Object.entries(errors)) {
+        if (PASSENGER_ERROR_KEY.test(key) || messages.length === 0) {
+          continue;
+        }
+        unmapped.push(messages[0]);
+      }
+    }
+    if (unmapped.length > 0) {
+      return unmapped.join(' ');
+    }
+    return this.submitFallbackError();
   });
 
   /** Armed while unconfirmed passenger data exists that navigation would destroy. */
@@ -284,6 +312,14 @@ export class BookingFormComponent {
     // or cancelled.
     this.activeForm.events.pipe(takeUntilDestroyed()).subscribe(() => {
       this.activeFormDirty.set(this.activeForm.dirty);
+    });
+
+    // AUD-004: when the resolved route type changes, re-run the documentNumber validator so its
+    // validity reflects the new pattern in lockstep with the label/hint computeds (emitEvent:false
+    // keeps this from perturbing the dirty/touched state).
+    effect(() => {
+      this.routeType();
+      this.activeForm.controls.documentNumber.updateValueAndValidity({ emitEvent: false });
     });
 
     // Focus mechanism: every transition sets `pendingFocus` in the same call that mutates
@@ -316,6 +352,14 @@ export class BookingFormComponent {
       return true;
     }
     return window.confirm("Leave this page? Passenger details you've entered will be lost.");
+  }
+
+  /** AUD-007: the single copy of the Remove-confirmation prompt (extracted so it reads as the
+   * intent and is trivially stubbable in tests). Wording mirrors canLeave()'s data-loss tone. */
+  protected confirmRemoval(index: number, fullName: string): boolean {
+    return window.confirm(
+      `Remove passenger ${index + 1}, ${fullName}? The details you've entered will be lost.`,
+    );
   }
 
   protected isEditingIndex(index: number): boolean {
@@ -419,6 +463,15 @@ export class BookingFormComponent {
     if (p.kind === 'editing' && p.index === index) {
       return; // the card being edited has no visible actions; defensive guard
     }
+    // AUD-007 (PO-approved 2026-07-08): a saved card holds a full name, age, email and document
+    // number — real effort and PII. Confirm before destroying it, consistent with canLeave()'s
+    // data-loss guard. Native confirm is keyboard-operable, announced by AT, and returns focus
+    // to the invoking Remove button when cancelled, so no extra focus handling is needed for the
+    // declined path (nothing mutates and no pendingFocus is set).
+    const saved = this.savedPassengers()[index];
+    if (saved && !this.confirmRemoval(index, saved.fullName)) {
+      return;
+    }
     const removedNumber = index + 1;
     this.savedPassengers.update((list) => list.filter((_, i) => i !== index));
     // Structural change: ALL indexed server errors/badges cleared — indices no longer
@@ -520,6 +573,7 @@ export class BookingFormComponent {
     };
 
     this.serverFieldErrors.set(null);
+    this.submitFallbackError.set(null);
     this.announce('Submitting your booking…');
 
     const outcome = await this.bookingState.submitBooking(request);
@@ -540,7 +594,14 @@ export class BookingFormComponent {
         this.pendingFocus.set('#error-summary');
         return;
       }
-      // Only flight/passengerCount keys — rendered by the generic banner.
+      // No per-passenger keys → every remaining key (flight.*/passengerCount/any unmapped key)
+      // is surfaced by the generic banner (AUD-036). If the 400 carried no renderable key at
+      // all, fall back to a default so a rejected booking is never feedback-less (FR-071).
+      if (!this.genericServerError()) {
+        this.submitFallbackError.set(
+          "We couldn't confirm your booking. Please review your details and try again.",
+        );
+      }
       this.pendingFocus.set('#generic-error-banner');
       return;
     }

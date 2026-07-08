@@ -28,17 +28,28 @@ public sealed class FlightFareResolver
     /// Resolves <paramref name="providerName"/> against the registered <see cref="IFlightProvider"/>
     /// instances (ordinal match, consistent with FlightResult.Provider being a fixed,
     /// server-defined string rather than user free text) and, if found, re-derives the fare
-    /// for <paramref name="flightNumber"/>/<paramref name="cabinClass"/>. Returns
-    /// <c>false</c> (zeroed out-values) if the provider name is unknown or the flight number
-    /// is not part of that provider's schedule — either case means the fare cannot be
-    /// authoritatively verified, and the caller must treat that as a validation failure
-    /// rather than falling back to trusting the client-submitted value.
+    /// AND the authoritative <paramref name="origin"/>/<paramref name="destination"/> for
+    /// <paramref name="flightNumber"/>/<paramref name="cabinClass"/> (AUD-025/028/033 — the
+    /// same single lookup that surfaces the fare surfaces the real route, so the caller can
+    /// reject a forged route and derive the BR-003 document rule from the resolved route).
+    /// Returns <c>false</c> (zeroed/nulled out-values) if the provider name is unknown or the
+    /// flight number is not part of that provider's schedule — either case means the flight
+    /// cannot be authoritatively verified, and the caller must treat that as a validation
+    /// failure rather than falling back to trusting the client-submitted values.
     /// </summary>
     public bool TryResolveFare(
-        string? providerName, string? flightNumber, string? cabinClass, out decimal baseFare, out decimal pricePerPassenger)
+        string? providerName,
+        string? flightNumber,
+        string? cabinClass,
+        out decimal baseFare,
+        out decimal pricePerPassenger,
+        out string? origin,
+        out string? destination)
     {
         baseFare = 0m;
         pricePerPassenger = 0m;
+        origin = null;
+        destination = null;
 
         if (string.IsNullOrWhiteSpace(providerName) ||
             string.IsNullOrWhiteSpace(flightNumber) ||
@@ -48,6 +59,7 @@ public sealed class FlightFareResolver
         }
 
         var provider = _providers.FirstOrDefault(p => string.Equals(p.ProviderName, providerName, StringComparison.Ordinal));
-        return provider is not null && provider.TryResolveFare(flightNumber, cabinClass, out baseFare, out pricePerPassenger);
+        return provider is not null &&
+            provider.TryResolveFare(flightNumber, cabinClass, out baseFare, out pricePerPassenger, out origin, out destination);
     }
 }

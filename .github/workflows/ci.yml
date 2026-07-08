@@ -1,0 +1,74 @@
+name: CI
+
+# Continuous integration for the SkyRoute travel platform.
+# Mirrors the local safe validation commands so CI cannot pass what local
+# validation fails: backend build+test on the .NET solution, and frontend
+# build + unit tests + lint on the Angular app.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Least privilege: CI only needs to read the repository. No deploy, no publish,
+# no secrets are used by this workflow.
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref to save runner minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (.NET 10)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore SkyRoute.slnx
+
+      - name: Build
+        run: dotnet build SkyRoute.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test SkyRoute.slnx --configuration Release --no-build --verbosity normal
+
+  frontend:
+    name: Frontend (Angular 22)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/UI
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Node 24 is within Angular 22's supported range and bundles npm 11.x,
+      # matching the packageManager pin (npm@11.17.0) in src/UI/package.json.
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: src/UI/package-lock.json
+
+      - name: Install (clean, from lockfile)
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm test -- --watch=false
+
+      - name: Lint
+        run: npm run lint

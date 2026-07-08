@@ -7,7 +7,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "frontend": {
+    "SkyRouteTravelPlatform": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:class": {
@@ -44,6 +44,7 @@
           "options": {
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
+            "outputPath": "dist/SkyRouteTravelPlatform",
             "assets": [
               {
                 "glob": "**/*",
@@ -88,10 +89,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "frontend:build:production"
+              "buildTarget": "SkyRouteTravelPlatform:build:production"
             },
             "development": {
-              "buildTarget": "frontend:build:development"
+              "buildTarget": "SkyRouteTravelPlatform:build:development"
             }
           },
           "defaultConfiguration": "development"

@@ -1,0 +1,18 @@
+<Project>
+
+  <!--
+    Backend-wide build settings for every project under src/Service (the three service
+    projects plus the two test projects). LangVersion is pinned explicitly to 14.0 so the
+    C# 14 features this codebase relies on are available and do not silently float with the
+    SDK default. Nullable and ImplicitUsings are hoisted here because all five csproj files
+    set them identically — this is the single source of truth for those settings. TargetFramework
+    stays per-project (it is each project's own identity). This file lives under src/Service, so
+    it only affects the backend and never the Angular UI under src/UI.
+  -->
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

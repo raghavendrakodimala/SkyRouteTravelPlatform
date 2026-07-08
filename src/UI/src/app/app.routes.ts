@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { hasBookingResponseGuard, hasSelectedFlightGuard } from './core/guards/booking-flow.guards';
+import { hasBookingResponseGuard, hasSearchedGuard, hasSelectedFlightGuard } from './core/guards/booking-flow.guards';
 import { bookingLeaveGuard } from './features/booking/booking-leave.guard';
 import { BookingFormComponent } from './features/booking/booking-form/booking-form.component';
 import { ConfirmationComponent } from './features/confirmation/confirmation/confirmation.component';
@@ -21,7 +21,13 @@ import { SearchFormComponent } from './features/search/search-form/search-form.c
 export const routes: Routes = [
   { path: '', redirectTo: 'search', pathMatch: 'full' },
   { path: 'search', component: SearchFormComponent, title: 'Search Flights — SkyRoute' },
-  { path: 'results', component: ResultsListComponent, title: 'Flight Results — SkyRoute' },
+  {
+    path: 'results',
+    component: ResultsListComponent,
+    // AUD-005: redirect to /search on refresh/deep-link when no search is in state.
+    canActivate: [hasSearchedGuard],
+    title: 'Flight Results — SkyRoute',
+  },
   {
     path: 'booking',
     component: BookingFormComponent,

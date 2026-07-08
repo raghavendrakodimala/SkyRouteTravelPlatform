@@ -8,6 +8,36 @@ import { SearchStateService } from '../search-state.service';
 
 const CABIN_CLASSES: readonly CabinClass[] = ['Economy', 'Business', 'First Class'];
 
+type SearchFieldName = 'origin' | 'destination' | 'departureDate' | 'cabinClass';
+
+/**
+ * AUD-002: today's date derived from LOCAL calendar components, never `toISOString()` (which
+ * is UTC and rolls over a day early/late for non-UTC users, wrongly blocking or allowing
+ * "today"). Returns an ISO `YYYY-MM-DD` string that sorts lexicographically, so plain string
+ * comparison against another `YYYY-MM-DD` value is a correct date comparison.
+ */
+function localTodayIso(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * AUD-010: reactive past-date validator. The native `min` attribute only marks the input
+ * out-of-range visually — the Angular control stays valid, so a typed past date passed
+ * client validation and only failed on a server round-trip. This makes the inline
+ * "cannot be in the past" message fire client-side. Empty values are left to `required`.
+ */
+const notInPastValidator: ValidatorFn = (control): ValidationErrors | null => {
+  const value = control.value as string | null;
+  if (!value) {
+    return null;
+  }
+  return value < localTodayIso() ? { pastDate: true } : null;
+};
+
 /** Group-level validator for US-001 AC8 / US-008 AC4 — origin and destination must differ. */
 const differentAirportsValidator: ValidatorFn = (group): ValidationErrors | null => {
   const origin = group.get('origin')?.value;
@@ -40,7 +70,8 @@ export class SearchFormComponent {
 
   protected readonly airports = AIRPORTS;
   protected readonly cabinClasses = CABIN_CLASSES;
-  protected readonly today = new Date().toISOString().slice(0, 10);
+  /** AUD-002: local-date floor for the native picker (see localTodayIso). */
+  protected readonly today = localTodayIso();
 
   protected readonly submitted = signal(false);
 
@@ -48,7 +79,8 @@ export class SearchFormComponent {
     {
       origin: this.fb.nonNullable.control('', { validators: [Validators.required] }),
       destination: this.fb.nonNullable.control('', { validators: [Validators.required] }),
-      departureDate: this.fb.nonNullable.control('', { validators: [Validators.required] }),
+      // AUD-010: reactive past-date validator in addition to the required rule.
+      departureDate: this.fb.nonNullable.control('', { validators: [Validators.required, notInPastValidator] }),
       cabinClass: this.fb.nonNullable.control<CabinClass>('Economy'),
     },
     { validators: [differentAirportsValidator] },
@@ -71,6 +103,22 @@ export class SearchFormComponent {
     const { origin, destination } = this.formValues();
     return !!origin && !!destination && origin === destination;
   });
+
+  constructor() {
+    // AUD-008: "Modify search" (and the header brand link) re-enter /search — pre-fill the
+    // form from the last successful search criteria so the user edits their existing query
+    // instead of re-entering all four fields. lastCriteria is only ever set on a successful
+    // search (AUD-003), so this reflects the query that produced the results being modified.
+    const criteria = this.searchState.lastCriteria();
+    if (criteria) {
+      this.form.patchValue({
+        origin: criteria.origin,
+        destination: criteria.destination,
+        departureDate: criteria.departureDate,
+        cabinClass: criteria.cabinClass,
+      });
+    }
+  }
 
   async onSubmit(): Promise<void> {
     if (this.searchState.loading()) {
@@ -105,6 +153,30 @@ export class SearchFormComponent {
   fieldError(field: string): string | null {
     const errors = this.fieldErrors();
     return errors?.[field]?.[0] ?? null;
+  }
+
+  /** AUD-018 (WCAG 4.1.2): expose the invalid state so a control re-announces as invalid, not
+   * just via its red border. Mirrors the exact conditions of the visible inline messages. */
+  ariaInvalid(field: SearchFieldName): 'true' | null {
+    const clientError = this.submitted() && this.form.controls[field].invalid;
+    const sameAirport = field === 'destination' && this.submitted() && this.sameAirportSelected();
+    return clientError || sameAirport || !!this.fieldError(field) ? 'true' : null;
+  }
+
+  /** AUD-018 (WCAG 3.3.1): associate each visible error message with its control via id, so a
+   * screen reader reads the error text whenever the field regains focus. */
+  describedBy(field: SearchFieldName): string | null {
+    const ids: string[] = [];
+    if (this.submitted() && this.form.controls[field].invalid) {
+      ids.push(`${field}-error`);
+    }
+    if (field === 'destination' && this.submitted() && this.sameAirportSelected()) {
+      ids.push('destination-sameairport-error');
+    }
+    if (this.fieldError(field)) {
+      ids.push(`${field}-server-error`);
+    }
+    return ids.length > 0 ? ids.join(' ') : null;
   }
 
   /** A11Y-008: on a rejected submit, move focus to the first offending control (all controls

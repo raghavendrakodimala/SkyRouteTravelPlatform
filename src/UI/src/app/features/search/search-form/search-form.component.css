@@ -24,7 +24,11 @@
 
 .tagline {
   margin: 0;
-  color: rgba(255, 255, 255, 0.88); /* 9.6:1 on #1a5fb4 mid-stop */
+  /* AUD-014: solid white (was rgba 0.88), and the gradient's light stop was darkened to
+     #2f6fc0 in styles.css. 18px regular is not WCAG "large text", so it needs 4.5:1; solid
+     white over the lightest gradient point (#2f6fc0) is now 5.05:1, clearing AA everywhere
+     the tagline wraps — the old 0.88 white over the old #3b82d4 light stop was below 4.5:1. */
+  color: var(--color-white);
   font-size: var(--font-size-lg);
 }
 

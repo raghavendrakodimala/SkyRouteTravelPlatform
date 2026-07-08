@@ -129,4 +129,74 @@ public class SearchControllerTests : IClassFixture<SkyRouteApiFactory>
         Assert.Equal("GA101", flight.FlightNumber);
         Assert.DoesNotContain("BudgetWings", body);
     }
+
+    [Fact]
+    public async Task Search_AllProvidersThrow_Returns503ProblemJson()
+    {
+        // AUD-038: when EVERY provider fails, the endpoint returns 503 (a total outage), not an
+        // empty-but-successful 200 that a genuine no-match would produce.
+        using var faultyFactory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<IFlightProvider>();
+                services.AddScoped<IFlightProvider>(_ => new ThrowingFlightProvider(
+                    "GlobalAir", new InvalidOperationException("Simulated GlobalAir fault")));
+                services.AddScoped<IFlightProvider>(_ => new ThrowingFlightProvider(
+                    "BudgetWings", new InvalidOperationException("Simulated BudgetWings fault")));
+            });
+        });
+
+        var client = faultyFactory.CreateClient(
+            new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
+
+        var response = await client.PostAsJsonAsync("/api/v1/search", MakeValidRequest());
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+
+        // Assert on the parsed RFC7807 problem body (host-independent) rather than the raw
+        // content-type header, which MVC content-negotiates to application/json without an
+        // explicit Accept in this test host.
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal(503, problem!.Status);
+    }
+
+    [Fact]
+    public async Task Search_AllProvidersHealthyButNoMatchingRoute_Returns200WithEmptyList()
+    {
+        // AUD-038: MAN->SYD is the DEC-021 no-direct-service route — both real providers run
+        // successfully and return zero flights. That genuine no-match stays 200 [], not 503.
+        var client = _factory.CreateHttpsClient();
+        var request = MakeValidRequest();
+        request.Origin = "MAN";
+        request.Destination = "SYD";
+
+        var response = await client.PostAsJsonAsync("/api/v1/search", request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var results = JsonSerializer.Deserialize<List<FlightResultDto>>(
+            await response.Content.ReadAsStringAsync(), CaseInsensitiveOptions);
+        Assert.NotNull(results);
+        Assert.Empty(results!);
+    }
+
+    // AUD-027: an ill-formed request body must be a 400 (RFC7807 problem), never a 500. With
+    // SuppressModelStateInvalidFilter the model binds to null on any body-read failure, so the
+    // controller's null-guard (and the middleware's BadHttpRequestException net) must catch it.
+    [Theory]
+    [InlineData("")] // empty body
+    [InlineData("null")] // literal JSON null
+    [InlineData("{ \"origin\": \"LHR\",")] // malformed / truncated JSON
+    [InlineData("{ \"origin\": \"LHR\", \"destination\": \"JFK\", \"departureDate\": \"2026-13-45\", \"passengerCount\": 1, \"cabinClass\": \"Economy\", \"tripType\": \"OneWay\" }")] // invalid date value
+    [InlineData("{ \"origin\": \"LHR\", \"destination\": \"JFK\", \"departureDate\": \"2026-08-01\", \"passengerCount\": 2.9, \"cabinClass\": \"Economy\", \"tripType\": \"OneWay\" }")] // fractional int
+    public async Task Search_IllFormedBody_Returns400_Not500(string rawJson)
+    {
+        var client = _factory.CreateHttpsClient();
+        using var content = new StringContent(rawJson, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync("/api/v1/search", content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

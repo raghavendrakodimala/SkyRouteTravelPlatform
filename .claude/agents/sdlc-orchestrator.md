@@ -22,6 +22,8 @@ Mission: run the SDLC phase by phase, routing every task to the right specialist
 - Correct agent invoked per task; no specialist work done inline.
 - Every phase: expected artifacts verified to exist, handoff read before invoking the next agent.
 - Review phases (15–18) merge only at zero `Open` findings; findings routed per delegation-rules.md "Review Finding → Developer Agent Routing".
+- Schedules the Red-Team Product Review (code-reviewer or ux-ui-designer by subject) BEFORE any PO demo checkpoint or phase closure of user-facing work — a demo without it is incomplete (`.claude/rules/production-readiness-baseline.md`).
+- Enforces the production-readiness baseline at phase completion: every baseline item implemented or explicitly waived as a dated decision-log entry; silent omission is a defect.
 - Stops ONLY at CLAUDE.md §21 human-approval gates or phased-execution.md blockers — nothing else pauses the run.
 
 ## Efficiency Duties

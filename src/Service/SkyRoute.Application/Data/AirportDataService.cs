@@ -11,15 +11,15 @@ namespace SkyRoute.Application.Data;
 /// </summary>
 public sealed class AirportDataService
 {
-    private static readonly IReadOnlyList<Airport> Airports = new List<Airport>
-    {
+    private static readonly IReadOnlyList<Airport> Airports =
+    [
         new() { Code = "LHR", City = "London", Country = "United Kingdom", DisplayName = "London Heathrow (LHR)" },
         new() { Code = "MAN", City = "Manchester", Country = "United Kingdom", DisplayName = "Manchester (MAN)" },
         new() { Code = "JFK", City = "New York", Country = "United States", DisplayName = "New York JFK (JFK)" },
         new() { Code = "LAX", City = "Los Angeles", Country = "United States", DisplayName = "Los Angeles (LAX)" },
         new() { Code = "DXB", City = "Dubai", Country = "United Arab Emirates", DisplayName = "Dubai (DXB)" },
         new() { Code = "SYD", City = "Sydney", Country = "Australia", DisplayName = "Sydney (SYD)" },
-    };
+    ];
 
     public IReadOnlyList<Airport> GetAll() => Airports;
 

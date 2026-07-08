@@ -30,6 +30,12 @@ function buildFlight(): FlightResult {
   };
 }
 
+/** A domestic route (LHR→MAN, both United Kingdom) — resolves to route type Domestic, so the
+ * document field switches to National ID. Used by the AUD-004 reactive-validator test. */
+function buildDomesticFlight(): FlightResult {
+  return { ...buildFlight(), destination: 'MAN' };
+}
+
 function buildBookingResponse(): BookingResponse {
   return {
     bookingReference: 'SR-000001',
@@ -574,6 +580,7 @@ describe('BookingFormComponent', () => {
   // ── Remove, renumbering, minimum-1 ──────────────────────────────────────────
 
   it('removing a card renumbers the remaining passengers positionally and moves focus to the next Remove', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true); // AUD-007: confirm the destructive remove
     addPassengers(3);
 
     click('#card-remove-0');
@@ -590,6 +597,7 @@ describe('BookingFormComponent', () => {
   });
 
   it('removing the last remaining card keeps the blank passenger-1 form open (minimum-1 by construction)', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true); // AUD-007: confirm the destructive remove
     addPassengers(1);
 
     click('#card-remove-0');
@@ -600,6 +608,31 @@ describe('BookingFormComponent', () => {
     expect(text('legend')).toContain('Passenger 1');
     expect(liveRegionText()).toContain('Passenger removed. Add at least one passenger to continue.');
     expect(document.activeElement?.id).toBe('fullName-0');
+  });
+
+  // ── AUD-007: Remove is guarded by a confirmation ────────────────────────────
+  it('AUD-007: cancelling the Remove confirmation keeps the passenger and its data', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    addPassengers(2);
+
+    click('#card-remove-0');
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      "Remove passenger 1, Passenger 1? The details you've entered will be lost.",
+    );
+    // Declined: nothing removed, both cards (and their data) intact.
+    expect(qa('.passenger-card').length).toBe(2);
+    expect(qa('.card-name').map((el) => el.textContent).join(' ')).toContain('Passenger 1');
+  });
+
+  it('AUD-007: confirming the Remove prompt deletes the passenger', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    addPassengers(2);
+
+    click('#card-remove-0');
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(qa('.passenger-card').length).toBe(1);
   });
 
   // ── 9-passenger cap ─────────────────────────────────────────────────────────
@@ -679,7 +712,11 @@ describe('BookingFormComponent', () => {
 
     const banner = q('#generic-error-banner')!;
     expect(banner.textContent).toContain("We couldn't complete your booking. Please try again.");
-    expect(banner.getAttribute('role')).toBe('alert');
+    // AUD-020: NOT role="alert" — the banner is read once via the focus move, avoiding the
+    // assertive-live-region + focus double-announce.
+    expect(banner.getAttribute('role')).toBeNull();
+    expect(banner.getAttribute('tabindex')).toBe('-1');
+    expect(document.activeElement?.id).toBe('generic-error-banner');
     expect(q('#confirm-booking-btn')).toBeTruthy(); // still confirmable after the failure
   });
 
@@ -698,9 +735,13 @@ describe('BookingFormComponent', () => {
     submitActiveForm();
     await settle();
 
-    // Summary banner with one line per offending passenger, backend text verbatim
+    // Summary banner with one line per offending passenger, backend text verbatim.
+    // AUD-020: not role="alert" (which double-announces with the focus move); a labelled,
+    // focusable group read once when focus lands on it.
     const summary = q('#error-summary')!;
-    expect(summary.getAttribute('role')).toBe('alert');
+    expect(summary.getAttribute('role')).toBe('group');
+    expect(summary.getAttribute('aria-labelledby')).toBe('error-summary-lead');
+    expect(summary.getAttribute('tabindex')).toBe('-1');
     expect(summary.textContent).toContain("We couldn't confirm your booking. Please correct the details below.");
     expect(summary.textContent).toContain('Passenger 1: Full name is required.');
     expect(summary.textContent).toContain('Passenger 2: A valid email address is required.');
@@ -738,6 +779,7 @@ describe('BookingFormComponent', () => {
       fieldErrorsSignal.set({ 'passengers[1].email': ['A valid email address is required.'] });
       return 'validation';
     });
+    vi.spyOn(window, 'confirm').mockReturnValue(true); // AUD-007: confirm the destructive remove
     addPassengers(2);
     submitActiveForm();
     await settle();
@@ -749,6 +791,98 @@ describe('BookingFormComponent', () => {
     click('#card-remove-0');
     expect(q('#error-summary')).toBeFalsy();
     expect(q('.needs-correction-badge')).toBeFalsy();
+  });
+
+  // ── AUD-036: dotted flight.* / unmapped 400 keys must surface (never a dead form) ──────
+  it('AUD-036: surfaces a dotted flight.* server error in the focused generic banner', async () => {
+    fakeBookingState.submitBooking.mockImplementation(async () => {
+      fieldErrorsSignal.set({ 'flight.flightNumber': ['This flight can no longer be verified.'] });
+      return 'validation';
+    });
+    addPassengers(1);
+
+    submitActiveForm();
+    await settle();
+
+    const banner = q('#generic-error-banner')!;
+    expect(banner).toBeTruthy();
+    expect(banner.textContent).toContain('This flight can no longer be verified.');
+    expect(document.activeElement?.id).toBe('generic-error-banner');
+    // No per-passenger keys → no error summary, but the 400 is NOT dropped silently.
+    expect(q('#error-summary')).toBeFalsy();
+  });
+
+  it('AUD-036: surfaces a passengerCount error in the generic banner', async () => {
+    fakeBookingState.submitBooking.mockImplementation(async () => {
+      fieldErrorsSignal.set({ passengerCount: ['At least one passenger is required.'] });
+      return 'validation';
+    });
+    addPassengers(1);
+
+    submitActiveForm();
+    await settle();
+
+    expect(q('#generic-error-banner')!.textContent).toContain('At least one passenger is required.');
+  });
+
+  it('AUD-036: a 400 with no renderable key still shows a fallback banner (FR-071)', async () => {
+    fakeBookingState.submitBooking.mockImplementation(async () => {
+      fieldErrorsSignal.set({});
+      return 'validation';
+    });
+    addPassengers(1);
+
+    submitActiveForm();
+    await settle();
+
+    const banner = q('#generic-error-banner')!;
+    expect(banner).toBeTruthy();
+    expect(banner.textContent).toContain("We couldn't confirm your booking");
+  });
+
+  // ── AUD-004: documentNumber validator reacts to route type ──────────────────
+  it('AUD-004: re-runs the documentNumber validator when the route type changes', async () => {
+    // A National-ID-style value (hyphens, 11 chars) is invalid for a Passport but valid for a
+    // National ID — so it flips validity purely by the resolved route type.
+    setInput('documentNumber-0', 'ID-102-3345');
+    const docControl = (fixture.componentInstance as unknown as {
+      activeForm: { controls: { documentNumber: { valid: boolean } } };
+    }).activeForm.controls.documentNumber;
+
+    // International route (LHR→JFK): Passport pattern → invalid.
+    expect(docControl.valid).toBe(false);
+
+    // Switch to a domestic route (LHR→MAN): label/hint AND validator switch in lockstep.
+    selectedFlightSignal.set(buildDomesticFlight());
+    await settle();
+
+    expect(fixture.nativeElement.textContent).toContain('National ID');
+    expect(docControl.valid).toBe(true);
+  });
+
+  // ── AUD-018: errors are programmatically associated with their controls ─────
+  it('AUD-018: a touched invalid control exposes aria-invalid and aria-describedby to its error', () => {
+    const input = q<HTMLInputElement>('#fullName-0')!;
+    input.dispatchEvent(new Event('blur', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    const describedBy = input.getAttribute('aria-describedby');
+    expect(describedBy).toBe('fullName-error-0');
+    expect(q(`#${describedBy}`)).toBeTruthy();
+  });
+
+  it('AUD-018: the document field always references its persistent hint, plus the error when invalid', () => {
+    const input = q<HTMLInputElement>('#documentNumber-0')!;
+    // Persistent hint is always associated.
+    expect(input.getAttribute('aria-describedby')).toBe('documentHint-0');
+
+    setInput('documentNumber-0', '!!'); // invalid
+    q<HTMLInputElement>('#documentNumber-0')!.dispatchEvent(new Event('blur', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(input.getAttribute('aria-describedby')).toBe('documentHint-0 documentNumber-error-0');
   });
 
   // ── Re-submission guard (already confirmed) ─────────────────────────────────
@@ -820,11 +954,13 @@ describe('BookingFormComponent — bookingLeaveGuard route registration (CR-001)
       submitBooking: vi.fn(),
     };
     // SearchFormComponent activates at /search after a permitted leave; fake its state
-    // service so no HttpClient wiring is needed.
+    // service so no HttpClient wiring is needed. lastCriteria feeds its AUD-008 prefill.
     const fakeSearchState = {
       loading: signal(false),
       fieldErrors: signal<FieldErrors | null>(null),
       errorMessage: signal<string | null>(null),
+      lastCriteria: signal(null),
+      hasSearched: signal(false),
       search: vi.fn(),
     };
 

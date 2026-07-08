@@ -9,5 +9,5 @@ public sealed class BookingRequest
 
     public int PassengerCount { get; set; }
 
-    public List<PassengerRequest> Passengers { get; set; } = new();
+    public List<PassengerRequest> Passengers { get; set; } = [];
 }

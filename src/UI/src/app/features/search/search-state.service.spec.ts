@@ -78,6 +78,23 @@ describe('SearchStateService', () => {
     expect(service.lastCriteria()).toEqual(request);
   });
 
+  it('AUD-003: does NOT record lastCriteria for a failed search (criteria and results move together)', async () => {
+    // First, a successful A→B search records its criteria.
+    const firstRequest = buildRequest();
+    fakeFlightSearchService.search.mockReturnValue(of(buildResults()));
+    await service.search(firstRequest);
+    expect(service.lastCriteria()).toEqual(firstRequest);
+
+    // A subsequent failed re-search must NOT overwrite lastCriteria — otherwise the /results
+    // recap would describe the failed query above the still-visible previous results.
+    const failedRequest: SearchRequest = { ...firstRequest, destination: 'LAX' };
+    fakeFlightSearchService.search.mockReturnValue(throwError(() => ({ kind: 'message', message: 'Server error' }) as ApiError));
+    await service.search(failedRequest);
+
+    expect(service.lastCriteria()).toEqual(firstRequest); // unchanged
+    expect(service.results()).toEqual(buildResults()); // previous results intact
+  });
+
   it('on a validation ApiError, sets fieldErrors and returns "validation"', async () => {
     const apiError: ApiError = { kind: 'validation', errors: { origin: ['Origin airport is required.'] } };
     fakeFlightSearchService.search.mockReturnValue(throwError(() => apiError));

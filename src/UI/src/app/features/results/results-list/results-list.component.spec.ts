@@ -157,6 +157,51 @@ describe('ResultsListComponent', () => {
     expect(buttons[0].textContent?.trim()).toBe('Select');
   });
 
+  it('AUD-009: the price is shown as a per-person fare, never labelled "$X total"', () => {
+    hasSearchedSignal.set(true);
+    resultsSignal.set([buildFlight({ pricePerPassenger: 249 })]);
+    fixture.detectChanges();
+
+    const pricing: HTMLElement = fixture.nativeElement.querySelector('.pricing');
+    expect(pricing.textContent).toContain('USD 249.00');
+    expect(pricing.textContent).toContain('per person');
+    expect(pricing.textContent).not.toContain('total');
+    // The old duplicate "/ ... per person" figure is gone; there is a single fare figure.
+    expect(fixture.nativeElement.querySelector('.fare-price')?.textContent).toContain('USD 249.00');
+    expect(fixture.nativeElement.querySelector('.total-price')).toBeFalsy();
+
+    // The Select button's accessible name also reads "per person", not "total".
+    const label = fixture.nativeElement.querySelector('.result-card button')?.getAttribute('aria-label') ?? '';
+    expect(label).toContain('per person');
+    expect(label).not.toContain('total');
+  });
+
+  it('AUD-019/AUD-022: an always-present polite live region announces the count + sort, and re-announces on re-sort', () => {
+    hasSearchedSignal.set(true);
+    resultsSignal.set([
+      buildFlight({ flightNumber: 'CHEAP', pricePerPassenger: 100 }),
+      buildFlight({ flightNumber: 'PRICEY', pricePerPassenger: 900 }),
+    ]);
+    fixture.detectChanges();
+
+    const live: HTMLElement = fixture.nativeElement.querySelector('p[role="status"][aria-live="polite"]');
+    expect(live).toBeTruthy();
+    expect(live.textContent).toContain('Showing 2 flights');
+    expect(live.textContent).toContain('Price: low to high');
+
+    fixture.componentInstance.onSortChange('priceDesc');
+    fixture.detectChanges();
+    expect(live.textContent).toContain('Price: high to low');
+  });
+
+  it('AUD-019: the live region announces the searching state', () => {
+    loadingSignal.set(true);
+    fixture.detectChanges();
+
+    const live: HTMLElement = fixture.nativeElement.querySelector('p[role="status"][aria-live="polite"]');
+    expect(live.textContent).toContain('Searching for flights…');
+  });
+
   it('selectFlight delegates to BookingStateService.selectFlight without an additional HTTP call', () => {
     lastCriteriaSignal.set({
       origin: 'LHR',

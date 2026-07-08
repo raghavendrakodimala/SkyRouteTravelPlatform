@@ -9,5 +9,5 @@ namespace SkyRoute.Application.Validation;
 public static class CabinClasses
 {
     /// <summary>The only cabin class values accepted anywhere in the API (FR-/BR- search + booking flows).</summary>
-    public static readonly string[] ValidCabinClasses = { "Economy", "Business", "First Class" };
+    public static readonly string[] ValidCabinClasses = ["Economy", "Business", "First Class"];
 }

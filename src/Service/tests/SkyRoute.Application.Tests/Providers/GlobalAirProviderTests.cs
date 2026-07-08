@@ -343,11 +343,30 @@ public class GlobalAirProviderTests
     public void TryResolveFare_KnownFlightAndCabinClass_ReturnsTrueWithMatchingFare(
         string flightNumber, string cabinClass, decimal expectedBaseFare, decimal expectedPricePerPassenger)
     {
-        var resolved = _provider.TryResolveFare(flightNumber, cabinClass, out var baseFare, out var pricePerPassenger);
+        var resolved = _provider.TryResolveFare(flightNumber, cabinClass, out var baseFare, out var pricePerPassenger, out _, out _);
 
         Assert.True(resolved);
         Assert.Equal(expectedBaseFare, baseFare);
         Assert.Equal(expectedPricePerPassenger, pricePerPassenger);
+    }
+
+    /// <summary>
+    /// AUD-025/028/033: TryResolveFare also surfaces the flight's authoritative Origin/
+    /// Destination (from the same single schedule lookup) so BookingService can reject a forged
+    /// route and derive the BR-003 document rule from the real route.
+    /// </summary>
+    [Theory]
+    [InlineData("GA101", "LHR", "JFK")]
+    [InlineData("GA204", "LHR", "DXB")]
+    [InlineData("GA412", "MAN", "LHR")]
+    public void TryResolveFare_KnownFlight_SurfacesAuthoritativeOriginAndDestination(
+        string flightNumber, string expectedOrigin, string expectedDestination)
+    {
+        var resolved = _provider.TryResolveFare(flightNumber, "Economy", out _, out _, out var origin, out var destination);
+
+        Assert.True(resolved);
+        Assert.Equal(expectedOrigin, origin);
+        Assert.Equal(expectedDestination, destination);
     }
 
     /// <summary>
@@ -361,7 +380,7 @@ public class GlobalAirProviderTests
     public void TryResolveFare_GeneratedFlight_ReturnsTrueWithMatchingFare(
         string flightNumber, string cabinClass, decimal expectedBaseFare, decimal expectedPricePerPassenger)
     {
-        var resolved = _provider.TryResolveFare(flightNumber, cabinClass, out var baseFare, out var pricePerPassenger);
+        var resolved = _provider.TryResolveFare(flightNumber, cabinClass, out var baseFare, out var pricePerPassenger, out _, out _);
 
         Assert.True(resolved);
         Assert.Equal(expectedBaseFare, baseFare);
@@ -371,11 +390,13 @@ public class GlobalAirProviderTests
     [Fact]
     public void TryResolveFare_UnknownFlightNumber_ReturnsFalseWithZeroedOutValues()
     {
-        var resolved = _provider.TryResolveFare("GA999", "Economy", out var baseFare, out var pricePerPassenger);
+        var resolved = _provider.TryResolveFare("GA999", "Economy", out var baseFare, out var pricePerPassenger, out var origin, out var destination);
 
         Assert.False(resolved);
         Assert.Equal(0m, baseFare);
         Assert.Equal(0m, pricePerPassenger);
+        Assert.Null(origin);
+        Assert.Null(destination);
     }
 
     [Fact]
@@ -384,7 +405,7 @@ public class GlobalAirProviderTests
         // Ordinal (case-sensitive) match by design — FlightNumber is a server-defined,
         // fixed-format identifier (not user free text), so there is no legitimate reason
         // for a lowercase variant to resolve.
-        var resolved = _provider.TryResolveFare("ga101", "Economy", out _, out _);
+        var resolved = _provider.TryResolveFare("ga101", "Economy", out _, out _, out _, out _);
 
         Assert.False(resolved);
     }

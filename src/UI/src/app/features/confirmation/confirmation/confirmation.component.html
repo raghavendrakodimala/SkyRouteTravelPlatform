@@ -7,12 +7,16 @@
       />
     </svg>
   </div>
-  <h1>Booking Confirmed</h1>
+  <!-- AUD-023 (WCAG 4.1.3): RouteFocusService moves focus to this h1 on arrival; describing it
+       by the eyebrow + reference means the booking reference (the page's single most important
+       datum) is spoken on landing. The old role="status" on the static reference did nothing
+       (it was present at render, so it never announced). -->
+  <h1 [attr.aria-describedby]="booking() ? 'booking-ref-eyebrow booking-reference' : null">Booking Confirmed</h1>
 
   @if (booking(); as b) {
     <div class="ticket">
-      <p class="ticket-eyebrow">Booking reference</p>
-      <p class="booking-reference" role="status">{{ b.bookingReference }}</p>
+      <p class="ticket-eyebrow" id="booking-ref-eyebrow">Booking reference</p>
+      <p class="booking-reference" id="booking-reference">{{ b.bookingReference }}</p>
 
       <div class="ticket-divider" aria-hidden="true"></div>
 
@@ -27,7 +31,10 @@
       <section class="passengers">
         <h3>Passengers</h3>
         <ul>
-          @for (passenger of b.passengers; track passenger.fullName) {
+          <!-- AUD-001/AUD-040: track by $index, not fullName — duplicate names (legitimate for
+               families) produced duplicate @for keys → NG0955 / a single rendered row on the
+               terminal confirmation screen. Matches the booking form's saved-passenger list. -->
+          @for (passenger of b.passengers; track $index) {
             <li>{{ passenger.fullName }}</li>
           }
         </ul>
@@ -36,6 +43,12 @@
 
     <button type="button" (click)="startNewSearch()">Start a New Search</button>
   } @else {
-    <p>No booking confirmation available. Please start a new search.</p>
+    <!-- AUD-017: styled recovery state (was bare unstyled text) — on-brand card + a clear way
+         forward, consistent with every other empty/error state in the app. -->
+    <section class="empty-state">
+      <p class="empty-lead">No booking confirmation available.</p>
+      <p>Your booking details are no longer available. Please start a new search.</p>
+      <button type="button" (click)="startNewSearch()">Start a New Search</button>
+    </section>
   }
 </section>

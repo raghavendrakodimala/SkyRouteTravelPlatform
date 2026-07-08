@@ -1,3 +1,6 @@
+<!-- AUD-024 (WCAG 2.4.1): first focusable element — lets keyboard users bypass the header. -->
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
 <header class="app-header">
   <div class="header-inner">
     <a class="brand" routerLink="/search" aria-label="SkyRoute — home">
@@ -45,15 +48,25 @@
           [class.is-done]="i < currentStepIndex()"
           [attr.aria-current]="i === currentStepIndex() ? 'step' : null"
         >
-          <span class="step-dot" aria-hidden="true">{{ i + 1 }}</span>
+          <!-- AUD-021 (WCAG 1.4.1): completed steps carry a non-color checkmark glyph, not just
+               a tint. Decorative — the real state is announced via the visually-hidden text. -->
+          <span class="step-dot" aria-hidden="true">
+            @if (i < currentStepIndex()) {
+              ✓
+            } @else {
+              {{ i + 1 }}
+            }
+          </span>
           <span class="step-label">{{ step.label }}</span>
+          <!-- AUD-021 (WCAG 1.3.1): completed/current/upcoming state + position exposed to AT. -->
+          <span class="visually-hidden">{{ stepState(i) }}</span>
         </li>
       }
     </ol>
   </nav>
 </div>
 
-<main>
+<main id="main-content" tabindex="-1">
   <router-outlet />
 </main>
 

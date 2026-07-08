@@ -40,11 +40,14 @@ export class SearchStateService {
     this._loading.set(true);
     this._errorMessage.set(null);
     this._fieldErrors.set(null);
-    this._lastCriteria.set(request);
 
     try {
       const results = await firstValueFrom(this.flightSearchService.search(request));
       this._results.set(results);
+      // AUD-003: criteria and results are mutated together, only on success. Writing
+      // _lastCriteria optimistically before the request resolved let the /results recap
+      // describe a failed re-search while the cards shown were still the previous results.
+      this._lastCriteria.set(request);
       this._hasSearched.set(true);
       this._loading.set(false);
       return 'success';

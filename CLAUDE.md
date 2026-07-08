@@ -226,6 +226,7 @@ Before implementation, verify:
 - Security expectations exist for API/sensitive work
 - Dependencies and risks are tracked
 - Definition of Ready is satisfied or explicit exception is approved
+- Production-readiness baseline items are planned, implemented, or explicitly waived (`.claude/rules/production-readiness-baseline.md` — requirements are floors, not ceilings)
 
 If specs are missing, invoke the correct agent instead of implementing.
 
@@ -677,3 +678,5 @@ A developer agent must never itself set a finding to `Accepted Risk`, `Deferred`
 Fixing a Critical/High finding within its loop and marking it `Resolved` does not itself trigger the §21 human-approval gate — that gate is for *accepting* a Critical/High finding *unresolved*. As good practice, still send the human a non-blocking FYI before starting the fix for a Critical/High finding.
 
 A review phase is not merged to `main` until its report shows zero `Open` findings (or the human has explicitly accepted every remaining item).
+
+For user-facing work, a Red-Team Product Review (`.claude/rules/production-readiness-baseline.md`) precedes the PO visual demo gate (`.claude/rules/ui-ux-quality-gates.md` §4) — a demo without a preceding red-team pass is incomplete.

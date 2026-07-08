@@ -10,7 +10,7 @@ SkyRoute is a flight search and booking module built for the arrivia Senior Full
 
 | Tool | Version used by this repo | Notes |
 |---|---|---|
-| .NET SDK | **10.0** | All four backend projects (`SkyRoute.Api`, `SkyRoute.Application`, `SkyRoute.Infrastructure`, and both test projects) target `net10.0`. |
+| .NET SDK | **10.0** | All five backend projects — the three libraries (`SkyRoute.Api`, `SkyRoute.Application`, `SkyRoute.Infrastructure`) plus both test projects (`SkyRoute.Application.Tests`, `SkyRoute.Api.IntegrationTests`) — target `net10.0`. |
 | Node.js | Compatible with Angular CLI 22 (`^22.22.3 \|\| ^24.15.0 \|\| >=26.0.0`, per `@angular/cli@22.0.5`'s published `engines` field) | Check with `node --version`. |
 | npm | **11.17.0** (pinned via `src/UI/package.json`'s `packageManager` field) | Other npm 11.x releases will likely work, but this is the version the project was built and tested with. |
 
@@ -112,6 +112,7 @@ These are honest, current-state limitations of the MVP as delivered for this cha
 - **No payment processing, email confirmations, or booking retrieval/cancellation UI.** Booking ends at an on-screen confirmation with a generated reference; nothing is sent externally and there is no "manage my booking" flow.
 - **Accessibility review was performed via static code inspection only.** No live browser, screen reader, or automated tooling (e.g. axe-core, Lighthouse) was available in the review environment; findings (see `docs/reviews/accessibility-review-phase-17.md`) were derived by reading component templates/TypeScript/CSS directly, including manually computing WCAG colour-contrast ratios from the CSS hex values in use. All findings raised in that review have since been fixed and independently re-verified against the current source, but the review's underlying method remains static inspection rather than live assistive-technology testing.
 - **English only, web only.** No internationalization and no native mobile app (the Angular UI is responsive but not a packaged mobile client).
+- **No frontend linter and no CI pipeline (known deferred gap).** The frontend relies on the TypeScript compiler and Prettier (formatting only); there is no ESLint config, no `lint` npm script, and no `.github/workflows/` continuous-integration pipeline, so nothing runs automatically on push. This is a deliberate deferral for the MVP, not an oversight — adding tooling/dependencies is gated on approval. A production setup would add: ESLint (e.g. `@angular-eslint`) with a `lint` script, plus a CI workflow running build + test + lint on push.
 
 ---
 
@@ -119,26 +120,21 @@ These are honest, current-state limitations of the MVP as delivered for this cha
 
 ```text
 src/
-├── SkyRoute.Api/              ASP.NET Core Web API — controllers, DI composition root, middleware
-├── SkyRoute.Application/      Domain models, contracts, service interfaces, business logic, validators
-└── SkyRoute.Infrastructure/   Mock providers, in-memory booking store, tenant context
+├── Service/                            .NET solution root (all backend projects)
+│   ├── SkyRoute.Api/                   ASP.NET Core Web API — controllers, DI composition root, middleware
+│   ├── SkyRoute.Application/           Domain models, contracts, service interfaces, business logic, validators
+│   ├── SkyRoute.Infrastructure/        Mock providers, in-memory booking store, tenant context
+│   └── tests/
+│       ├── SkyRoute.Application.Tests/     Service/domain-logic unit tests (xUnit)
+│       └── SkyRoute.Api.IntegrationTests/  API integration tests (xUnit)
+└── UI/                                 Angular frontend (standalone components, signal-based state)
+    ├── src/app/
+    │   ├── core/                       Cross-cutting services (auth no-op, route focus management)
+    │   ├── shared/                     Constants, models, pricing/validation utilities shared across features
+    │   └── features/                   search/, results/, booking/, confirmation/
+    └── e2e/                            Playwright end-to-end specs
 
-tests/
-├── SkyRoute.Application.Tests/
-└── SkyRoute.Api.IntegrationTests/
-
-frontend/
-├── src/app/
-│   ├── core/                  Cross-cutting services (auth no-op, route focus management)
-│   ├── shared/                Constants, models, pricing/validation utilities shared across features
-│   └── features/
-│       ├── search/
-│       ├── results/
-│       ├── booking/
-│       └── confirmation/
-└── e2e/                       Playwright end-to-end specs
-
-docs/                          Full SDLC artifact trail: requirements, architecture, specs, testing, reviews, delivery, handoffs
+docs/                                   Full SDLC artifact trail: requirements, architecture, specs, testing, reviews, delivery, handoffs
 ```
 
 Deeper detail on requirements, NFRs, architecture, and review history is tracked under `docs/` (see `docs/requirements.md`, `docs/architecture/architecture-plan.md`, `docs/specs/`, `docs/reviews/`, and `docs/delivery/risk-register.md`).

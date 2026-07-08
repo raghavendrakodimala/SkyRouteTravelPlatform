@@ -80,7 +80,10 @@ public sealed class SearchRequestValidator
             return;
         }
 
-        if (request.DepartureDate.Value < DateOnly.FromDateTime(DateTime.UtcNow))
+        // AUD-026/031: compare against the timezone-generous boundary (UTC today − 1 day) rather
+        // than raw UTC "today", so a negative-offset user's legitimate same-day local search is
+        // not wrongly rejected once UTC has rolled to the next day. See DepartureDateRules.
+        if (request.DepartureDate.Value < DepartureDateRules.EarliestAcceptableDateUtc())
         {
             AddError(errors, "departureDate", "Departure date cannot be in the past.");
         }
@@ -114,7 +117,7 @@ public sealed class SearchRequestValidator
     {
         if (!errors.TryGetValue(field, out var list))
         {
-            list = new List<string>();
+            list = [];
             errors[field] = list;
         }
 

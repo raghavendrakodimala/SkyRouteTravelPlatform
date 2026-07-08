@@ -41,6 +41,31 @@ public class OpenApiDocumentTests : IClassFixture<SkyRouteApiFactory>
     }
 
     [Fact]
+    public async Task OpenApiDocument_DescribesResponseBodiesAndStatusCodes_ForBothEndpoints()
+    {
+        // AUD-030: the published contract must document the real success status codes WITH a body
+        // schema (search 200, bookings 201 — not 200) plus the error responses (400/500), so a
+        // demanding integrator can generate a correct client.
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/openapi/v1.json");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var paths = document.RootElement.GetProperty("paths");
+
+        var searchResponses = paths.GetProperty("/api/v1/search").GetProperty("post").GetProperty("responses");
+        Assert.True(searchResponses.TryGetProperty("200", out var search200), "search must document a 200 response");
+        Assert.True(search200.TryGetProperty("content", out _), "search 200 must document a response body schema");
+        Assert.True(searchResponses.TryGetProperty("400", out _), "search must document a 400 response");
+
+        var bookingResponses = paths.GetProperty("/api/v1/bookings").GetProperty("post").GetProperty("responses");
+        Assert.True(bookingResponses.TryGetProperty("201", out var booking201), "bookings must document a 201 response (not 200)");
+        Assert.True(booking201.TryGetProperty("content", out _), "bookings 201 must document a response body schema");
+        Assert.True(bookingResponses.TryGetProperty("400", out _), "bookings must document a 400 response");
+    }
+
+    [Fact]
     public async Task ScalarApiReference_IsReachable_UnderApiPrefix()
     {
         var client = _factory.CreateClient();

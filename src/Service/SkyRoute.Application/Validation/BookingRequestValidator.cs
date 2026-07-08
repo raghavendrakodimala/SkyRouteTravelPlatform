@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using SkyRoute.Application.Contracts;
+using SkyRoute.Application.Data;
 using SkyRoute.Application.Domain;
 
 namespace SkyRoute.Application.Validation;
@@ -23,10 +24,21 @@ public sealed class BookingRequestValidator
     private const int MinAge = 0;
     private const int MaxAge = 120;
 
+    /// <summary>Maximum passengers per booking (SEC-002 / AUD-034) — mirrors the 1–9 bound the
+    /// search endpoint enforces.</summary>
+    private const int MaxPassengers = 9;
+
     private static readonly Regex FullNameRegex = new(DocumentPatterns.FullNamePattern, RegexOptions.Compiled);
     private static readonly Regex EmailRegex = new(DocumentPatterns.EmailPattern, RegexOptions.Compiled);
     private static readonly Regex PassportRegex = new(DocumentPatterns.PassportPattern, RegexOptions.Compiled);
     private static readonly Regex NationalIdRegex = new(DocumentPatterns.NationalIdPattern, RegexOptions.Compiled);
+
+    private readonly AirportDataService _airportDataService;
+
+    public BookingRequestValidator(AirportDataService airportDataService)
+    {
+        _airportDataService = airportDataService;
+    }
 
     public IDictionary<string, string[]> ValidateStructure(BookingRequest request)
     {
@@ -35,7 +47,7 @@ public sealed class BookingRequestValidator
         // Defensive against a malformed body that explicitly sends "flight": null or
         // "passengers": null (overriding the property initializer default) — treated as a
         // 400 validation error rather than an unhandled exception (BR-011).
-        var passengers = request.Passengers ?? new List<PassengerRequest>();
+        var passengers = request.Passengers ?? [];
 
         if (request.Flight is null || !IsFlightSnapshotComplete(request.Flight))
         {
@@ -65,6 +77,38 @@ public sealed class BookingRequestValidator
             {
                 AddError(errors, "flight.cabinClass", "Cabin class must be one of: Economy, Business, First Class.");
             }
+
+            // AUD-029: the flight snapshot was previously presence-only validated, so unknown
+            // airport codes, arrival-before-departure, and already-past departures were persisted
+            // verbatim. Mirror the search-side sanity rules here. Each check only fires when its
+            // field is actually present — a missing field is already reported by the
+            // "flight incomplete" check above (FR-063: no short-circuit, every problem reported).
+            if (!string.IsNullOrWhiteSpace(request.Flight.Origin) &&
+                !_airportDataService.IsKnownAirportCode(request.Flight.Origin))
+            {
+                AddError(errors, "flight.origin", "Origin airport code is not recognized.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Flight.Destination) &&
+                !_airportDataService.IsKnownAirportCode(request.Flight.Destination))
+            {
+                AddError(errors, "flight.destination", "Destination airport code is not recognized.");
+            }
+
+            if (request.Flight.DepartureDateTime.HasValue &&
+                request.Flight.ArrivalDateTime.HasValue &&
+                request.Flight.ArrivalDateTime.Value <= request.Flight.DepartureDateTime.Value)
+            {
+                AddError(errors, "flight.arrivalDateTime", "Arrival must be after departure.");
+            }
+
+            // AUD-026/029: reject a departure whose calendar date is already in the past, using
+            // the same timezone-generous boundary the search endpoint uses (DepartureDateRules).
+            if (request.Flight.DepartureDateTime.HasValue &&
+                DateOnly.FromDateTime(request.Flight.DepartureDateTime.Value) < DepartureDateRules.EarliestAcceptableDateUtc())
+            {
+                AddError(errors, "flight.departureDateTime", "Departure cannot be in the past.");
+            }
         }
 
         if (request.PassengerCount != passengers.Count)
@@ -76,9 +120,23 @@ public sealed class BookingRequestValidator
         // exactly — same 1-9 bound, same error message — so the booking endpoint enforces the same
         // upper bound the search endpoint already enforces, rather than relying solely on the
         // Angular UI never allowing more than 9 passengers in practice.
-        if (request.PassengerCount < 1 || request.PassengerCount > 9)
+        if (request.PassengerCount < 1 || request.PassengerCount > MaxPassengers)
         {
             AddError(errors, "passengerCount", "Passenger count must be a whole number between 1 and 9.");
+        }
+
+        // AUD-034 (OWASP API4:2023 Unrestricted Resource Consumption / CWE-770): bound the
+        // passengers ARRAY itself, not just the scalar passengerCount, BEFORE the per-element
+        // loop. SEC-002 bounded the scalar count, but an attacker could still send a small
+        // passengerCount alongside a multi-million-element passengers[] — the count checks pass
+        // (or append a non-returning mismatch error) and the loop below still walks the whole
+        // oversized array, amplifying one ~28 MB request into millions of dictionary allocations
+        // before the 400 is produced. If the array exceeds the maximum, report and return
+        // immediately so the loop is never entered.
+        if (passengers.Count > MaxPassengers)
+        {
+            AddError(errors, "passengers", "A booking may include at most 9 passengers.");
+            return ToArrayDictionary(errors);
         }
 
         for (var i = 0; i < passengers.Count; i++)
@@ -112,19 +170,26 @@ public sealed class BookingRequestValidator
     }
 
     /// <summary>
-    /// SEC-001 (Phase 16 security review, BR-006, NFR-DATA-002) — step 2b: validates the
-    /// client-submitted flight-fare snapshot against the fare BookingService's
-    /// FlightFareResolver has already authoritatively re-derived server-side from the same
-    /// provider pricing logic used at search time. Mirrors <see cref="ValidateDocuments"/>'s
-    /// shape (resolution happens in the service, this method only validates the resolved
-    /// fact against the request) — invoked by BookingService after RouteTypeResolver and
-    /// FlightFareResolver have both run, before document validation is relied upon to gate
-    /// price computation. Pricing is deterministic given Provider+FlightNumber+CabinClass, so
-    /// an exact match is required — there is no legitimate reason for the two values to
-    /// differ even by a rounding cent, since both sides use the identical rounding rule.
+    /// SEC-001 (Phase 16 security review, BR-006, NFR-DATA-002) and AUD-025/028/033 — step 2b:
+    /// validates the client-submitted identifying flight snapshot (route AND fare) against the
+    /// authoritative values BookingService's FlightFareResolver has already re-resolved
+    /// server-side from the provider's published schedule, keyed on Provider+FlightNumber+
+    /// CabinClass. Mirrors <see cref="ValidateDocuments"/>'s shape (resolution happens in the
+    /// service; this method only validates the resolved facts against the request) — invoked by
+    /// BookingService BEFORE route type is derived, so a forged Origin/Destination (e.g. an
+    /// international flight declared as a domestic pair to dodge BR-003's passport gate) is
+    /// rejected and never reaches route-type resolution or persistence. Route match is
+    /// case-insensitive (the airport-code casing convention throughout this codebase); fare
+    /// match is exact — pricing is deterministic given these three fields, so there is no
+    /// legitimate reason for the values to differ even by a rounding cent.
     /// </summary>
-    public IDictionary<string, string[]> ValidateFare(
-        BookingRequest request, bool fareResolved, decimal expectedBaseFare, decimal expectedPricePerPassenger)
+    public IDictionary<string, string[]> ValidateResolvedFlight(
+        BookingRequest request,
+        bool flightResolved,
+        decimal expectedBaseFare,
+        decimal expectedPricePerPassenger,
+        string? resolvedOrigin,
+        string? resolvedDestination)
     {
         var errors = new Dictionary<string, List<string>>();
 
@@ -135,11 +200,26 @@ public sealed class BookingRequestValidator
             return ToArrayDictionary(errors);
         }
 
-        if (!fareResolved)
+        if (!flightResolved)
         {
             AddError(errors, "flight.flightNumber",
                 "Flight could not be verified against the selected provider's published schedule.");
             return ToArrayDictionary(errors);
+        }
+
+        // AUD-025/028/033: the resolved flight's route is authoritative. A submitted Origin/
+        // Destination that does not match it is a forged route — reject it here so it can never
+        // drive route-type resolution (BR-003) or be persisted.
+        if (!string.Equals(request.Flight.Origin, resolvedOrigin, StringComparison.OrdinalIgnoreCase))
+        {
+            AddError(errors, "flight.origin",
+                "Origin does not match the provider's published route for this flight.");
+        }
+
+        if (!string.Equals(request.Flight.Destination, resolvedDestination, StringComparison.OrdinalIgnoreCase))
+        {
+            AddError(errors, "flight.destination",
+                "Destination does not match the provider's published route for this flight.");
         }
 
         if (request.Flight.PricePerPassenger.HasValue &&
@@ -162,12 +242,12 @@ public sealed class BookingRequestValidator
     {
         var errors = new Dictionary<string, List<string>>();
 
-        var expectedDocumentType = routeType == RouteType.International
+        var expectedDocumentType = routeType.IsInternational
             ? DocumentPatterns.PassportDocumentType
             : DocumentPatterns.NationalIdDocumentType;
 
-        var pattern = routeType == RouteType.International ? PassportRegex : NationalIdRegex;
-        var patternErrorMessage = routeType == RouteType.International
+        var pattern = routeType.IsInternational ? PassportRegex : NationalIdRegex;
+        var patternErrorMessage = routeType.IsInternational
             ? "Passport number must be 6–9 uppercase letters and digits, with no spaces."
             : "National ID must be 5–20 letters, digits, or hyphens, with no spaces.";
 
@@ -203,7 +283,7 @@ public sealed class BookingRequestValidator
     {
         if (!errors.TryGetValue(field, out var list))
         {
-            list = new List<string>();
+            list = [];
             errors[field] = list;
         }
 

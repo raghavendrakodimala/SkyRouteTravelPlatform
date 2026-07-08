@@ -39,10 +39,14 @@
       <p class="saved-count-status">{{ label }}</p>
     }
 
-    <!-- Server validation error summary: directly above the list holding the reopened passenger. -->
+    <!-- Server validation error summary: directly above the list holding the reopened passenger.
+         AUD-020: NOT role="alert". role=alert is an assertive live region that auto-announces on
+         insert; moving focus onto that same node made screen readers read the whole summary a
+         second time. Following the GOV.UK/WAI error-summary pattern, focus is moved to this
+         container (tabindex=-1) and it is labelled by its lead line, so it is read exactly once. -->
     @if (errorSummaryLines().length > 0) {
-      <div class="banner-error error-summary" id="error-summary" role="alert" tabindex="-1">
-        <p class="error-summary-lead">We couldn't confirm your booking. Please correct the details below.</p>
+      <div class="banner-error error-summary" id="error-summary" tabindex="-1" role="group" aria-labelledby="error-summary-lead">
+        <p class="error-summary-lead" id="error-summary-lead">We couldn't confirm your booking. Please correct the details below.</p>
         <ul>
           @for (line of errorSummaryLines(); track line) {
             <li>{{ line }}</li>
@@ -105,9 +109,11 @@
       </ul>
     }
 
-    <!-- Non-passenger submit failures (network/5xx, flight/passengerCount keys). -->
+    <!-- Non-passenger submit failures (network/5xx, flight.*/passengerCount/unmapped keys).
+         AUD-020: not role="alert" — this banner is always accompanied by a programmatic focus
+         move, so relying on focus alone reads it exactly once (no assertive double-read). -->
     @if (genericServerError()) {
-      <p class="banner-error" id="generic-error-banner" role="alert" tabindex="-1">
+      <p class="banner-error" id="generic-error-banner" tabindex="-1">
         {{ genericServerError() }}
       </p>
     }

@@ -11,7 +11,6 @@ import { PassengerFormSectionComponent } from './passenger-form-section.componen
 
 describe('PassengerFormSectionComponent', () => {
   let fixture: ComponentFixture<PassengerFormSectionComponent>;
-  let component: PassengerFormSectionComponent;
   let fb: FormBuilder;
 
   // Field order mirrors the template: 1 = fullName, 2 = age, 3 = email, 4 = documentNumber.
@@ -31,7 +30,6 @@ describe('PassengerFormSectionComponent', () => {
 
     fb = TestBed.inject(FormBuilder);
     fixture = TestBed.createComponent(PassengerFormSectionComponent);
-    component = fixture.componentInstance;
   });
 
   function render(overrides: {

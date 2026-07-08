@@ -47,8 +47,8 @@ internal static class RouteScheduleGenerator
     /// an error: both directions return no generated flights, and neither provider has a
     /// MAN-SYD/SYD-MAN fixture, so both providers genuinely return zero results for it.
     /// </summary>
-    private static readonly IReadOnlyList<RoutePair> RouteDurations = new List<RoutePair>
-    {
+    private static readonly IReadOnlyList<RoutePair> RouteDurations =
+    [
         new("LHR", "MAN", 65),
         new("LHR", "JFK", 490),
         new("LHR", "LAX", 660),
@@ -63,7 +63,7 @@ internal static class RouteScheduleGenerator
         new("LAX", "DXB", 980),
         new("LAX", "SYD", 900),
         new("DXB", "SYD", 840),
-    };
+    ];
 
     private const int GeneratedFlightNumberBase = 500;
     private const int NumbersPerPair = 4;      // 2 directions × 2 flights

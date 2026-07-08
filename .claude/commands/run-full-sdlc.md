@@ -61,6 +61,7 @@ Before starting, read:
 - `.claude/rules/delegation-rules.md`
 - `.claude/rules/tool-safety.md`
 - `.claude/rules/review-and-test-reporting.md`
+- `.claude/rules/production-readiness-baseline.md`
 - `.claude/rules/ui-ux-quality-gates.md` if the scope has UI impact
 - `docs/handoffs/workflow-state.md` if it exists
 - `docs/handoffs/current-handoff.md` if it exists
@@ -636,6 +637,7 @@ Before committing implementation:
 - if build fails due implementation issue, fix within this phase before merge.
 - if dependency installation is needed, stop for approval.
 - for UI work: the implementing engineer must verify the rendered UI in a running browser at desktop and mobile widths against the design spec, and record rendered-UI verification evidence in the handoff (`.claude/rules/ui-ux-quality-gates.md` §2) — a UI handoff without it is incomplete.
+- production-readiness baseline (`.claude/rules/production-readiness-baseline.md`): every baseline item is implemented or explicitly waived as a dated decision-log entry — silent omission is a defect.
 
 Commit message:
 
@@ -745,6 +747,8 @@ Create/update:
 
 Run the Iterative Review-Fix Loop (see `.claude/rules/phased-execution.md` and `CLAUDE.md` §22): route each `Open` finding to a developer agent per `.claude/rules/delegation-rules.md`, re-review with code-reviewer, repeat until the report shows zero `Open` findings. Do not merge this phase until then.
 
+For API/service scope, the code-reviewer also runs the Red-Team Product Review against the running service with hostile/arbitrary inputs and checks the production-readiness baseline (`.claude/rules/production-readiness-baseline.md`) before this phase closes.
+
 Commit message:
 
 ```text
@@ -813,7 +817,7 @@ If no UI is involved, create a Not Applicable review note and handoff.
 
 Otherwise, run the Iterative Review-Fix Loop (see `.claude/rules/phased-execution.md` and `CLAUDE.md` §22): route each `Open` finding to a developer agent per `.claude/rules/delegation-rules.md`, re-review with accessibility-tester, repeat until the report shows zero `Open` findings.
 
-Evidence must include a rendered-app walkthrough or screenshots at 360px, 768px, and 1280px — code reading alone cannot file or resolve UI findings (`.claude/rules/ui-ux-quality-gates.md` §3). The PO visual demo checkpoint (§4) must be complete before UI review phases close. Do not merge this phase until both hold.
+Evidence must include a rendered-app walkthrough or screenshots at 360px, 768px, and 1280px — code reading alone cannot file or resolve UI findings (`.claude/rules/ui-ux-quality-gates.md` §3). The PO visual demo checkpoint (§4) must be complete before UI review phases close, and it must be preceded by a Red-Team Product Review by the ux-ui-designer against the running app with hostile/arbitrary inputs (`.claude/rules/production-readiness-baseline.md`) — a demo without it is incomplete. Do not merge this phase until all hold.
 
 Commit message:
 
