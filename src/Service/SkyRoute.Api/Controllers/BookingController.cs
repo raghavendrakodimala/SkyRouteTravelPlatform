@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using SkyRoute.Api.Extensions;
 using SkyRoute.Application.Contracts;
 using SkyRoute.Application.Exceptions;
 using SkyRoute.Application.Interfaces;

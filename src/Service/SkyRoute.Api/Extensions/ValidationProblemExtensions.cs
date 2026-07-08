@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace SkyRoute.Api.Controllers;
+namespace SkyRoute.Api.Extensions;
 
 /// <summary>
 /// Shared helper for converting a field-error dictionary (as produced by request
