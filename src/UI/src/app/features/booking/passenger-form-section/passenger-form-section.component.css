@@ -30,9 +30,10 @@ legend {
   margin-left: var(--space-2);
 }
 
-/* Spec §4.1 harmonization: 12px → 16px, matching search-form's .field. */
+/* Field spacing (PO 2026-07-08 fit pass): 12px between passenger fields keeps the booking
+   step within the viewport without a scrollbar while staying comfortable. */
 .field {
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
   display: flex;
   flex-direction: column;
 }

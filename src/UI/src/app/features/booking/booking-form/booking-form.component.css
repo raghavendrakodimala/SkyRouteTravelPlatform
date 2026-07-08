@@ -4,7 +4,9 @@
 
 .booking-page {
   max-width: var(--layout-max); /* AUD-013: shared with the header/footer chrome + other funnel steps */
-  margin: var(--space-6, 32px) auto;
+  /* Trimmed vertical margin (PO 2026-07-08) so the booking step fits the viewport without a
+     content-region scrollbar on common laptop heights. */
+  margin: var(--space-4, 16px) auto;
   padding: 0 var(--space-5, 24px);
 }
 
@@ -14,6 +16,17 @@
   justify-content: space-between;
   gap: var(--space-4, 16px);
   flex-wrap: wrap;
+  margin-bottom: var(--space-3, 12px);
+}
+
+/* The page title's global bottom margin is redundant with .page-head's — collapse it. */
+.page-head h1 {
+  margin-bottom: 0;
+}
+
+/* Tighten the "Passengers" heading gap (PO 2026-07-08 fit pass). */
+.booking-main h2 {
+  margin-bottom: var(--space-2, 8px);
 }
 
 .back-link {
