@@ -172,11 +172,11 @@ a.nav-link:focus-visible {
   color: var(--color-primary);
 }
 
-/* Footer — real production shape: link columns + legal line. */
+/* Compact single-row footer (PO 2026-07-08): brand · placeholder links · legal line, on one
+   line — small vertical footprint so the app-shell content region fits without scrolling. */
 .app-footer {
   background: var(--color-navy-deep);
   color: rgba(255, 255, 255, 0.82);
-  margin-top: var(--space-5);
   font-size: var(--font-size-sm);
   flex: 0 0 auto; /* app-shell chrome: pinned below the scrolling main region */
 }
@@ -184,14 +184,11 @@ a.nav-link:focus-visible {
 .footer-inner {
   max-width: var(--layout-max); /* AUD-013: shared chrome/content width */
   margin: 0 auto;
-  padding: var(--space-6) var(--space-5) var(--space-4);
-}
-
-.footer-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: var(--space-6);
-  margin-bottom: var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
 }
 
 .footer-brand {
@@ -199,45 +196,39 @@ a.nav-link:focus-visible {
   align-items: center;
   gap: var(--space-2);
   color: var(--color-white);
-  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
-  margin: 0 0 var(--space-2);
-}
-
-.footer-tag {
   margin: 0;
-  max-width: 32ch;
 }
 
-.footer-col h3 {
-  color: var(--color-white);
-  font-size: var(--font-size-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: var(--space-3);
-}
-
-.footer-col ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.footer-col li {
-  margin-bottom: var(--space-2);
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
 }
 
 .footer-link {
   cursor: default;
+  color: rgba(255, 255, 255, 0.82);
 }
 
+/* Legal line pushed to the far end of the row. */
 .footer-copy {
-  margin: 0;
-  padding-top: var(--space-4);
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  margin: 0 0 0 auto;
   color: rgba(255, 255, 255, 0.62); /* 7:1 on #0a1f3f */
   font-size: var(--font-size-xs);
-  text-align: center;
+}
+
+@media (max-width: 560px) {
+  /* Stack the three groups on very narrow screens (still compact). */
+  .footer-inner {
+    justify-content: center;
+    text-align: center;
+    gap: var(--space-2);
+  }
+
+  .footer-copy {
+    margin: 0;
+  }
 }
 
 /* Responsive */
@@ -272,10 +263,5 @@ a.nav-link:focus-visible {
 
   .journey-steps {
     gap: var(--space-4);
-  }
-
-  .footer-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-5);
   }
 }
