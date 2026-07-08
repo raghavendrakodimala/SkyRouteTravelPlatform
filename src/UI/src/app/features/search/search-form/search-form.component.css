@@ -11,10 +11,11 @@
 .hero {
   background: var(--gradient-hero);
   color: var(--color-white);
-  /* Slim hero (PO 2026-07-08): compact top padding and just enough bottom padding for the
-     card to overlap into; the negative bottom margin pulls the card up over the band. */
-  margin: 0 0 calc(-1 * var(--space-5));
-  padding: var(--space-3) var(--space-5) var(--space-5);
+  /* Slim hero (PO 2026-07-08): compact top padding; the bottom padding is deep enough to
+     leave a gap between the tagline and the card, then the card overlaps only its lower part.
+     Gap between tagline and card ≈ bottom-padding − overlap = space-7 − space-4 = 16px. */
+  margin: 0 0 calc(-1 * var(--space-4));
+  padding: var(--space-3) var(--space-5) var(--space-7);
   text-align: center;
 }
 
