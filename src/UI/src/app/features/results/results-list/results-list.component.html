@@ -11,7 +11,7 @@
         </p>
       }
     </div>
-    <a class="modify-link" routerLink="/search">Modify search</a>
+    <a class="modify-link" routerLink="/search" [queryParams]="{ mode: 'modify' }">Modify search</a>
   </div>
 
   <!-- AUD-019/AUD-022: single always-present polite live region (see liveStatus). Announces
@@ -26,7 +26,7 @@
     <div class="empty-state">
       <p class="empty-lead">No flights found for your search.</p>
       <p>Try a different route, date, or cabin class.</p>
-      <a class="modify-link" routerLink="/search">Modify search</a>
+      <a class="modify-link" routerLink="/search" [queryParams]="{ mode: 'modify' }">Modify search</a>
     </div>
   } @else if (sortedResults().length > 0) {
     <app-sort-control [active]="sortOption()" (optionSelected)="onSortChange($event)" />

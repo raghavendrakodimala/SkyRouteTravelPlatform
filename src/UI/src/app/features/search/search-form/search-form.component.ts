@@ -1,7 +1,7 @@
 import { Component, ElementRef, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AIRPORTS } from '../../../shared/constants/airports.constants';
 import { CabinClass, SearchRequest } from '../../../shared/models/search-request.model';
 import { SearchStateService } from '../search-state.service';
@@ -65,6 +65,7 @@ const differentAirportsValidator: ValidatorFn = (group): ValidationErrors | null
 export class SearchFormComponent {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly host = inject(ElementRef);
   protected readonly searchState = inject(SearchStateService);
 
@@ -105,19 +106,32 @@ export class SearchFormComponent {
   });
 
   constructor() {
-    // AUD-008: "Modify search" (and the header brand link) re-enter /search — pre-fill the
-    // form from the last successful search criteria so the user edits their existing query
-    // instead of re-entering all four fields. lastCriteria is only ever set on a successful
-    // search (AUD-003), so this reflects the query that produced the results being modified.
-    const criteria = this.searchState.lastCriteria();
-    if (criteria) {
-      this.form.patchValue({
-        origin: criteria.origin,
-        destination: criteria.destination,
-        departureDate: criteria.departureDate,
-        cabinClass: criteria.cabinClass,
-      });
-    }
+    // AUD-008 (scoped, PO-reported 2026-07-08): pre-fill the form from the last successful
+    // search ONLY on an explicit "Modify search" intent (the results page passes
+    // ?mode=modify). Every other entry to /search — "Start a New Search", the brand/logo
+    // link, the Flights nav, or a direct visit — is a genuinely NEW search and must start
+    // blank, even though lastCriteria still holds the previous query.
+    //
+    // We subscribe to queryParamMap rather than reading the snapshot once, because the router
+    // REUSES this component across a query-param-only navigation (e.g. /search?mode=modify →
+    // /search via the logo) — the constructor would not re-run, leaving a stale pre-fill.
+    // Re-evaluating on every navigation resets to blank whenever the intent is not "modify".
+    // lastCriteria is read imperatively (never as a reactive dependency), so a search
+    // completing mid-flow never clears the form.
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      const criteria = this.searchState.lastCriteria();
+      if (params.get('mode') === 'modify' && criteria) {
+        this.form.reset({
+          origin: criteria.origin,
+          destination: criteria.destination,
+          departureDate: criteria.departureDate,
+          cabinClass: criteria.cabinClass,
+        });
+      } else {
+        this.form.reset({ origin: '', destination: '', departureDate: '', cabinClass: 'Economy' });
+      }
+      this.submitted.set(false);
+    });
   }
 
   async onSubmit(): Promise<void> {

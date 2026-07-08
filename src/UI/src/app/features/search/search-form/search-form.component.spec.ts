@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
+import { Observable, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIRPORTS } from '../../../shared/constants/airports.constants';
 import { SearchRequest } from '../../../shared/models/search-request.model';
@@ -24,6 +25,13 @@ describe('SearchFormComponent', () => {
     lastCriteria: ReturnType<typeof signal<SearchRequest | null>>;
     search: ReturnType<typeof vi.fn>;
   };
+  // The component subscribes to route.queryParamMap; a helper builds a fake route whose
+  // observable emits the given params (mode=modify vs none).
+  let fakeRoute: { queryParamMap: Observable<ParamMap>; snapshot: { queryParamMap: ParamMap } };
+  const routeWith = (params: Record<string, string>) => {
+    const pm = convertToParamMap(params);
+    return { queryParamMap: of(pm), snapshot: { queryParamMap: pm } };
+  };
 
   beforeEach(async () => {
     fakeSearchState = {
@@ -34,11 +42,16 @@ describe('SearchFormComponent', () => {
       search: vi.fn(),
     };
 
+    // Default: no query params (a plain new search). Tests reassign fakeRoute before creating
+    // a fresh component to exercise the ?mode=modify intent.
+    fakeRoute = routeWith({});
+
     await TestBed.configureTestingModule({
       imports: [SearchFormComponent],
       providers: [
         provideRouter([{ path: 'results', component: ResultsStubComponent }]),
         { provide: SearchStateService, useValue: fakeSearchState },
+        { provide: ActivatedRoute, useValue: fakeRoute },
       ],
     }).compileComponents();
 
@@ -252,16 +265,23 @@ describe('SearchFormComponent', () => {
     });
   });
 
-  // ── AUD-008: "Modify search" pre-fills from the last criteria ────────────────
-  it('AUD-008: pre-fills the form from lastCriteria on init (Modify search edits the prior query)', () => {
-    fakeSearchState.lastCriteria.set({
-      origin: 'LHR',
-      destination: 'JFK',
-      departureDate: '2026-08-01',
-      passengerCount: 1,
-      cabinClass: 'Business',
-      tripType: 'OneWay',
-    });
+  // ── AUD-008: "Modify search" pre-fills ONLY on the explicit ?mode=modify intent ──
+  const priorCriteria: SearchRequest = {
+    origin: 'LHR',
+    destination: 'JFK',
+    departureDate: '2026-08-01',
+    passengerCount: 1,
+    cabinClass: 'Business',
+    tripType: 'OneWay',
+  };
+
+  it('AUD-008: pre-fills from lastCriteria when entered via "Modify search" (?mode=modify)', () => {
+    fakeSearchState.lastCriteria.set(priorCriteria);
+    // Mutate the injected route object in place (DI captured it by reference).
+    const modifyPm = convertToParamMap({ mode: 'modify' });
+    fakeRoute.queryParamMap = of(modifyPm);
+    fakeRoute.snapshot.queryParamMap = modifyPm;
+
     const fresh = TestBed.createComponent(SearchFormComponent);
     fresh.detectChanges();
     const root: HTMLElement = fresh.nativeElement;
@@ -270,6 +290,22 @@ describe('SearchFormComponent', () => {
     expect(root.querySelector<HTMLSelectElement>('#destination')!.value).toBe('JFK');
     expect(root.querySelector<HTMLInputElement>('#departureDate')!.value).toBe('2026-08-01');
     expect(root.querySelector<HTMLSelectElement>('#cabinClass')!.value).toBe('Business');
+  });
+
+  it('AUD-008 (PO-reported 2026-07-08): a NEW search starts blank even when lastCriteria exists (no ?mode=modify)', () => {
+    // The bug: "Start a New Search" / the brand link re-entered /search and wrongly showed the
+    // previous query. Without the modify intent, the form must be blank despite lastCriteria.
+    fakeSearchState.lastCriteria.set(priorCriteria);
+    // fakeRoute has no query params (default from beforeEach).
+
+    const fresh = TestBed.createComponent(SearchFormComponent);
+    fresh.detectChanges();
+    const root: HTMLElement = fresh.nativeElement;
+
+    expect(root.querySelector<HTMLSelectElement>('#origin')!.value).toBe('');
+    expect(root.querySelector<HTMLSelectElement>('#destination')!.value).toBe('');
+    expect(root.querySelector<HTMLInputElement>('#departureDate')!.value).toBe('');
+    expect(root.querySelector<HTMLSelectElement>('#cabinClass')!.value).toBe('Economy');
   });
 
   it('AUD-008: leaves the form blank when there is no prior search', () => {

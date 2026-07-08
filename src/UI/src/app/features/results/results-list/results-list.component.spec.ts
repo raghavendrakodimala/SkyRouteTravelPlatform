@@ -101,7 +101,9 @@ describe('ResultsListComponent', () => {
     expect(emptyEl.textContent).toContain('Try a different route, date, or cabin class.');
     const modifyLink = emptyEl.querySelector('a.modify-link');
     expect(modifyLink?.textContent?.trim()).toBe('Modify search');
-    expect(modifyLink?.getAttribute('href')).toBe('/search');
+    // AUD-008 (PO-reported 2026-07-08): the modify intent is carried as ?mode=modify so the
+    // search form pre-fills the prior query; a genuine new search (no param) starts blank.
+    expect(modifyLink?.getAttribute('href')).toBe('/search?mode=modify');
   });
 
   it('renders one result-card per result in a non-empty result set', () => {
