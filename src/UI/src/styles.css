@@ -162,6 +162,12 @@ app-root {
 
 app-root > main {
   flex: 1 0 auto;
+  /* Positioning context for descendant position:absolute elements — notably the
+     `.visually-hidden` screen-reader spans deep in the content. Without this their containing
+     block is the viewport, so a span low in a long list lands past the viewport and extends
+     the PAGE scroll height, producing a second scrollbar alongside main's. Containing them
+     here keeps them inside the (clipped/scrolled) content region. */
+  position: relative;
 }
 
 @media (min-width: 900px) and (min-height: 640px) {
