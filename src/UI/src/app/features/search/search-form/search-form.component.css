@@ -11,10 +11,10 @@
 .hero {
   background: var(--gradient-hero);
   color: var(--color-white);
-  /* Tightened vertical rhythm (PO 2026-07-08) so the landing page fits a common laptop
-     height without scrolling; the card still overlaps via the negative bottom margin. */
-  margin: 0 0 calc(-1 * var(--space-6));
-  padding: var(--space-6) var(--space-5) calc(var(--space-6) + var(--space-6));
+  /* Slim hero (PO 2026-07-08): compact top padding and just enough bottom padding for the
+     card to overlap into; the negative bottom margin pulls the card up over the band. */
+  margin: 0 0 calc(-1 * var(--space-5));
+  padding: var(--space-4) var(--space-5) var(--space-6);
   text-align: center;
 }
 
@@ -42,8 +42,8 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: var(--space-6);
-  /* Matches the hero's -space-6 bottom margin so the card overlaps the hero band. */
-  margin: var(--space-6) auto 0;
+  /* No top margin: the hero's negative bottom margin pulls this card up to overlap the band. */
+  margin: 0 auto 0;
 }
 
 /* Two-column field grid on desktop, stacked on small screens. */
