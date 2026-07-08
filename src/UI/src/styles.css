@@ -143,8 +143,16 @@ body {
      flight timeline), so no horizontal scrollbar appears at 320px or 1280px without the hack. */
 }
 
-/* App shell: sticky-footer column so the navy footer sits at the viewport bottom on
-   short pages without overlapping content on long ones. */
+/* Application shell (PO 2026-07-08): fill the viewport so the chrome — header, journey
+   steps, footer — stays put and the MAIN content region scrolls internally only when it
+   overflows. Result: no whole-page scrollbar by default; a scrollbar appears exactly when
+   content genuinely does not fit.
+
+   The viewport lock is guarded by a min-height media query. At short viewports or high
+   browser zoom (WCAG 1.4.10 Reflow, 1.4.4 Resize Text), effective height drops below the
+   threshold and the lock is RELEASED back to normal document flow — so a fixed header/footer
+   can never crush the content region or clip anything at 400% zoom. That fallback is what
+   keeps the fit-to-viewport behavior accessible. */
 app-root {
   display: flex;
   flex-direction: column;
@@ -154,6 +162,23 @@ app-root {
 
 app-root > main {
   flex: 1 0 auto;
+}
+
+@media (min-width: 900px) and (min-height: 640px) {
+  /* Desktop-class viewport: apply the fit-to-viewport lock. Below this (phones/tablets, and
+     high browser zoom which shrinks the effective width) the shell reverts to normal document
+     flow — the multi-column footer would otherwise consume most of a narrow viewport, and a
+     page scrollbar is the correct, conventional behavior there. */
+  app-root {
+    height: 100dvh; /* lock the shell to the viewport (no page scroll) */
+    overflow: hidden;
+  }
+
+  app-root > main {
+    flex: 1 1 auto;
+    min-height: 0; /* allow the flex item to shrink below its content so overflow-y works */
+    overflow-y: auto; /* the content region — not the page — scrolls when it overflows */
+  }
 }
 
 /* Spec §2: one family app-wide — removes the accidental serif-heading fallback. */

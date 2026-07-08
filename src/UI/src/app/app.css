@@ -5,6 +5,7 @@
 .app-header {
   background: var(--color-navy);
   color: var(--color-white);
+  flex: 0 0 auto; /* app-shell chrome: keep natural height, never shrink (main scrolls) */
 }
 
 .header-inner {
@@ -114,6 +115,7 @@ a.nav-link:focus-visible {
   background: var(--color-white);
   border-bottom: 1px solid var(--color-neutral-200);
   box-shadow: var(--shadow-sm);
+  flex: 0 0 auto; /* app-shell chrome: fixed height */
 }
 
 .journey-steps {
@@ -176,6 +178,7 @@ a.nav-link:focus-visible {
   color: rgba(255, 255, 255, 0.82);
   margin-top: var(--space-5);
   font-size: var(--font-size-sm);
+  flex: 0 0 auto; /* app-shell chrome: pinned below the scrolling main region */
 }
 
 .footer-inner {
