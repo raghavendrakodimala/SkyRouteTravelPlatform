@@ -11,8 +11,10 @@
 .hero {
   background: var(--gradient-hero);
   color: var(--color-white);
-  margin: 0 0 calc(-1 * var(--space-7));
-  padding: var(--space-7) var(--space-5) calc(var(--space-7) + var(--space-6));
+  /* Tightened vertical rhythm (PO 2026-07-08) so the landing page fits a common laptop
+     height without scrolling; the card still overlaps via the negative bottom margin. */
+  margin: 0 0 calc(-1 * var(--space-6));
+  padding: var(--space-6) var(--space-5) calc(var(--space-6) + var(--space-6));
   text-align: center;
 }
 
@@ -40,7 +42,8 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: var(--space-6);
-  margin: var(--space-7) auto 0;
+  /* Matches the hero's -space-6 bottom margin so the card overlaps the hero band. */
+  margin: var(--space-6) auto 0;
 }
 
 /* Two-column field grid on desktop, stacked on small screens. */

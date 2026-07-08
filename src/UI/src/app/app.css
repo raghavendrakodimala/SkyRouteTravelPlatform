@@ -174,7 +174,7 @@ a.nav-link:focus-visible {
 .app-footer {
   background: var(--color-navy-deep);
   color: rgba(255, 255, 255, 0.82);
-  margin-top: var(--space-7);
+  margin-top: var(--space-5);
   font-size: var(--font-size-sm);
 }
 

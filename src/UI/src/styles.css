@@ -131,7 +131,11 @@ body {
 
 body {
   margin: 0;
+  /* dvh (dynamic viewport height) tracks the actually-visible area, unlike 100vh which on
+     mobile equals the LARGEST viewport (toolbars hidden) and overflows when chrome is shown.
+     100vh kept as a fallback for engines without dvh. */
   min-height: 100vh;
+  min-height: 100dvh;
   /* AUD-016: the app-wide `overflow-x: hidden` hack was removed. It masked real horizontal
      overflow (long passenger names, the fixed-width flight timeline) rather than fixing it.
      The hero is full-bleed via its own full-width host section (no 100vw is used anywhere),
@@ -145,6 +149,7 @@ app-root {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 app-root > main {
